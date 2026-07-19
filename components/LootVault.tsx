@@ -1,91 +1,82 @@
 'use client';
 
 export default function LootVault() {
-  const rewards = [
-    { title: "LEGENDARY SKINS", desc: "EPIC & RARE SKINS", icon: "🔫", delay: "0s", duration: "4s" },
-    { title: "UC REWARDS", desc: "BGMI UC CASH", icon: "🪙", delay: "0.5s", duration: "5s" },
-    { title: "CASH REWARDS", desc: "REAL MONEY PRIZES", icon: "💵", delay: "1s", duration: "4.5s" },
-    { title: "GIFT CARDS", desc: "GOOGLE PLAY & MORE", icon: "🎁", delay: "0.2s", duration: "4.8s" },
-    { title: "ROYAL PASS", desc: "ELITE PASS & RP", icon: "👑", delay: "0.8s", duration: "4.2s" },
-    { title: "PREMIUM CRATES", desc: "OPEN & WIN BIG", icon: "📦", delay: "1.2s", duration: "5.5s" },
+  const leftRewards = [
+    { title: "EXCLUSIVE LOOTS", desc: "Rare skins, crates, and legendary bundles just for you.", icon: "🎁" },
+    { title: "DAILY EVENTS", desc: "Join daily events and tournaments to win big rewards.", icon: "🏆" },
+    { title: "REAL CASH PRIZES", desc: "Compete and win exciting real cash rewards.", icon: "🪙" },
+    { title: "100% SECURE", desc: "Safe transactions and secure rewards delivery.", icon: "🛡️" },
+  ];
+
+  const rightRewards = [
+    { title: "EASY SIGNUP", desc: "Quick and easy registration in just a minute.", icon: "👤" },
+    { title: "INSTANT REWARDS", desc: "Get your rewards instantly after completing tasks.", icon: "⚡" },
+    { title: "EXCITING OFFERS", desc: "Grab limited-time offers and bonus rewards.", icon: "🏷️" },
+    { title: "COMMUNITY", desc: "Be a part of our gaming community and grow together.", icon: "👥" },
   ];
 
   return (
-    <div className="w-full relative overflow-hidden font-sans flex items-center justify-center min-h-[700px] lg:min-h-[900px] bg-[#030308] border-y border-white/5">
+    <div className="w-full relative overflow-hidden font-sans flex items-center justify-center min-h-[700px] lg:min-h-[900px] bg-[#030308]">
       
-      {/* Floating Animation */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes float-hologram {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-          100% { transform: translateY(0px); }
-        }
-      `}} />
-
-      {/* ================= 100% CLEAR BACKGROUND ================= */}
+      {/* ================= BACKGROUND IMAGE ================= */}
       <div 
         className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat z-0"
         style={{ backgroundImage: "url('/lootvault.png')" }} 
       ></div>
 
-      {/* Center ko bright chhod kar sirf borders pe shadow (Vignette) taaki cards pop karein */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,#030308_100%)] z-10 pointer-events-none"></div>
+      {/* ================= EDGE SHADOWS (The Fix for Readability) ================= */}
+      {/* Left dark fade - masks the left vault hinges */}
+      <div className="absolute inset-y-0 left-0 w-full lg:w-[45%] bg-gradient-to-r from-[#030308] via-[#030308]/70 to-transparent z-10 pointer-events-none"></div>
+      
+      {/* Right dark fade - masks the right vault door */}
+      <div className="absolute inset-y-0 right-0 w-full lg:w-[45%] bg-gradient-to-l from-[#030308] via-[#030308]/70 to-transparent z-10 pointer-events-none"></div>
 
-      {/* ================= MAIN GRID ================= */}
-      <div className="max-w-[1450px] w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-center px-6 relative z-20 py-24">
+      {/* Center ambient dim (Optional, keeps the very bright center slightly tame) */}
+      <div className="absolute inset-0 bg-black/10 z-10 pointer-events-none"></div>
+
+      {/* ================= MAIN CONTENT FLEXBOX ================= */}
+      {/* Changed to max-w-[1920px] and flex justify-between to push to extreme edges */}
+      <div className="max-w-[1920px] w-full mx-auto flex flex-col lg:flex-row justify-between items-center px-6 lg:px-12 xl:px-24 relative z-20 py-24 gap-20 lg:gap-0">
         
-        {/* Left Cards */}
-        <div className="lg:col-span-3 flex flex-col gap-6 mt-40 lg:mt-0">
-          {rewards.slice(0, 3).map((item, i) => (
-            <div 
-              key={i} 
-              className="relative group cursor-pointer"
-              style={{ animation: `float-hologram ${item.duration} ease-in-out infinite`, animationDelay: item.delay }}
-            >
-              {/* Extra Glow behind the card */}
-              <div className="absolute inset-0 bg-fuchsia-600/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-              {/* Solid Glass Card */}
-              <div className="relative flex items-center gap-4 bg-[#05050a]/85 backdrop-blur-xl p-4 rounded-2xl border border-white/10 border-l-4 border-l-fuchsia-500 hover:border-fuchsia-500/50 hover:bg-[#0a0a14]/95 hover:scale-105 transition-all duration-300 shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
-                
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-fuchsia-900/40 to-transparent border border-fuchsia-500/30 flex items-center justify-center text-2xl group-hover:rotate-6 group-hover:scale-110 transition-transform duration-300 shadow-inner shrink-0">
-                  <span className="drop-shadow-lg">{item.icon}</span>
-                </div>
-                
-                <div className="flex flex-col">
-                  <h4 className="text-white font-black text-sm tracking-widest uppercase drop-shadow-md">{item.title}</h4>
-                  <p className="text-fuchsia-400 text-[10px] uppercase font-bold tracking-wider">{item.desc}</p>
-                </div>
+        {/* ================= LEFT SIDE ================= */}
+        <div className="w-full lg:w-[380px] flex flex-col gap-10 mt-20 lg:mt-0">
+          {leftRewards.map((item, i) => (
+            <div key={i} className="flex items-center gap-5 group cursor-pointer relative">
+              {/* Neon Circle Icon */}
+              <div className="w-14 h-14 rounded-full border border-fuchsia-500 flex items-center justify-center text-xl text-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.3)] group-hover:shadow-[0_0_25px_rgba(217,70,239,0.8)] group-hover:scale-110 group-hover:border-white transition-all duration-300 shrink-0 bg-[#030308]/80 backdrop-blur-sm z-10">
+                {item.icon}
+              </div>
+              
+              {/* Text */}
+              <div className="flex flex-col z-10">
+                <h4 className="text-white text-xs md:text-sm font-bold tracking-widest uppercase group-hover:text-fuchsia-400 transition-colors">
+                  {item.title}
+                </h4>
+                <p className="text-gray-300 text-[10px] md:text-xs leading-relaxed mt-1 max-w-[240px]">
+                  {item.desc}
+                </p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Center - EMPTY (Full brightness vault) */}
-        <div className="lg:col-span-6 h-[300px] lg:h-[600px] pointer-events-none"></div>
-
-        {/* Right Cards */}
-        <div className="lg:col-span-3 flex flex-col gap-6">
-          {rewards.slice(3, 6).map((item, i) => (
-            <div 
-              key={i} 
-              className="relative group cursor-pointer"
-              style={{ animation: `float-hologram ${item.duration} ease-in-out infinite`, animationDelay: item.delay }}
-            >
-              {/* Extra Glow behind the card */}
-              <div className="absolute inset-0 bg-fuchsia-600/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-              {/* Solid Glass Card */}
-              <div className="relative flex items-center gap-4 bg-[#05050a]/85 backdrop-blur-xl p-4 rounded-2xl border border-white/10 border-r-4 border-r-fuchsia-500 hover:border-fuchsia-500/50 hover:bg-[#0a0a14]/95 hover:scale-105 transition-all duration-300 shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
-                
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-bl from-fuchsia-900/40 to-transparent border border-fuchsia-500/30 flex items-center justify-center text-2xl group-hover:-rotate-6 group-hover:scale-110 transition-transform duration-300 shadow-inner shrink-0">
-                  <span className="drop-shadow-lg">{item.icon}</span>
-                </div>
-                
-                <div className="flex flex-col">
-                  <h4 className="text-white font-black text-sm tracking-widest uppercase drop-shadow-md">{item.title}</h4>
-                  <p className="text-fuchsia-400 text-[10px] uppercase font-bold tracking-wider">{item.desc}</p>
-                </div>
+        {/* ================= RIGHT SIDE ================= */}
+        <div className="w-full lg:w-[380px] flex flex-col gap-10">
+          {rightRewards.map((item, i) => (
+            <div key={i} className="flex items-center gap-5 group cursor-pointer relative">
+              {/* Neon Circle Icon */}
+              <div className="w-14 h-14 rounded-full border border-fuchsia-500 flex items-center justify-center text-xl text-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.3)] group-hover:shadow-[0_0_25px_rgba(217,70,239,0.8)] group-hover:scale-110 group-hover:border-white transition-all duration-300 shrink-0 bg-[#030308]/80 backdrop-blur-sm z-10">
+                {item.icon}
+              </div>
+              
+              {/* Text */}
+              <div className="flex flex-col z-10">
+                <h4 className="text-white text-xs md:text-sm font-bold tracking-widest uppercase group-hover:text-fuchsia-400 transition-colors">
+                  {item.title}
+                </h4>
+                <p className="text-gray-300 text-[10px] md:text-xs leading-relaxed mt-1 max-w-[240px]">
+                  {item.desc}
+                </p>
               </div>
             </div>
           ))}
@@ -93,14 +84,13 @@ export default function LootVault() {
 
       </div>
 
-      {/* Floating Timer Banner */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-full max-w-[450px] z-20 px-6">
-        <div className="bg-[#05050a]/90 backdrop-blur-xl border border-fuchsia-500/50 rounded-full py-4 px-6 flex items-center justify-center gap-3 shadow-[0_0_40px_rgba(217,70,239,0.3)] hover:shadow-[0_0_60px_rgba(217,70,239,0.6)] transition-all cursor-default">
-          <span className="text-fuchsia-500 text-2xl animate-spin-slow">🕒</span>
-          <p className="text-white text-xs md:text-sm font-medium tracking-wide">
-            NEW LOOT ADDED <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-purple-400 font-black uppercase ml-1 animate-pulse drop-shadow-lg">Every 6 Hours</span>
-          </p>
-        </div>
+      {/* ================= BOTTOM TIMER PILL ================= */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 w-[90%] md:w-auto flex justify-center">
+        <div className="bg-[#030308]/90 backdrop-blur-md border border-white/10 rounded-full py-2 px-4 md:px-6 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,0,0,0.8)] cursor-default">
+          <div className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center">
+            <span className="text-[10px]">⏱️</span>
+          </div>
+         </div>
       </div>
 
     </div>
