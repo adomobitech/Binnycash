@@ -1,22 +1,15 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import Navbar from "@/components/Navbar";
+import Navbar from '@/components/Navbar';
+import { AuthProvider } from '@/components/AuthContext'; // ✨ Context provider
+import './globals.css';
 
-export const metadata: Metadata = {
-  title: "BinnyCash - Earn Real Money",
-  description: "Global earning platform for gamers and hustlers.",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-[#05050A] text-white font-sans overflow-x-hidden selection:bg-purple-500/30">
-        <Navbar />
-        {children}
+      <body className="bg-[#08080C] text-white font-sans">
+        <AuthProvider>
+          <Navbar />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
