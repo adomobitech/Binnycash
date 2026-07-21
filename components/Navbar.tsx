@@ -20,17 +20,7 @@ export default function Navbar() {
           </div>
         </Link>
 
-        <div className="hidden lg:flex items-center gap-10 text-sm font-semibold text-[#8F95A3]">
-          <div className="relative text-[#00E57A] flex flex-col items-center cursor-pointer">
-            <span>Home</span>
-            <div className="absolute -bottom-[26px] w-6 h-[2px] bg-[#00E57A] shadow-[0_0_10px_rgba(0,229,122,0.8)]"></div>
-          </div>
-          <Link href="#quests" className="hover:text-white transition-colors">Quests</Link>
-          <Link href="#games" className="hover:text-white transition-colors">Games</Link>
-          <Link href="#leaderboard" className="hover:text-white transition-colors">Leaderboard</Link>
-          <Link href="#how-it-works" className="hover:text-white transition-colors">How it Works</Link>
-        </div>
-
+  
         <div className="flex items-center gap-4">
           {isLoggedIn ? (
             <>

@@ -3,130 +3,173 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
+interface TopEarner {
+  id?: number | string;
+  name?: string;
+  userName?: string;
+  username?: string;
+  amount?: number;
+  totalAmount?: number;
+  totalEarning?: number;
+  earnings?: number;
+  [key: string]: any;
+}
+
 export default function LowerHero() {
   const { openRegister } = useAuth();
-  const [jackpot, setJackpot] = useState(2548750);
   
-  // Dynamic Leaderboard Data (Realistic Names & Numbers)
-  const [topEarners, setTopEarners] = useState([
-    { id: 1, name: 'Vikram_OP', amount: 24580 },
-    { id: 2, name: 'NehaGaming', amount: 21340 },
-    { id: 3, name: 'Rahul_Verma', amount: 18950 },
-    { id: 4, name: 'Karan_Pro', amount: 15420 },
-    { id: 5, name: 'Anjali_99', amount: 12100 },
-  ]);
+  const [topEarners, setTopEarners] = useState<TopEarner[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Jackpot ticker
-    const jackpotInterval = setInterval(() => {
-      setJackpot(prev => prev + Math.floor(Math.random() * 250) + 100);
-    }, 800); 
-
-    // Live Leaderboard Updater (Changes amounts slightly to look real)
-    const earnerInterval = setInterval(() => {
-      setTopEarners(prev => 
-        prev.map(earner => {
-          // 40% chance an earner's score goes up
-          if (Math.random() > 0.6) {
-            return { ...earner, amount: earner.amount + Math.floor(Math.random() * 150) + 20 };
-          }
-          return earner;
-        }).sort((a, b) => b.amount - a.amount) // Keep it sorted descending
-      );
-    }, 2500); // Updates every 2.5 seconds
-
-    return () => {
-      clearInterval(jackpotInterval);
-      clearInterval(earnerInterval);
-    };
+    // API Fetch
+    fetch('https://apitest.binnycash.com/api/admin/userEarningList')
+      .then(res => res.json())
+      .then(resData => {
+        const list = resData?.data || resData?.list || resData || [];
+        setTopEarners(Array.isArray(list) ? list.slice(0, 3) : []);
+      })
+      .catch(err => {
+        console.error("Error fetching earners:", err);
+        setTopEarners([]);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, []);
 
+  const steps = [
+    { num: '01', title: 'SIGN UP FREE', desc: 'Create your free account in seconds and get started', icon: '👤' },
+    { num: '02', title: 'PLAY & COMPLETE', desc: 'Play games, try apps, take surveys & more', icon: '🎮' },
+    { num: '03', title: 'EARN POINTS', desc: 'Complete tasks and earn exciting rewards', icon: '👛' },
+    { num: '04', title: 'WITHDRAW CASH', desc: 'Withdraw your earnings instantly to your wallet', icon: '💸' },
+  ];
+
+  // Chamfer Cut for 4 Steps
+  const cardCutStyle = {
+    clipPath: 'polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px))'
+  };
+
   return (
-    <div className="w-full bg-[#08080C] relative overflow-hidden py-16 font-sans">
+    <div className="w-full bg-[#08080C] relative overflow-hidden py-20 font-sans">
       
-      <div className="absolute inset-0 w-full h-full bg-[url('/lowerbackground.png')] bg-cover bg-center bg-no-repeat lg:hidden z-0 opacity-20 pointer-events-none"></div>
-      <div className="absolute inset-0 bg-gradient-to-b from-[#08080C] via-transparent to-[#08080C] lg:hidden z-0 pointer-events-none"></div>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#8B5CF6]/5 blur-[120px] rounded-full pointer-events-none z-0"></div>
-
-      <div className="max-w-[1450px] mx-auto px-6 flex flex-col gap-20 relative z-10">
+      <div className="max-w-[1300px] mx-auto px-6 flex flex-col gap-16 relative z-10">
         
-        <div className="w-full animate-in fade-in zoom-in duration-1000 mt-10">
-          <div className="flex items-center justify-center gap-4 mb-14">
-            <div className="w-16 h-[1px] bg-gradient-to-r from-transparent to-[#8B5CF6]/50"></div>
-            <h2 className="text-white font-black text-xl tracking-widest uppercase text-center drop-shadow-md">How It Works</h2>
-            <div className="w-16 h-[1px] bg-gradient-to-l from-transparent to-[#8B5CF6]/50"></div>
+        {/* ================= HEADER ================= */}
+        <div className="flex flex-col items-center text-center">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-1.5 rotate-45 bg-[#8b5cf6]"></div>
+            <span className="text-[#8b5cf6] font-bold text-xs tracking-[0.2em] uppercase">How It Works</span>
+            <div className="w-1.5 h-1.5 rotate-45 bg-[#8b5cf6]"></div>
           </div>
-
-          <div className="grid grid-cols-2 lg:flex justify-center items-center gap-6 lg:gap-10">
-            {['Play Games', 'Complete Quests', 'Earn Cash', 'Instant Withdraw'].map((step, i) => (
-              <div key={i} className="flex flex-col items-center text-center w-full lg:w-48 group hover:-translate-y-2 transition-transform duration-300">
-                <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border border-white/10 bg-[#12121A]/80 backdrop-blur-md lg:bg-transparent flex items-center justify-center mb-6 relative group-hover:border-[#00E57A]/50 shadow-[0_0_20px_rgba(0,229,122,0.05)] transition-all z-10">
-                  <div className="absolute top-0 left-0 -translate-x-1 -translate-y-1 w-6 h-6 rounded-full bg-[#00E57A] flex items-center justify-center text-xs font-black text-[#08080C] shadow-lg">{i + 1}</div>
-                  <span className="text-3xl lg:text-4xl">{['🎮', '🎯', '💳', '💵'][i]}</span>
-                </div>
-                <h3 className="text-white font-black text-xs lg:text-sm uppercase mb-2 drop-shadow-lg">{step}</h3>
-              </div>
-            ))}
-          </div>
+          <h2 className="text-white font-black text-3xl md:text-5xl uppercase mb-3 tracking-tight">
+            Earn In <span className="text-[#c084fc]">4 Simple Steps</span>
+          </h2>
+          <p className="text-gray-400 text-sm md:text-base">Play, complete & earn real cash rewards in just a few clicks</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          
-          <div className="lg:col-span-3 flex flex-col gap-6 relative z-20 animate-in slide-in-from-left duration-1000">
-            <h3 className="text-white font-black text-lg uppercase tracking-wider mb-2 text-center lg:text-left drop-shadow-lg">Why Players Love <span className="text-[#00E57A]">BINNYCASH</span></h3>
-            {['Secure Payments', 'Instant Withdraw', 'Fair Play', '24/7 Support'].map((feature, i) => (
-              <div key={i} className="flex gap-4 items-center bg-[#12121A]/80 backdrop-blur-md p-3 rounded-xl border border-white/5 hover:border-[#8B5CF6]/30 transition-all cursor-default">
-                <div className="w-8 h-8 rounded-lg bg-[#8B5CF6]/10 flex items-center justify-center text-[#8B5CF6]">✨</div>
-                <span className="text-white text-sm font-bold">{feature}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="hidden lg:flex lg:col-span-5 h-[600px] relative justify-center items-center overflow-hidden rounded-3xl group z-10 border border-white/10 shadow-[0_0_40px_rgba(139,92,246,0.1)]">
-            <div className="absolute inset-0 w-full h-full bg-[url('/lowerbackground.png')] bg-cover bg-center bg-no-repeat z-0 transform group-hover:scale-105 transition-transform duration-700 ease-out"></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-[#08080C] via-transparent to-transparent z-10 pointer-events-none opacity-80"></div>
-          </div>
-
-          <div className="lg:col-span-4 flex flex-col gap-6 relative z-20 animate-in slide-in-from-right duration-1000 mt-8 lg:mt-0">
-            
-            <div className="bg-[#12121A]/80 backdrop-blur-md border border-[#8B5CF6]/40 rounded-2xl p-6 shadow-[0_0_30px_rgba(139,92,246,0.15)] relative overflow-hidden group">
-              <span className="text-[#8F95A3] font-bold text-xs uppercase tracking-wider mb-2 block">Live Jackpot</span>
-              <h3 className="text-4xl lg:text-5xl font-black text-[#8B5CF6] mb-6 drop-shadow-[0_0_15px_rgba(139,92,246,0.2)]">
-                ₹{jackpot.toLocaleString('en-IN')}
-              </h3>
-              <button onClick={openRegister} className="w-full bg-[#00E57A] hover:bg-[#00c968] text-[#08080C] font-black text-sm uppercase py-4 rounded-xl shadow-[0_0_20px_rgba(0,229,122,0.2)] transition-all animate-pulse">
-                Join Now & Win ⚡
-              </button>
-            </div>
-
-            {/* UPGRADED LIVE LEADERBOARD */}
-            <div className="bg-[#12121A]/80 backdrop-blur-md border border-white/5 rounded-2xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-white font-bold text-sm uppercase tracking-wider">Daily Top Earners</h3>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#00E57A] animate-pulse"></div>
-                  <span className="text-[9px] text-[#00E57A] font-bold uppercase tracking-widest">Live</span>
+        {/* ================= 4-STEP CARDS ================= */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+          {steps.map((step, index) => (
+            <div key={index} className="relative w-full h-[220px] group">
+              
+              {/* Step Ribbon */}
+              <div className="absolute top-0 left-0 z-20">
+                <div className="bg-[#6d28d9] text-white font-black text-sm px-3 py-1.5 rounded-br-xl shadow-md">
+                  {step.num}
                 </div>
               </div>
-              <div className="flex flex-col gap-4">
-                {topEarners.map((earner, index) => (
-                  <div key={earner.id} className="flex items-center justify-between p-2 hover:bg-white/5 rounded-lg transition-all duration-300">
-                    <div className="flex items-center gap-4">
-                      <span className={`text-sm font-black w-4 ${index === 0 ? 'text-[#eab308]' : index === 1 ? 'text-gray-300' : index === 2 ? 'text-[#b45309]' : 'text-[#8F95A3]'}`}>
-                        {index + 1}
-                      </span>
-                      <span className="text-white text-sm font-medium">{earner.name}</span>
-                    </div>
-                    <span className="text-[#00E57A] font-bold text-sm">
-                      ₹{earner.amount.toLocaleString('en-IN')}
-                    </span>
+
+              {/* Card Surface */}
+              <div className="w-full h-full p-[1px] bg-[#1e1b2e] hover:bg-[#8b5cf6]/50 transition-colors duration-300" style={cardCutStyle}>
+                <div className="bg-[#12111a] w-full h-full p-6 pt-10 flex flex-col items-center text-center relative" style={cardCutStyle}>
+                  <div className="text-5xl mb-4 z-10 group-hover:scale-110 transition-transform duration-300">
+                    {step.icon}
                   </div>
-                ))}
+                  <h3 className="text-white font-black text-sm mb-2 z-10 tracking-wider uppercase">{step.title}</h3>
+                  <p className="text-gray-400 text-xs z-10 leading-relaxed">{step.desc}</p>
+                </div>
               </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ================= DYNAMIC LEADERBOARD (API-DRIVEN) ================= */}
+        <div className="w-full">
+          <div className="bg-[#0f0e17] border border-white/10 rounded-2xl p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden">
+            
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-5">
+              <h3 className="text-white font-black text-base md:text-lg tracking-wider flex items-center gap-2.5 uppercase">
+                <span>🏆</span> DAILY TOP EARNERS
+              </h3>
+              <div className="flex items-center gap-2 bg-[#00E57A]/10 border border-[#00E57A]/20 px-3 py-1 rounded-full">
+                <div className="w-2 h-2 rounded-full bg-[#00E57A] animate-pulse"></div>
+                <span className="text-[10px] text-[#00E57A] font-bold uppercase tracking-widest">Live Updates</span>
+              </div>
+            </div>
+
+            {/* List / Blank Area */}
+            <div className="min-h-[120px] flex items-center justify-center">
+              {isLoading ? (
+                <div className="flex gap-4 w-full">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 bg-white/5 animate-pulse rounded-xl flex-1"></div>
+                  ))}
+                </div>
+              ) : topEarners.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                  {topEarners.map((earner, idx) => {
+                    const name = earner.name || earner.userName || earner.username || `User_${idx + 1}`;
+                    const amount = earner.amount || earner.totalAmount || earner.totalEarning || earner.earnings || 0;
+                    
+                    return (
+                      <div key={idx} className="bg-[#181625] border border-white/5 rounded-xl p-4 flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-lg bg-[#8b5cf6]/20 text-[#8b5cf6] flex items-center justify-center font-black text-sm">
+                          #{idx + 1}
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-white text-sm font-bold truncate">{name}</span>
+                          <span className="text-[#00E57A] font-black text-sm">₹{Number(amount).toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 text-sm font-medium py-6">
+                  No earners logged for today yet. Start playing to rank first!
+                </div>
+              )}
+            </div>
+
+            {/* Footer Features & Action */}
+            <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-6">
+              
+              <div className="flex flex-wrap items-center gap-6 text-gray-400 text-xs font-medium">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#8b5cf6]">🔒</span> 100% Encrypted & Safe
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#8b5cf6]">⚡</span> Instant Wallet Withdrawals
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#8b5cf6]">🎮</span> Verified Offer Walls
+                </div>
+              </div>
+
+              <button 
+                onClick={openRegister} 
+                className="w-full md:w-auto bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-black text-xs uppercase px-8 py-3.5 rounded-xl transition-all shadow-[0_0_15px_rgba(139,92,246,0.2)] hover:shadow-[0_0_25px_rgba(139,92,246,0.4)] shrink-0"
+              >
+                START EARNING NOW ⚡
+              </button>
+
             </div>
 
           </div>
         </div>
+
       </div>
     </div>
   );
