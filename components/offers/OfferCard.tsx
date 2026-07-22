@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import OfferDetailsModal from '@/components/offers/OfferDetailsModal';
 
 interface OfferCardProps {
   offer: any;
@@ -64,32 +65,56 @@ export const DeviceIcon = ({ offer }: { offer: any }) => {
 };
 
 export default function OfferCard({ offer, onClick }: OfferCardProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  if (!offer) return null;
+
   const title = offer.offerName || offer.title || offer.name || 'Offer Item';
-  const sub = offer.categories || offer.sub || offer.category || 'All..';
+  const sub = offer.categories || offer.sub || offer.category || 'All';
   const rewardVal = offer.userCredits ?? offer.reward ?? offer.payout ?? 0;
   const reward = `$ ${Number(rewardVal).toFixed(2)}`;
-  const img = offer.image_url || offer.preview || offer.image || offer.img || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop';
+  
+  // Robust image extraction
+  let rawImage = offer.image_url || offer.preview || offer.image || offer.img || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop';
+  
+  // Fix relative image paths if backend sends them without domain
+  if (rawImage && !rawImage.startsWith('http')) {
+    rawImage = `https://apitest.binnycash.com${rawImage.startsWith('/') ? '' : '/'}${rawImage}`;
+  }
+
+  const handleCardClick = () => {
+    if (onClick) onClick();
+    setIsModalOpen(true);
+  };
 
   return (
-    <div 
-      onClick={onClick}
-      className="bg-[#1A1C24] border border-white/5 rounded-2xl overflow-hidden flex flex-col hover:border-[#8B5CF6]/50 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all duration-300 cursor-pointer shrink-0 w-[165px] sm:w-[175px]"
-    >
-      <div className="h-28 w-full bg-white/5 relative overflow-hidden">
-        <img src={img} alt={title} className="w-full h-full object-cover" />
-      </div>
-      <div className="p-3 flex flex-col justify-between flex-1 gap-2">
-        <div>
-          <h3 className="text-xs font-bold text-white truncate">{title}</h3>
-          <p className="text-[10px] text-[#8F95A3] truncate mt-0.5">{sub}</p>
+    <>
+      <div 
+        onClick={handleCardClick}
+        className="bg-[#1A1C24] border border-white/5 rounded-2xl overflow-hidden flex flex-col hover:border-[#8B5CF6]/50 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all duration-300 cursor-pointer shrink-0 w-[165px] sm:w-[175px]"
+      >
+        <div className="h-28 w-full bg-white/5 relative overflow-hidden">
+          <img src={rawImage} alt={title} className="w-full h-full object-cover" />
         </div>
-        <div className="flex justify-between items-center pt-1 border-t border-white/5">
-          <span className="text-[13px] font-black text-[#8B5CF6]">{reward}</span>
-          <div className="p-1 rounded-md bg-white/5">
-            <DeviceIcon offer={offer} />
+        <div className="p-3 flex flex-col justify-between flex-1 gap-2">
+          <div>
+            <h3 className="text-xs font-bold text-white truncate">{title}</h3>
+            <p className="text-[10px] text-[#8F95A3] truncate mt-0.5">{sub}</p>
+          </div>
+          <div className="flex justify-between items-center pt-1 border-t border-white/5">
+            <span className="text-[13px] font-black text-[#8B5CF6]">{reward}</span>
+            <div className="p-1 rounded-md bg-white/5 flex items-center justify-center">
+              <DeviceIcon offer={offer} />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <OfferDetailsModal 
+        offer={offer} 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
+    </>
   );
 }

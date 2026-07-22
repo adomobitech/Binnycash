@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface AuthModalProps {
@@ -14,6 +14,13 @@ type ViewState = 'login' | 'register' | 'verifyOtp' | 'forgotPassword' | 'verify
 export default function AuthModal({ isOpen, onClose, initialView = 'login' }: AuthModalProps) {
   const router = useRouter();
   const [view, setView] = useState<ViewState>(initialView);
+  
+  // Sync view whenever initialView changes from props (Login vs Sign Up buttons)
+  useEffect(() => {
+    if (isOpen) {
+      setView(initialView);
+    }
+  }, [isOpen, initialView]);
   
   // Form States
   const [email, setEmail] = useState('');
@@ -97,29 +104,22 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       const data = await res.json();
       
       if (res.ok) {
-        // 🔥 EXTRACT AND SAVE ACTUAL BACKEND TOKEN 🔥
         const userToken = data.token || data.accessToken || data.data?.token || data.data;
         if (userToken) {
           localStorage.setItem('token', userToken);
-          console.log("Token saved successfully:", userToken);
-        } else {
-          console.warn("Login successful, but token format was unrecognized:", data);
         }
         
-        // Show Solid Full-Screen Jumping Logo
         setView('loginSuccess');
         
-        // SMOOTH TRANSITION LOGIC
         setTimeout(() => {
-          router.push('/dashboard'); // Push route in background
-          
+          router.push('/dashboard');
           setTimeout(() => {
-            onClose(); // Delay closing the overlay to prevent flicker
+            onClose();
             setView('login');
             setEmail('');
             setPassword('');
-          }, 800); // 800ms buffer for next.js to render the new page
-        }, 1500); // Show jump animation for 1.5s
+          }, 800);
+        }, 1500);
 
       } else {
         setError(data.message || 'Invalid email or password');
@@ -149,7 +149,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       const data = await res.json();
 
       if (res.ok) {
-        // 🔥 EXTRACT AND SAVE TOKEN ON OTP VERIFY IF PROVIDED 🔥
         const userToken = data.token || data.accessToken || data.data?.token || data.data;
         if (userToken) {
           localStorage.setItem('token', userToken);
@@ -252,21 +251,40 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     </div>
   );
 
-  const GoogleButton = () => (
-    <button 
-      type="button"
-      onClick={() => alert('Google Auth Coming Soon!')}
-      className="w-full flex items-center justify-center gap-3 bg-[#1A1C23] hover:bg-[#232630] border border-white/5 text-white font-bold py-3.5 rounded-xl transition-all cursor-pointer"
-    >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-      </svg>
-      Continue with Google
-    </button>
-  );
+  const GoogleButton = () => {
+    const handleGoogleLogin = () => {
+      let deviceId = localStorage.getItem('device_id');
+      if (!deviceId) {
+        deviceId = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+        localStorage.setItem('device_id', deviceId);
+      }
+
+      const params = new URLSearchParams();
+      params.append('device_id', deviceId);
+      if (promoCode.trim()) {
+        params.append('promoCode', promoCode.trim());
+      }
+
+      // Redirect using GET with query parameters since endpoint accepts GET
+      window.location.href = `https://apitest.binnycash.com/auth/google?${params.toString()}`;
+    };
+
+    return (
+      <button 
+        type="button"
+        onClick={handleGoogleLogin}
+        className="w-full flex items-center justify-center gap-3 bg-[#1A1C23] hover:bg-[#232630] border border-white/5 text-white font-bold py-3.5 rounded-xl transition-all cursor-pointer"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+    );
+  };
 
   return (
     <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-sans overflow-y-auto transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>

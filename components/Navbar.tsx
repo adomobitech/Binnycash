@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from './AuthContext';
-import { Rocket, Trophy, Wallet } from "lucide-react";
+import { Rocket, Trophy, Wallet, Globe, ChevronDown } from "lucide-react";
 import "flag-icons/css/flag-icons.min.css";
 
 declare global {
@@ -15,13 +15,13 @@ declare global {
 }
 
 const LANGUAGES = [
-  { code: 'en', name: 'English', tag: 'US', flag: '🇺🇸' },
-  { code: 'hi', name: 'Hindi', tag: 'IN', flag: '🇮🇳' },
-  { code: 'bn', name: 'Bengali', tag: 'BD', flag: '🇧🇩' },
-  { code: 'es', name: 'Spanish', tag: 'ES', flag: '🇪🇸' },
-  { code: 'fr', name: 'French', tag: 'FR', flag: '🇫🇷' },
-  { code: 'de', name: 'German', tag: 'DE', flag: '🇩🇪' },
-  { code: 'ar', name: 'Arabic', tag: 'SA', flag: '🇸🇦' }
+  { code: 'en', name: 'English', tag: 'us', flag: '🇺🇸' },
+  { code: 'hi', name: 'Hindi', tag: 'in', flag: '🇮🇳' },
+  { code: 'bn', name: 'Bengali', tag: 'bd', flag: '🇧🇩' },
+  { code: 'es', name: 'Spanish', tag: 'es', flag: '🇪🇸' },
+  { code: 'fr', name: 'French', tag: 'fr', flag: '🇫🇷' },
+  { code: 'de', name: 'German', tag: 'de', flag: '🇩🇪' },
+  { code: 'ar', name: 'Arabic', tag: 'sa', flag: '🇸🇦' }
 ];
 
 export default function Navbar() {
@@ -35,6 +35,7 @@ export default function Navbar() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [usdToggle, setUsdToggle] = useState(true);
+  const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
 
   const navRef = useRef<HTMLElement>(null);
 
@@ -42,6 +43,7 @@ export default function Navbar() {
     const handleClickOutside = (event: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
+        setIsLangModalOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -89,14 +91,15 @@ export default function Navbar() {
     document.body.appendChild(script);
   }, []);
 
-  const handleLanguageChange = (langCode: string) => {
+  const handleLanguageChange = (lang: any) => {
+    setSelectedLang(lang);
     const selectElement = document.querySelector('.goog-te-combo') as HTMLSelectElement;
     if (selectElement) {
-      selectElement.value = langCode;
+      selectElement.value = lang.code;
       selectElement.dispatchEvent(new Event('change', { bubbles: true }));
     } else {
-      document.cookie = `googtrans=/en/${langCode}; path=/`;
-      document.cookie = `googtrans=/en/${langCode}; path=/; domain=${window.location.hostname}`;
+      document.cookie = `googtrans=/en/${lang.code}; path=/`;
+      document.cookie = `googtrans=/en/${lang.code}; path=/; domain=${window.location.hostname}`;
       window.location.reload();
     }
     setIsLangModalOpen(false);
@@ -214,7 +217,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* 🔥 🚀 UPDATED DESKTOP NAVIGATION WITH LUCIDE ICONS 🔥 */}
+          {/* 🔥 🚀 DESKTOP NAVIGATION WITH LUCIDE ICONS 🔥 */}
           {isLoggedIn && (
             <div className="hidden lg:flex items-center gap-1 bg-[#1A1C24] p-1 rounded-xl border border-white/5 absolute left-1/2 -translate-x-1/2">
               <Link href="/dashboard" className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${pathname === '/earn' || pathname === '/dashboard' ? 'bg-[#252836] text-white shadow-sm' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
@@ -232,6 +235,33 @@ export default function Navbar() {
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
             <div id="google_translate_element" className="hidden"></div>
             
+            {/* Translator Dropdown Button with Flag Icons */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsLangModalOpen(!isLangModalOpen)}
+                className="flex items-center gap-2 bg-[#1A1C24] border border-white/5 hover:bg-[#252836] transition-all px-3 py-2 rounded-xl text-white text-xs font-bold cursor-pointer"
+              >
+                <span className={`fi fi-${selectedLang.tag} w-4 h-3 rounded-[2px] shadow-sm`}></span>
+                <span className="hidden sm:inline uppercase">{selectedLang.code}</span>
+                <ChevronDown className="w-3 h-3 text-[#8F95A3]" />
+              </button>
+
+              {isLangModalOpen && (
+                <div className="absolute right-0 mt-3 w-48 bg-[#1A1C24] border border-white/5 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => handleLanguageChange(lang)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors text-left cursor-pointer"
+                    >
+                      <span className={`fi fi-${lang.tag} w-5 h-3.5 rounded-[2px] shadow-sm`}></span>
+                      <span>{lang.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {isLoggedIn ? (
               <>
                 <div className="flex items-center bg-[#3D1466] border border-[#8B5CF6]/40 px-3 py-1.5 md:py-2 rounded-lg cursor-pointer hover:bg-[#4c1d7a] transition-colors">
@@ -258,8 +288,8 @@ export default function Navbar() {
               </>
             ) : (
               <div className="flex items-center gap-3">
-                <button onClick={openLogin} className="text-sm font-bold text-white hover:text-[#8B5CF6] transition-colors">Login</button>
-                <button onClick={openRegister} className="text-sm font-bold text-white bg-[#8B5CF6] hover:bg-[#7c3aed] px-4 py-2 rounded-lg transition-colors">Sign Up</button>
+                <button onClick={openLogin} className="text-sm font-bold text-white hover:text-[#8B5CF6] transition-colors cursor-pointer">Login</button>
+                <button onClick={openRegister} className="text-sm font-bold text-white bg-[#8B5CF6] hover:bg-[#7c3aed] px-4 py-2 rounded-lg transition-colors cursor-pointer">Sign Up</button>
               </div>
             )}
           </div>
