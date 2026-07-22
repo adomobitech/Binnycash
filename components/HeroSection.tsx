@@ -47,6 +47,16 @@ export default function HeroSection() {
     return num.toString();
   };
 
+  // 🔥 SMOOTH SCROLL LOGIC 🔥
+  const scrollToHowItWorks = () => {
+    const element = document.getElementById('how-it-works');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      console.warn("Element with id 'how-it-works' not found! Make sure your LowerHero component has this ID.");
+    }
+  };
+
   return (
     <div className="relative min-h-screen flex flex-col justify-center overflow-hidden bg-[#08080C] bg-[url('/background.png')] bg-cover bg-center bg-no-repeat pb-10 pt-28">
       
@@ -83,7 +93,8 @@ export default function HeroSection() {
                 <span className="text-[#08080C]">⚡</span>
               </button>
               
-              <button className="flex items-center gap-3 group">
+              {/* 🔥 REDIRECT BUTTON 🔥 */}
+              <button onClick={scrollToHowItWorks} className="flex items-center gap-3 group cursor-pointer">
                 <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center group-hover:border-white/50 transition-colors">
                   <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
                 </div>

@@ -51,7 +51,8 @@ export default function LowerHero() {
   };
 
   return (
-    <div className="w-full bg-[#08080C] relative overflow-hidden py-20 font-sans">
+    // 🔥 YAHAN ADD KIYA HAI id="how-it-works" 🔥
+    <div id="how-it-works" className="w-full bg-[#08080C] relative overflow-hidden py-20 font-sans scroll-mt-24">
       
       <div className="max-w-[1300px] mx-auto px-6 flex flex-col gap-16 relative z-10">
         

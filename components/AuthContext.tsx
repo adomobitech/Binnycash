@@ -1,44 +1,50 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
-import AuthModal from './AuthModal';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+import AuthModal from './AuthModal'; 
 
 interface AuthContextType {
   openLogin: () => void;
   openRegister: () => void;
-  closeAuth: () => void;
+  closeModal: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [view, setView] = useState<'login' | 'register'>('login');
+  const [initialView, setInitialView] = useState<'login' | 'register'>('login');
 
   const openLogin = () => {
-    setView('login');
+    setInitialView('login');
     setIsOpen(true);
   };
 
   const openRegister = () => {
-    setView('register');
+    setInitialView('register');
     setIsOpen(true);
   };
 
-  const closeAuth = () => {
+  const closeModal = () => {
     setIsOpen(false);
   };
 
   return (
-    <AuthContext.Provider value={{ openLogin, openRegister, closeAuth }}>
+    <AuthContext.Provider value={{ openLogin, openRegister, closeModal }}>
       {children}
-      {isOpen && <AuthModal initialView={view} onClose={closeAuth} />}
+      <AuthModal 
+        isOpen={isOpen} 
+        onClose={closeModal} 
+        initialView={initialView} 
+      />
     </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
-};
+}

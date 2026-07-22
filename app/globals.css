@@ -26,3 +26,114 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #EC4899;
 }
+/* --- GOOGLE TRANSLATE CUSTOM STYLES --- */
+.goog-te-banner-frame {
+  display: none !important;
+}
+body {
+  top: 0px !important; 
+}
+.goog-logo-link {
+  display: none !important;
+}
+.goog-te-gadget {
+  color: transparent !important;
+}
+.goog-te-combo {
+  background-color: #12121A;
+  color: white;
+  border-radius: 8px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.goog-te-combo:focus {
+  border-color: #00E57A;
+}
+/* Hide Google Translate UI entirely */
+.goog-te-banner-frame {
+  display: none !important;
+}
+body {
+  top: 0px !important; 
+}
+.goog-logo-link {
+  display: none !important;
+}
+.goog-te-gadget {
+  display: none !important; /* Isko pura hide kar diya */
+}
+/* Google adds an ugly tooltip on hover, hide it */
+#goog-gt-tt {
+  display: none !important;
+}
+
+/* Custom Scrollbar for Language Dropdown */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #00E57A;
+}
+/* ==========================================
+   KILL GOOGLE TRANSLATE BANNER & TOOLTIPS 
+============================================= */
+
+/* 1. Hide the top banner frame */
+.goog-te-banner-frame.skiptranslate,
+.goog-te-banner-frame {
+    display: none !important;
+}
+
+/* 2. Prevent Google from pushing the body/html down */
+body {
+    top: 0px !important;
+}
+html {
+    top: 0px !important;
+}
+
+/* 3. Hide the annoying hover tooltips & popups */
+#goog-gt-tt, 
+.goog-te-balloon-frame {
+    display: none !important;
+}
+
+/* 4. Remove yellow highlight when hovering over translated text */
+.goog-text-highlight {
+    background: none !important;
+    box-shadow: none !important;
+}
+/* --- ULTIMATE GOOGLE TRANSLATE BANNER KILLER --- */
+iframe.goog-te-banner-frame,
+.goog-te-banner-frame,
+.skiptranslate iframe {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0px !important;
+  width: 0px !important;
+  pointer-events: none !important;
+}
+
+body {
+  top: 0px !important;
+  position: static !important;
+}
+
+/* Tooltip aur highlight hatane ke liye */
+#goog-gt-tt, .goog-te-balloon-frame {
+  display: none !important;
+}
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
