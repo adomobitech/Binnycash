@@ -18,8 +18,32 @@ export default function DashboardPage() {
   
   const [offers, setOffers] = useState<any[]>([]);
   const [isLoadingOffers, setIsLoadingOffers] = useState(true);
-
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
+
+  // 1. STRICT ROUTE PROTECTION
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token) {
+        setIsAuthenticated(false);
+        router.push('/'); 
+      } else {
+        setIsAuthenticated(true);
+      }
+    };
+
+    // First check
+    checkAuth();
+
+    // Ye continuously check karega, agar navbar se token delete hua toh turant bahar phekega
+    const authInterval = setInterval(checkAuth, 1000);
+    window.addEventListener('storage', checkAuth);
+
+    return () => {
+      clearInterval(authInterval);
+      window.removeEventListener('storage', checkAuth);
+    };
+  }, [router]);
 
   const handleSelectDevice = (device: string) => {
     setSelectedDevices((prev) => {
@@ -30,48 +54,68 @@ export default function DashboardPage() {
     });
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/'); 
-    } else {
-      setIsAuthenticated(true);
-    }
-  }, [router]);
-
+  // 2. AUTO-FETCH LOGIC FOR DASHBOARD (Saari offers lane ke liye)
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const token = localStorage.getItem('token');
+    const fetchAllOffers = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+      let allFetchedOffers: any[] = [];
+      let pageNum = 1;
+      let hasMoreData = true;
+      let maxPages = 20; 
 
-    fetch('https://apitest.binnycash.com/api/user/offerlist', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'token': token || '',
-        'x-access-token': token || ''
-      } as HeadersInit
-    })
-      .then(async res => {
-        const text = await res.text();
-        try { return JSON.parse(text); } catch (e) { return {}; }
-      })
-      .then(resData => {
-        let list = [];
-        if (Array.isArray(resData)) { list = resData; } 
-        else if (Array.isArray(resData?.data?.list)) { list = resData.data.list; } 
-        else if (Array.isArray(resData?.data)) { list = resData.data; } 
-        else if (Array.isArray(resData?.offers)) { list = resData.offers; } 
-        else if (Array.isArray(resData?.data?.offers)) { list = resData.data.offers; } 
-        else if (Array.isArray(resData?.list)) { list = resData.list; }
-        setOffers(list);
-      })
-      .catch(err => {
-        console.error("Error fetching offer list:", err);
-        setOffers([]);
-      })
-      .finally(() => { setIsLoadingOffers(false); });
+      try {
+        while (hasMoreData && pageNum <= maxPages) {
+          const res = await fetch(`https://apitest.binnycash.com/api/user/offerlist?page=${pageNum}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'token': token || '',
+              'x-access-token': token || ''
+            }
+          });
+          
+          const text = await res.text();
+          let resData;
+          try { resData = JSON.parse(text); } catch (e) { resData = {}; }
+
+          let list: any[] = [];
+          if (Array.isArray(resData)) { list = resData; } 
+          else if (Array.isArray(resData?.data?.list)) { list = resData.data.list; } 
+          else if (Array.isArray(resData?.data)) { list = resData.data; } 
+          else if (Array.isArray(resData?.offers)) { list = resData.offers; } 
+          else if (Array.isArray(resData?.data?.offers)) { list = resData.data.offers; } 
+          else if (Array.isArray(resData?.list)) { list = resData.list; }
+
+          if (list.length > 0) {
+            allFetchedOffers = [...allFetchedOffers, ...list];
+            pageNum++;
+            
+            if (list.length < 20) {
+              hasMoreData = false;
+            }
+          } else {
+            hasMoreData = false;
+          }
+        }
+
+        const uniqueOffers = Array.from(
+          new Map(allFetchedOffers.map(item => [item._id || item.id, item])).values()
+        );
+        
+        setOffers(uniqueOffers);
+
+      } catch (err) {
+        console.error("Error fetching all offers for dashboard:", err);
+        setOffers(allFetchedOffers); 
+      } finally {
+        setIsLoadingOffers(false);
+      }
+    };
+
+    fetchAllOffers();
   }, [isAuthenticated]);
 
   if (!isAuthenticated) return null;
