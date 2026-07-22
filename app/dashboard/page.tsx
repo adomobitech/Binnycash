@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import OfferSlider from '@/components/offers/OfferSlider';
+import SurveySlider from '@/components/surveys/SurveySlider';
+import OfferwallSlider from '@/components/offerwalls/OfferwallSlider';
+import SurveywallSlider from '@/components/surveywalls/SurveywallSlider'; // 🔥 Naya Import
 
 const LIVE_FEEDS = [
   { id: 1, image: 'https://images.unsplash.com/photo-1622979135225-d2ba269bc1df?w=50&h=50&fit=crop', user: 'Ixtab', action: 'BitLabs Surveys', amount: '+$0.21' },
@@ -16,11 +19,24 @@ export default function DashboardPage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
+  // 1. Offers States (SIRF ISME FILTER RHEGA)
   const [offers, setOffers] = useState<any[]>([]);
   const [isLoadingOffers, setIsLoadingOffers] = useState(true);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
 
-  // 1. STRICT ROUTE PROTECTION
+  // 2. Surveys States (Filter Removed)
+  const [surveys, setSurveys] = useState<any[]>([]);
+  const [isLoadingSurveys, setIsLoadingSurveys] = useState(true);
+
+  // 3. Offerwalls States (Filter Removed)
+  const [offerwalls, setOfferwalls] = useState<any[]>([]);
+  const [isLoadingOfferwalls, setIsLoadingOfferwalls] = useState(true);
+
+  // 4. Surveywalls States (Filter Removed)
+  const [surveywalls, setSurveywalls] = useState<any[]>([]);
+  const [isLoadingSurveywalls, setIsLoadingSurveywalls] = useState(true);
+
+  // STRICT ROUTE PROTECTION
   useEffect(() => {
     const checkAuth = () => {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -32,10 +48,7 @@ export default function DashboardPage() {
       }
     };
 
-    // First check
     checkAuth();
-
-    // Ye continuously check karega, agar navbar se token delete hua toh turant bahar phekega
     const authInterval = setInterval(checkAuth, 1000);
     window.addEventListener('storage', checkAuth);
 
@@ -45,19 +58,17 @@ export default function DashboardPage() {
     };
   }, [router]);
 
+  // SIRF OFFERS KE LIYE FILTER FUNCTION
   const handleSelectDevice = (device: string) => {
     setSelectedDevices((prev) => {
-      if (prev.includes(device)) {
-        return prev.filter((d) => d !== device);
-      }
+      if (prev.includes(device)) return prev.filter((d) => d !== device);
       return [...prev, device];
     });
   };
 
-  // 2. AUTO-FETCH LOGIC FOR DASHBOARD (Saari offers lane ke liye)
+  // AUTO-FETCH: OFFERS
   useEffect(() => {
     if (!isAuthenticated) return;
-
     const fetchAllOffers = async () => {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
       let allFetchedOffers: any[] = [];
@@ -72,56 +83,144 @@ export default function DashboardPage() {
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`,
-              'token': token || '',
-              'x-access-token': token || ''
+              'token': token || ''
             }
           });
-          
           const text = await res.text();
           let resData;
           try { resData = JSON.parse(text); } catch (e) { resData = {}; }
 
           let list: any[] = [];
-          if (Array.isArray(resData)) { list = resData; } 
-          else if (Array.isArray(resData?.data?.list)) { list = resData.data.list; } 
-          else if (Array.isArray(resData?.data)) { list = resData.data; } 
-          else if (Array.isArray(resData?.offers)) { list = resData.offers; } 
-          else if (Array.isArray(resData?.data?.offers)) { list = resData.data.offers; } 
-          else if (Array.isArray(resData?.list)) { list = resData.list; }
+          if (Array.isArray(resData)) list = resData; 
+          else if (Array.isArray(resData?.data?.list)) list = resData.data.list; 
+          else if (Array.isArray(resData?.data)) list = resData.data; 
+          else if (Array.isArray(resData?.offers)) list = resData.offers;
 
           if (list.length > 0) {
             allFetchedOffers = [...allFetchedOffers, ...list];
             pageNum++;
-            
-            if (list.length < 20) {
-              hasMoreData = false;
-            }
-          } else {
-            hasMoreData = false;
-          }
+            if (list.length < 20) hasMoreData = false;
+          } else { hasMoreData = false; }
         }
-
-        const uniqueOffers = Array.from(
-          new Map(allFetchedOffers.map(item => [item._id || item.id, item])).values()
-        );
-        
+        const uniqueOffers = Array.from(new Map(allFetchedOffers.map(item => [item._id || item.id, item])).values());
         setOffers(uniqueOffers);
-
       } catch (err) {
-        console.error("Error fetching all offers for dashboard:", err);
-        setOffers(allFetchedOffers); 
-      } finally {
-        setIsLoadingOffers(false);
-      }
+        console.error("Error fetching offers:", err);
+      } finally { setIsLoadingOffers(false); }
     };
-
     fetchAllOffers();
+  }, [isAuthenticated]);
+
+  // AUTO-FETCH: SURVEYS
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchAllSurveys = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+      let allFetchedSurveys: any[] = [];
+      let pageNum = 1;
+      let hasMoreData = true;
+
+      try {
+        while (hasMoreData && pageNum <= 20) {
+          const res = await fetch(`https://apitest.binnycash.com/api/user/surveyList?page=${pageNum}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'token': token || ''
+            }
+          });
+          const text = await res.text();
+          let resData;
+          try { resData = JSON.parse(text); } catch (e) { resData = {}; }
+
+          let list: any[] = [];
+          if (Array.isArray(resData)) list = resData; 
+          else if (Array.isArray(resData?.data?.list)) list = resData.data.list; 
+          else if (Array.isArray(resData?.surveys)) list = resData.surveys; 
+
+          if (list.length > 0) {
+            allFetchedSurveys = [...allFetchedSurveys, ...list];
+            pageNum++;
+            if (list.length < 20) hasMoreData = false;
+          } else { hasMoreData = false; }
+        }
+        const uniqueSurveys = Array.from(new Map(allFetchedSurveys.map(item => [item._id || item.id, item])).values());
+        setSurveys(uniqueSurveys);
+      } catch (err) {
+        console.error("Error fetching surveys:", err);
+      } finally { setIsLoadingSurveys(false); }
+    };
+    fetchAllSurveys();
+  }, [isAuthenticated]);
+
+  // FETCH: OFFERWALLS
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchOfferwalls = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+      try {
+        const res = await fetch(`https://apitest.binnycash.com/api/user/user_offerwall_list`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'token': token || ''
+          }
+        });
+        const text = await res.text();
+        let resData;
+        try { resData = JSON.parse(text); } catch (e) { resData = {}; }
+
+        let list: any[] = [];
+        if (Array.isArray(resData)) list = resData; 
+        else if (Array.isArray(resData?.data?.data?.offerwall)) list = resData.data.data.offerwall; 
+        else if (Array.isArray(resData?.data?.offerwall)) list = resData.data.offerwall; 
+
+        setOfferwalls(list);
+      } catch (err) {
+        console.error("Error fetching offerwalls:", err);
+      } finally { setIsLoadingOfferwalls(false); }
+    };
+    fetchOfferwalls();
+  }, [isAuthenticated]);
+
+  // FETCH: SURVEYWALLS (Placeholder API hit karega jab tak nayi API na aajaye)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchSurveywalls = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+      try {
+        const res = await fetch(`https://apitest.binnycash.com/api/user/surveywall_list_placeholder`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'token': token || ''
+          }
+        });
+        const text = await res.text();
+        let resData;
+        try { resData = JSON.parse(text); } catch (e) { resData = {}; }
+
+        let list: any[] = [];
+        if (Array.isArray(resData)) list = resData; 
+        else if (Array.isArray(resData?.data?.data?.surveywall)) list = resData.data.data.surveywall; 
+        else if (Array.isArray(resData?.data?.surveywall)) list = resData.data.surveywall; 
+
+        setSurveywalls(list);
+      } catch (err) {
+        console.error("Error fetching surveywalls:", err);
+      } finally { setIsLoadingSurveywalls(false); }
+    };
+    fetchSurveywalls();
   }, [isAuthenticated]);
 
   if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-[#0E1015] text-white pb-20 pt-4">
+      {/* Live Feed Banner */}
       <div className="w-full px-4 md:px-6 mb-6">
         <div className="flex items-center gap-3 overflow-x-auto custom-scrollbar no-scrollbar pb-2">
           {LIVE_FEEDS.map((feed, i) => (
@@ -143,11 +242,30 @@ export default function DashboardPage() {
       </div>
 
       <div className="w-full px-4 md:px-6 flex flex-col gap-8">
+        {/* 🔥 1. Featured Offers Slider (Sirf isme filters on hai) */}
         <OfferSlider 
           offers={offers} 
           isLoading={isLoadingOffers} 
           selectedDevices={selectedDevices} 
           onSelectDevice={handleSelectDevice} 
+        />
+        
+        {/* 🔥 2. Surveys Slider */}
+        <SurveySlider 
+          surveys={surveys} 
+          isLoading={isLoadingSurveys} 
+        />
+
+        {/* 🔥 3. Offerwalls Slider */}
+        <OfferwallSlider 
+          offerwalls={offerwalls} 
+          isLoading={isLoadingOfferwalls} 
+        />
+
+        {/* 🔥 4. Surveywalls Slider */}
+        <SurveywallSlider 
+          surveywalls={surveywalls} 
+          isLoading={isLoadingSurveywalls} 
         />
       </div>
     </div>
