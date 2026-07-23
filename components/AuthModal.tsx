@@ -108,6 +108,12 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
         if (userToken) {
           localStorage.setItem('token', userToken);
         }
+
+        // 🔥 ADDED THIS BLOCK TO SAVE USER ID FOR CHAT 🔥
+        const userId = data.userId || data.user?._id || data.data?.userId || data.data?._id || data.id;
+        if (userId) {
+          localStorage.setItem('userId', userId);
+        }
         
         setView('loginSuccess');
         
@@ -152,6 +158,12 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
         const userToken = data.token || data.accessToken || data.data?.token || data.data;
         if (userToken) {
           localStorage.setItem('token', userToken);
+        }
+
+        // 🔥 ADDED THIS BLOCK TO SAVE USER ID FOR CHAT 🔥
+        const userId = data.userId || data.user?._id || data.data?.userId || data.data?._id || data.id;
+        if (userId) {
+          localStorage.setItem('userId', userId);
         }
         
         setView('loginSuccess');

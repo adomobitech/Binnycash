@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from './AuthContext';
-import { Rocket, Trophy, Wallet, Globe, ChevronDown } from "lucide-react";
+import { Rocket, Trophy, Wallet, Globe, ChevronDown, Send, X, MessageSquare, Users } from "lucide-react";
 import "flag-icons/css/flag-icons.min.css";
 
 declare global {
@@ -24,6 +24,16 @@ const LANGUAGES = [
   { code: 'ar', name: 'Arabic', tag: 'sa', flag: '🇸🇦' }
 ];
 
+// 🔥 JWT TOKEN DECODE HELPER 🔥
+const getUserIdFromToken = (token: string) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload._id || payload.id || payload.userId || null;
+  } catch (e) {
+    return null;
+  }
+};
+
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -36,6 +46,13 @@ export default function Navbar() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [usdToggle, setUsdToggle] = useState(true);
   const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
+
+  // CHAT STATE VARIABLES
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const navRef = useRef<HTMLElement>(null);
 
@@ -125,11 +142,96 @@ export default function Navbar() {
       router.push('/');
       setTimeout(() => {
         localStorage.removeItem('token');
+        localStorage.removeItem('userId'); 
         setIsLoggedIn(false);
         setIsTransitioning(false);
       }, 600); 
     }, 1500); 
   };
+
+  const fetchChatMessages = async () => {
+    setIsChatLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('https://apitest.binnycash.com/api/user/chat/messages', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      const msgs = Array.isArray(data) ? data : (data.data || data.messages || []);
+      setMessages(msgs);
+    } catch (err) {
+      console.error("Failed to fetch messages:", err);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+ const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    // 🔥 SMART CHECK: Fetch ID from local storage OR decode it from Token 🔥
+    let userId = localStorage.getItem('userId'); 
+    
+    if (!userId) {
+      userId = getUserIdFromToken(token);
+      if (userId) {
+        localStorage.setItem('userId', userId);
+      }
+    }
+
+    if (!userId) {
+      console.error("Missing User ID! Token decode failed.");
+      alert("Session issue: Please log out and log in again.");
+      return;
+    }
+
+    const msgText = newMessage.trim();
+    
+    // Optimistic UI update
+    const tempMsg = { _id: Date.now(), message: msgText, sender: 'user', role: 'user' };
+    setMessages(prev => [...prev, tempMsg]);
+    setNewMessage('');
+
+    // 🔥 BACK TO x-www-form-urlencoded (Jo tere Login me chal raha tha) 🔥
+    const urlEncoded = new URLSearchParams();
+    urlEncoded.append('userId', userId); 
+    urlEncoded.append('message', msgText);
+
+    try {
+      const res = await fetch('https://apitest.binnycash.com/api/user/chat/messages', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded', // 👈 Isko wapas laana zaroori tha
+          'Authorization': `Bearer ${token}` 
+        },
+        body: urlEncoded
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Backend Error Response:", errorData); // 👈 Agar ab 400 aaya to exact reason console me dikhega
+      } else {
+        fetchChatMessages();
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err);
+    }
+  };
+  useEffect(() => {
+    if (isChatOpen) {
+      fetchChatMessages();
+    }
+  }, [isChatOpen]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isChatOpen]);
+
 
   const ProfileDropdown = ({ isMobile = false }) => (
     <div className={`absolute ${isMobile ? 'left-0' : 'right-0'} mt-3 w-56 bg-[#1A1C24] border border-white/5 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200`}>
@@ -163,6 +265,13 @@ export default function Navbar() {
 
   return (
     <>
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-chat-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-chat-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-chat-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        .custom-chat-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
+      `}} />
+
       {isTransitioning && (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0B0E14] transition-opacity duration-300">
           <div className="w-24 h-24 mb-6 rounded-full border border-[#00E57A]/30 bg-[#1A1C23] flex items-center justify-center shadow-[0_0_30px_rgba(0,229,122,0.2)]">
@@ -217,7 +326,6 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* 🔥 🚀 DESKTOP NAVIGATION WITH LUCIDE ICONS 🔥 */}
           {isLoggedIn && (
             <div className="hidden lg:flex items-center gap-1 bg-[#1A1C24] p-1 rounded-xl border border-white/5 absolute left-1/2 -translate-x-1/2">
               <Link href="/dashboard" className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${pathname === '/earn' || pathname === '/dashboard' ? 'bg-[#252836] text-white shadow-sm' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
@@ -235,7 +343,6 @@ export default function Navbar() {
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
             <div id="google_translate_element" className="hidden"></div>
             
-            {/* Translator Dropdown Button with Flag Icons */}
             <div className="relative">
               <button 
                 onClick={() => setIsLangModalOpen(!isLangModalOpen)}
@@ -269,16 +376,20 @@ export default function Navbar() {
                   <span className="text-white font-black text-sm">0.10</span>
                 </div>
 
-                <button className="w-10 h-10 rounded-xl bg-[#1A1C24] border border-white/5 flex items-center justify-center text-[#8F95A3] hover:text-white transition-colors">
+                <button className="w-10 h-10 rounded-xl bg-[#1A1C24] border border-white/5 flex items-center justify-center text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
                 </button>
-                <button className="w-10 h-10 rounded-xl bg-[#1A1C24] border border-white/5 flex items-center justify-center text-[#8F95A3] hover:text-white transition-colors relative">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" /></svg>
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-[#00E57A] rounded-full border-2 border-[#1A1C24]"></span>
+                
+                <button 
+                  onClick={() => setIsChatOpen(!isChatOpen)}
+                  className={`w-10 h-10 rounded-xl border border-white/5 flex items-center justify-center transition-colors relative cursor-pointer ${isChatOpen ? 'bg-[#8B5CF6] text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]' : 'bg-[#1A1C24] text-[#8F95A3] hover:text-white hover:bg-[#252836]'}`}
+                >
+                  <MessageSquare className="w-5 h-5" />
+                  {!isChatOpen && <span className="absolute top-2 right-2 w-2 h-2 bg-[#00E57A] rounded-full border-2 border-[#1A1C24]"></span>}
                 </button>
 
                 <div className="hidden md:block relative">
-                  <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-[#1A1C24] border border-white/5 hover:bg-[#252836] transition-all rounded-lg pl-1.5 pr-3 py-1.5">
+                  <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-[#1A1C24] border border-white/5 hover:bg-[#252836] transition-all rounded-lg pl-1.5 pr-3 py-1.5 cursor-pointer">
                     <div className="w-6 h-6 rounded-md bg-[#8B5CF6]/20 text-[#8B5CF6] flex items-center justify-center text-xs font-black">W</div>
                     <span className="text-white text-xs font-bold max-w-[80px] truncate">wranglerl...</span>
                     <span className="text-[#8F95A3] text-[10px] ml-1">▼</span>
@@ -295,6 +406,74 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
+
+      {/* 🔥 NEW PREMIUM CHAT WINDOW 🔥 */}
+      {isLoggedIn && isChatOpen && (
+        <div className="fixed bottom-20 md:bottom-[90px] right-4 md:right-6 w-[360px] h-[520px] bg-[#111319]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[90] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+          
+          {/* Header */}
+          <div className="bg-[#1A1C24]/80 px-5 py-4 border-b border-white/10 flex items-center justify-between backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#6d28d9] flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.3)]">
+                <Users className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-white text-[15px] font-black tracking-wide">Community Chat</h3>
+                <p className="text-[#8F95A3] text-[11px] font-medium mt-0.5">Connect with other earners</p>
+              </div>
+            </div>
+            <button onClick={() => setIsChatOpen(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#8F95A3] hover:text-white hover:bg-white/10 transition-all cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4 bg-[#0B0E14]/80 custom-chat-scrollbar">
+            {isChatLoading ? (
+              <div className="flex-1 flex justify-center items-center">
+                <div className="w-6 h-6 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-60">
+                <MessageSquare className="w-12 h-12 text-[#8F95A3] mb-3 stroke-[1.5]" />
+                <p className="text-[13px] text-[#8F95A3] font-medium">Say hello to the community!</p>
+              </div>
+            ) : (
+              messages.map((msg, idx) => {
+                const isUser = msg.sender === 'user' || msg.role === 'user';
+                return (
+                  <div key={idx} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+                    <div className={`max-w-[85%] px-4 py-2.5 text-[13px] font-medium leading-relaxed ${isUser ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7c3aed] text-white rounded-2xl rounded-tr-sm shadow-md' : 'bg-[#1A1C24] text-[#E2E8F0] border border-white/5 rounded-2xl rounded-tl-sm'}`}>
+                      {msg.message || msg.text}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input Area */}
+          <div className="p-4 bg-[#1A1C24]/90 border-t border-white/10 backdrop-blur-md">
+            <form onSubmit={handleSendMessage} className="relative flex items-center">
+              <input 
+                type="text" 
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..." 
+                className="w-full bg-[#0B0E14] text-white text-[13px] font-medium pl-4 pr-12 py-3.5 rounded-xl border border-white/10 outline-none focus:border-[#8B5CF6]/50 focus:ring-1 focus:ring-[#8B5CF6]/30 transition-all placeholder:text-[#8F95A3]"
+              />
+              <button 
+                type="submit" 
+                disabled={!newMessage.trim()}
+                className="absolute right-1.5 w-9 h-9 rounded-lg bg-[#8B5CF6] flex items-center justify-center text-white disabled:opacity-0 disabled:scale-75 disabled:pointer-events-none hover:bg-[#7c3aed] transition-all duration-200 cursor-pointer shadow-[0_0_10px_rgba(139,92,246,0.4)]"
+              >
+                <Send className="w-4 h-4 ml-[-2px]" />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MOBILE BOTTOM NAVIGATION */}
       {isLoggedIn && (
