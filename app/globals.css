@@ -1,18 +1,19 @@
 @import "tailwindcss";
+
 html, body {
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow-x: clip; /* 👈 Yahan hidden ki jagah clip kar diya hai */
 }
 body {
   background-color: #0B0D19;
   color: #ffffff;
-  overflow-x: hidden;
+  overflow-x: clip; /* 👈 Yahan hidden ki jagah clip kar diya hai */
 }
 /* Baaki ka tera scrollbar wala code waisa hi rahega */
 body {
   background-color: #0B0D19;
   color: #ffffff;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Custom Scrollbar for premium look */
@@ -88,7 +89,7 @@ body {
   background: #00E57A;
 }
 /* ==========================================
-   KILL GOOGLE TRANSLATE BANNER & TOOLTIPS 
+    KILL GOOGLE TRANSLATE BANNER & TOOLTIPS 
 ============================================= */
 
 /* 1. Hide the top banner frame */

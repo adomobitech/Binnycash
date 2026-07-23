@@ -72,14 +72,20 @@ export default function OfferSlider({
 
   return (
     <div className="w-full flex flex-col gap-3">
+      {/* Header Container */}
       <div className="flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 bg-[#14171F] p-3 md:p-4 rounded-xl border border-white/5">
-        <div className="flex items-center gap-2 shrink-0">
-          <Sparkles className="w-5 h-5 text-violet-400" />
-          <h2 className="text-base font-black text-white whitespace-nowrap">Featured Offers</h2>
-        </div>
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full">
+        
+        {/* 💥 LEFT SIDE: Title + OfferFilters Ek Saath Grouped Hain */}
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar max-w-full">
+          <div className="flex items-center gap-2 shrink-0">
+            <Sparkles className="w-5 h-5 text-violet-400" />
+            <h2 className="text-base font-black text-white whitespace-nowrap">Featured Offers</h2>
+          </div>
+
           <OfferFilters selectedDevices={selectedDevices} onSelectDevice={onSelectDevice} />
         </div>
+
+        {/* RIGHT SIDE: Navigation Arrows + View All */}
         <div className="flex items-center gap-2 shrink-0 ml-auto lg:ml-0">
           {showArrows && (
             <div className="hidden sm:flex items-center gap-1.5">
@@ -101,6 +107,7 @@ export default function OfferSlider({
         </div>
       </div>
 
+      {/* Offers List / Slider */}
       {isLoading ? (
         <div className="flex gap-3 overflow-hidden py-1">
           {[1, 2, 3, 4].map((i) => (

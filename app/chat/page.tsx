@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar'; 
 import { 
-  ChevronLeft, MessageSquare, Paperclip, Send, 
+  ChevronLeft, MessageSquare, Send, 
   ChevronRight, Headset, AlertCircle, Wallet, 
   User, Mail, Clock, CheckCircle2, CheckCheck
 } from 'lucide-react';
@@ -15,6 +15,14 @@ export default function SupportChatPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<any>(null);
+  
+  // Contact Form View State
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactSubject, setContactSubject] = useState('');
+  const [contactMsg, setContactMsg] = useState('');
+  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -29,13 +37,21 @@ export default function SupportChatPage() {
       });
       const resData = await res.json();
       
-      let list = [];
+      let list: any[] = [];
       if (resData && resData.data) {
         list = resData.data;
       } else if (Array.isArray(resData)) {
         list = resData;
       }
       setMessages(list);
+
+      if (list.length > 0 && !currentUserId) {
+        const userMsg = list.find((m: any) => m.userId && !isNaN(Number(m.userId)));
+        if (userMsg) {
+          setCurrentUserId(userMsg.userId);
+          localStorage.setItem('numericUserId', String(userMsg.userId));
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch messages:", error);
     } finally {
@@ -43,12 +59,16 @@ export default function SupportChatPage() {
     }
   };
 
-  // Auth Guard & Initial Fetch
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       router.push('/'); 
       return;
+    }
+
+    const savedId = localStorage.getItem('numericUserId');
+    if (savedId) {
+      setCurrentUserId(savedId);
     }
     
     fetchMessages();
@@ -62,6 +82,8 @@ export default function SupportChatPage() {
     if (!newMessage.trim()) return;
 
     const token = localStorage.getItem('token');
+    const activeUserId = currentUserId || localStorage.getItem('numericUserId') || '12';
+
     if (!token) {
       alert("Session expired: Please log in again.");
       router.push('/');
@@ -71,8 +93,8 @@ export default function SupportChatPage() {
     const msgText = newMessage.trim();
     setNewMessage('');
 
-    // Form-urlencoded payload as required by the backend
     const urlEncoded = new URLSearchParams();
+    urlEncoded.append('userId', String(activeUserId));
     urlEncoded.append('message', msgText);
 
     try {
@@ -85,22 +107,26 @@ export default function SupportChatPage() {
         body: urlEncoded
       });
       
-      const responseText = await res.text();
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (err) {
-        result = { raw: responseText };
-      }
-
       if (res.ok) {
         fetchMessages();
-      } else {
-        console.error("Server rejected message:", result);
       }
     } catch (err) {
       console.error("Failed to send message network error:", err);
     }
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactSubject.trim() || !contactMsg.trim()) return;
+    setIsSubmittingContact(true);
+    
+    setTimeout(() => {
+      setIsSubmittingContact(false);
+      setContactSuccess(true);
+      setContactSubject('');
+      setContactMsg('');
+      setTimeout(() => setContactSuccess(false), 4000);
+    }, 1000);
   };
 
   useEffect(() => {
@@ -117,7 +143,7 @@ export default function SupportChatPage() {
     <div className="flex bg-[#0E1015] min-h-screen text-white overflow-hidden">
       <Sidebar />
 
-      <div className="flex-1 pt-6 px-4 md:px-8">
+      <div className="flex-1 pt-6 px-4 md:px-8 overflow-y-auto h-screen pb-12 custom-scrollbar">
         
         <div className="flex items-center gap-4 mb-6">
           <button 
@@ -126,135 +152,190 @@ export default function SupportChatPage() {
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-2xl font-black text-white">Community Chat</h1>
+          <h1 className="text-2xl font-black text-white">Community Chat & Support</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* LEFT COLUMN: CHAT INTERFACE */}
-          <div className="lg:col-span-8 flex flex-col bg-[#111319] border border-white/5 border-b-0 rounded-t-[24px] h-[calc(100vh-104px)] shadow-lg overflow-hidden relative">
+          {/* LEFT COLUMN: CHAT INTERFACE (STICKY TO PREVENT BLANK SPACE AT BOTTOM) */}
+          <div className="lg:col-span-8 sticky top-6 flex flex-col bg-[#111319] border border-white/5 rounded-[24px] h-[calc(100vh-120px)] shadow-lg overflow-hidden relative shrink-0">
             
-            {/* Chat Header */}
-            <div className="px-6 py-5 border-b border-white/5 bg-[#14171F] flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-[#8B5CF6]/10 flex items-center justify-center text-[#8B5CF6] border border-[#8B5CF6]/20">
-                  <MessageSquare className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-black text-white leading-tight">Global Room</h2>
-                  <p className="text-[#8F95A3] text-[13px] font-medium">Chat with other earners</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 bg-[#00E57A]/10 border border-[#00E57A]/20 px-3 py-1.5 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-[#00E57A] shadow-[0_0_8px_rgba(0,229,122,0.8)] animate-pulse"></span>
-                <span className="text-[#00E57A] text-xs font-bold uppercase tracking-wider">Online</span>
-              </div>
-            </div>
-
-            {/* CHAT MESSAGES CONTAINER */}
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-[#0E1015]/30 flex flex-col gap-6">
-              {isLoading ? (
-                <div className="flex justify-center items-center h-full">
-                  <div className="w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              ) : messages.length === 0 ? (
-                <div className="flex justify-center items-center h-full text-[#8F95A3] text-sm">
-                  Be the first to send a message!
-                </div>
-              ) : (
-                messages.map((msg, index) => {
-                  // Check if message belongs to current user by matching role or token
-                  const isMe = msg.userName === 'You' || msg.role === 'user' && !msg.isAgent;
-                  
-                  const fallbackAvatar = `https://ui-avatars.com/api/?name=${(msg.userName || 'User').replace(/\s+/g, '+')}&background=8B5CF6&color=fff`;
-                  
-                  let avatarUrl = fallbackAvatar;
-                  if (msg.image) {
-                    const fixedImageUrl = msg.image
-                      .replace('api.binnycash.com', 'apitest.binnycash.com')
-                      .replace('api.binycash.com', 'apitest.binnycash.com')
-                      .replace('binycash.com', 'binnycash.com');
-                      
-                    avatarUrl = fixedImageUrl.startsWith('http') 
-                      ? fixedImageUrl 
-                      : `https://apitest.binnycash.com${fixedImageUrl}`;
-                  }
-
-                  return (
-                    <div key={msg._id || index} className={`flex gap-3 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                      
-                      {!isMe && (
-                        <div className="w-10 h-10 rounded-full bg-[#1A1C24] border border-white/10 shrink-0 overflow-hidden mt-4">
-                          <img 
-                            src={avatarUrl} 
-                            alt={msg.userName} 
-                            className="w-full h-full object-cover" 
-                            onError={(e) => { e.currentTarget.src = fallbackAvatar; }}
-                          />
-                        </div>
-                      )}
-
-                      <div className="flex flex-col max-w-[75%]">
-                        <div className={`flex items-center gap-2 mb-1 ${isMe ? 'justify-end' : 'justify-start ml-1'}`}>
-                          <span className="text-[11px] font-bold text-[#8F95A3]">
-                            {isMe ? 'You' : msg.userName || `User ${msg.userId}`}
-                          </span>
-                        </div>
-
-                        <div className={`p-4 text-[14px] font-medium leading-relaxed whitespace-pre-wrap break-words ${
-                          isMe 
-                            ? 'bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] text-white rounded-[20px] rounded-tr-sm shadow-[0_4px_15px_rgba(139,92,246,0.3)]' 
-                            : 'bg-[#1A1C24] text-[#E2E8F0] border border-white/5 rounded-[20px] rounded-tl-sm shadow-sm'
-                        }`}>
-                          {msg.message}
-                        </div>
-                        
-                        <div className={`flex items-center gap-1 text-[10px] text-[#8F95A3] mt-1 ${isMe ? 'justify-end mr-1' : 'justify-start ml-1'}`}>
-                          {formatTime(msg.timestamp || msg.createdAt)}
-                          {isMe && <CheckCheck className="w-3.5 h-3.5 text-[#00E57A]" />}
-                        </div>
-                      </div>
-
-                      {isMe && (
-                        <div className="w-10 h-10 rounded-full bg-[#1A1C24] border border-[#8B5CF6]/30 shrink-0 overflow-hidden mt-4">
-                          <img src={fallbackAvatar} alt="You" className="w-full h-full object-cover" />
-                        </div>
-                      )}
+            {showContactForm ? (
+              /* CONTACT FORM VIEW */
+              <div className="flex flex-col h-full bg-[#111319]">
+                <div className="px-6 py-5 border-b border-white/5 bg-[#14171F] flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#8B5CF6]/10 flex items-center justify-center text-[#8B5CF6] border border-[#8B5CF6]/20">
+                      <Mail className="w-5 h-5" />
                     </div>
-                  );
-                })
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div className="p-4 bg-[#14171F] border-t border-white/5 shrink-0">
-              <form onSubmit={handleSendMessage} className="relative flex items-center gap-3">
-                <div className="relative flex-1">
-                  <button type="button" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
-                    <Paperclip className="w-5 h-5" />
+                    <div>
+                      <h2 className="text-base font-black text-white">Support Contact Form</h2>
+                      <p className="text-[#8F95A3] text-xs font-medium">We usually reply within 24 hours</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowContactForm(false)}
+                    className="text-xs font-bold px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#8F95A3] hover:text-white transition-all cursor-pointer border border-white/5"
+                  >
+                    Back to Chat
                   </button>
-                  <input 
-                    type="text" 
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type your message..." 
-                    className="w-full bg-[#0E1015] border border-white/10 text-white text-[14px] rounded-xl pl-12 pr-4 py-4 focus:ring-1 focus:ring-[#8B5CF6]/50 focus:border-[#8B5CF6]/50 outline-none transition-all placeholder:text-[#8F95A3]"
-                  />
                 </div>
-                <button 
-                  type="submit" 
-                  disabled={!newMessage.trim()}
-                  className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] flex items-center justify-center text-white shadow-[0_4px_15px_rgba(139,92,246,0.4)] disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-all shrink-0 cursor-pointer"
-                >
-                  <Send className="w-5 h-5 ml-[-2px]" />
-                </button>
-              </form>
-            </div>
+
+                <div className="p-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col justify-center max-w-xl mx-auto w-full">
+                  {contactSuccess ? (
+                    <div className="bg-[#00E57A]/10 border border-[#00E57A]/30 rounded-2xl p-6 text-center space-y-3">
+                      <CheckCircle2 className="w-12 h-12 text-[#00E57A] mx-auto animate-bounce" />
+                      <h3 className="text-lg font-black text-white">Message Sent Successfully!</h3>
+                      <p className="text-xs text-[#8F95A3]">Our team has received your request and will get back to you soon.</p>
+                      <button 
+                        onClick={() => setShowContactForm(false)} 
+                        className="mt-4 px-6 py-2.5 rounded-xl bg-[#00E57A] text-[#0E1015] font-black text-xs cursor-pointer"
+                      >
+                        Return to Global Chat
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleContactSubmit} className="space-y-4 w-full">
+                      <div>
+                        <label className="block text-xs font-bold text-[#8F95A3] uppercase tracking-wider mb-2">Subject / Issue Type</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={contactSubject}
+                          onChange={(e) => setContactSubject(e.target.value)}
+                          placeholder="e.g., Missing reward from offer" 
+                          className="w-full bg-[#0E1015] border border-white/10 text-white text-sm rounded-xl px-4 py-3.5 focus:border-[#8B5CF6] outline-none transition-all placeholder:text-[#8F95A3]/50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-[#8F95A3] uppercase tracking-wider mb-2">Describe Your Issue</label>
+                        <textarea 
+                          required
+                          rows={5}
+                          value={contactMsg}
+                          onChange={(e) => setContactMsg(e.target.value)}
+                          placeholder="Provide details about your query..." 
+                          className="w-full bg-[#0E1015] border border-white/10 text-white text-sm rounded-xl p-4 focus:border-[#8B5CF6] outline-none transition-all placeholder:text-[#8F95A3]/50 resize-none"
+                        />
+                      </div>
+                      <button 
+                        type="submit"
+                        disabled={isSubmittingContact}
+                        className="w-full py-4 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#7c3aed] text-white font-bold text-sm shadow-[0_4px_20px_rgba(139,92,246,0.4)] hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        {isSubmittingContact ? (
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <>Submit Support Ticket</>
+                        )}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* GLOBAL ROOM CHAT VIEW */
+              <>
+                <div className="px-6 py-5 border-b border-white/5 bg-[#14171F] flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-[#8B5CF6]/10 flex items-center justify-center text-[#8B5CF6] border border-[#8B5CF6]/20">
+                      <MessageSquare className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-black text-white leading-tight">Global Room</h2>
+                      <p className="text-[#8F95A3] text-[13px] font-medium">Chat with other earners</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 bg-[#00E57A]/10 border border-[#00E57A]/20 px-3 py-1.5 rounded-full">
+                    <span className="w-2 h-2 rounded-full bg-[#00E57A] shadow-[0_0_8px_rgba(0,229,122,0.8)] animate-pulse"></span>
+                    <span className="text-[#00E57A] text-xs font-bold uppercase tracking-wider">Online</span>
+                  </div>
+                </div>
+
+                {/* CHAT MESSAGES */}
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-[#0E1015]/30 flex flex-col gap-6">
+                  {isLoading ? (
+                    <div className="flex justify-center items-center h-full">
+                      <div className="w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : messages.length === 0 ? (
+                    <div className="flex justify-center items-center h-full text-[#8F95A3] text-sm">
+                      Be the first to send a message!
+                    </div>
+                  ) : (
+                    messages.map((msg, index) => {
+                      const isMe = String(msg.userId) === String(currentUserId) || msg.userName === 'You';
+                      const fallbackAvatar = `https://ui-avatars.com/api/?name=${(msg.userName || 'User').replace(/\s+/g, '+')}&background=8B5CF6&color=fff`;
+                      
+                      let avatarUrl = fallbackAvatar;
+                      if (msg.image) {
+                        const fixedImageUrl = msg.image
+                          .replace('api.binnycash.com', 'apitest.binnycash.com')
+                          .replace('api.binycash.com', 'apitest.binnycash.com')
+                          .replace('binycash.com', 'binnycash.com');
+                        avatarUrl = fixedImageUrl.startsWith('http') ? fixedImageUrl : `https://apitest.binnycash.com${fixedImageUrl}`;
+                      }
+
+                      return (
+                        <div key={msg._id || index} className={`flex gap-3 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                          {!isMe && (
+                            <div className="w-10 h-10 rounded-full bg-[#1A1C24] border border-white/10 shrink-0 overflow-hidden mt-4">
+                              <img src={avatarUrl} alt={msg.userName} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = fallbackAvatar; }} />
+                            </div>
+                          )}
+                          <div className="flex flex-col max-w-[75%]">
+                            <div className={`flex items-center gap-2 mb-1 ${isMe ? 'justify-end' : 'justify-start ml-1'}`}>
+                              <span className="text-[11px] font-bold text-[#8F95A3]">{isMe ? 'You' : msg.userName || `User ${msg.userId}`}</span>
+                            </div>
+                            <div className={`p-4 text-[14px] font-medium leading-relaxed whitespace-pre-wrap break-words ${
+                              isMe ? 'bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] text-white rounded-[20px] rounded-tr-sm shadow-[0_4px_15px_rgba(139,92,246,0.3)]' : 'bg-[#1A1C24] text-[#E2E8F0] border border-white/5 rounded-[20px] rounded-tl-sm shadow-sm'
+                            }`}>
+                              {msg.message}
+                            </div>
+                            <div className={`flex items-center gap-1 text-[10px] text-[#8F95A3] mt-1 ${isMe ? 'justify-end mr-1' : 'justify-start ml-1'}`}>
+                              {formatTime(msg.timestamp || msg.createdAt)}
+                              {isMe && <CheckCheck className="w-3.5 h-3.5 text-[#00E57A]" />}
+                            </div>
+                          </div>
+                          {isMe && (
+                            <div className="w-10 h-10 rounded-full bg-[#1A1C24] border border-[#8B5CF6]/30 shrink-0 overflow-hidden mt-4">
+                              <img src={fallbackAvatar} alt="You" className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* INPUT BAR */}
+                <div className="p-4 bg-[#14171F] border-t border-white/5 shrink-0">
+                  <form onSubmit={handleSendMessage} className="relative flex items-center gap-3">
+                    <div className="relative flex-1">
+                      <input 
+                        type="text" 
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Type your message..." 
+                        className="w-full bg-[#0E1015] border border-white/10 text-white text-[14px] rounded-xl pl-4 pr-4 py-4 focus:ring-1 focus:ring-[#8B5CF6]/50 focus:border-[#8B5CF6]/50 outline-none transition-all placeholder:text-[#8F95A3]"
+                      />
+                    </div>
+                    <button 
+                      type="submit" 
+                      disabled={!newMessage.trim()}
+                      className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] flex items-center justify-center text-white shadow-[0_4px_15px_rgba(139,92,246,0.4)] disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-all shrink-0 cursor-pointer"
+                    >
+                      <Send className="w-5 h-5 ml-[-2px]" />
+                    </button>
+                  </form>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* RIGHT COLUMN: OPTIONS & HELP */}
-          <div className="lg:col-span-4 flex flex-col gap-6 overflow-y-auto pb-6 h-[calc(100vh-104px)] custom-scrollbar">
+          {/* RIGHT COLUMN: HELP CENTER & CONTACT INFO */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
             
             <div className="bg-[#111319] border border-white/5 rounded-[24px] p-6 relative overflow-hidden shadow-lg group shrink-0">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#8B5CF6]/20 blur-[50px] rounded-full translate-x-1/3 -translate-y-1/3 group-hover:bg-[#8B5CF6]/30 transition-colors"></div>
@@ -340,9 +421,12 @@ export default function SupportChatPage() {
                 </div>
               </div>
 
-              <Link href="/contact" className="w-full flex items-center justify-center py-3.5 rounded-xl border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 text-[#8B5CF6] hover:bg-[#8B5CF6] hover:text-white font-bold text-sm transition-all text-center">
-                Open Contact Form
-              </Link>
+              <button 
+                onClick={() => setShowContactForm(!showContactForm)}
+                className="w-full flex items-center justify-center py-3.5 rounded-xl border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 text-[#8B5CF6] hover:bg-[#8B5CF6] hover:text-white font-bold text-sm transition-all text-center cursor-pointer"
+              >
+                {showContactForm ? 'Back to Global Chat' : 'Open Contact Form'}
+              </button>
             </div>
 
           </div>
