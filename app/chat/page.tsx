@@ -48,34 +48,23 @@ export default function SupportChatPage() {
       setIsLoading(false);
     }
   };
-  // 🔒 Auth Guard: Check if user is logged in
+
+  // 🔒 Single Auth Guard & Fetch Initializer
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      // Agar token nahi hai toh login page par redirect kar do
-      router.push('/'); // Ya '/login' jo bhi tera route ho
+      router.push('/'); 
       return;
     }
 
     const myId = localStorage.getItem('userId') || getUserIdFromToken(token);
     if (myId) setCurrentUserId(String(myId));
+    
     fetchMessages();
     
     const interval = setInterval(fetchMessages, 10000);
     return () => clearInterval(interval);
   }, [router]);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      const myId = localStorage.getItem('userId') || getUserIdFromToken(token);
-      if (myId) setCurrentUserId(String(myId));
-      fetchMessages();
-      
-      const interval = setInterval(fetchMessages, 10000);
-      return () => clearInterval(interval);
-    }
-  }, []);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,17 +77,9 @@ export default function SupportChatPage() {
     }
 
     const msgText = newMessage.trim();
-    
-    const tempMsg = { 
-      _id: Date.now().toString(), 
-      userId: currentUserId,
-      userName: 'You',
-      message: msgText,
-      timestamp: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, tempMsg]);
     setNewMessage('');
 
+    // 🔥 Exact URL-Encoded payload matching your cURL request
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('userId', String(currentUserId)); 
     urlEncoded.append('message', msgText);
@@ -169,7 +150,7 @@ export default function SupportChatPage() {
               </div>
             </div>
 
-            {/* 🔥 CHAT MESSAGES CONTAINER WITH WORKING SCROLL 🔥 */}
+            {/* CHAT MESSAGES CONTAINER */}
             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-[#0E1015]/30 flex flex-col gap-6">
               {isLoading ? (
                 <div className="flex justify-center items-center h-full">
