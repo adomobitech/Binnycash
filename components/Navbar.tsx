@@ -258,7 +258,7 @@ export default function Navbar() {
       {/* MOBILE BOTTOM NAVIGATION */}
       {isLoggedIn && (
         <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#111319] border-t border-white/5 z-50 flex items-center justify-between px-2 pb-safe pt-2">
-          <Link href="/myoffers" className="flex flex-col items-center w-[33%] h-14"><Trophy className="w-5 h-5 mb-1 text-[#8F95A3]" /><span className="text-[10px] font-bold text-[#8F95A3]">Started</span></Link>
+          <Link href="/myoffers" className="flex flex-col items-center w-[33%] h-14"><Trophy className="w-5 h-5 mb-1 text-[#8F95A3]" /><span className="text-[10px] font-bold text-[#8F95A3]">My Offer</span></Link>
           <Link href="/dashboard" className="flex flex-col items-center w-[33%] h-14"><Rocket className="w-6 h-6 mb-1 text-[#8B5CF6]" /><span className="text-[10px] font-bold text-white">Earn</span></Link>
           <Link href="/cashout" className="flex flex-col items-center w-[33%] h-14"><Wallet className="w-5 h-5 mb-1 text-[#8F95A3]" /><span className="text-[10px] font-bold text-[#8F95A3]">Cashout</span></Link>
         </div>

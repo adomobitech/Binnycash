@@ -11,7 +11,7 @@ import {
 export default function Sidebar() {
   const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [balance, setBalance] = useState('0.00'); // 🔥 Wallet balance state
+  const [balance, setBalance] = useState('0.00');
 
   // Inbox Modal & Mobile Menu States
   const [isInboxOpen, setIsInboxOpen] = useState(false);
@@ -26,7 +26,7 @@ export default function Sidebar() {
     if (token) {
       setIsLoggedIn(true);
       
-      // 🔥 Fetch Wallet Balance API
+      // Fetch Wallet Balance API
       fetch('https://apitest.binnycash.com/api/user/wallet/total-earning', {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -89,21 +89,21 @@ export default function Sidebar() {
       {/* Floating Mobile Toggle Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="fixed bottom-6 right-6 z-[110] lg:hidden w-14 h-14 bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] text-white rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(139,92,246,0.5)] hover:scale-105 transition-all"
+        className="fixed bottom-24 right-6 z-[110] lg:hidden w-14 h-14 bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] text-white rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(139,92,246,0.5)] hover:scale-105 transition-all cursor-pointer"
       >
         {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
 
-      {/* Mobile Backdrop Overlay */}
+      {/* Mobile Backdrop Overlay - z-[90] */}
       <div 
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] lg:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-black/80 backdrop-blur-sm z-[90] lg:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* Main Sidebar Component */}
+      {/* Main Sidebar Component - 🔥 FIX: Changed z-[40] to z-[100] taaki parde ke upar aaye 🔥 */}
       <aside 
         ref={sidebarRef} 
-        className={`w-[260px] shrink-0 bg-[#111319] border-r border-white/5 p-4 flex flex-col z-[40] custom-scrollbar overflow-y-auto
+        className={`w-[260px] shrink-0 bg-[#111319] border-r border-white/5 p-4 flex flex-col z-[100] custom-scrollbar overflow-y-auto
           /* Mobile Drawer */
           fixed top-0 left-0 h-full transition-transform duration-300 ease-in-out
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -115,12 +115,12 @@ export default function Sidebar() {
         {/* Mobile Header */}
         <div className="flex items-center justify-between lg:hidden mb-4 pb-4 border-b border-white/5">
           <span className="text-white font-black text-lg">Menu</span>
-          <button onClick={() => setIsMobileMenuOpen(false)} className="text-[#8F95A3] hover:text-white transition-colors">
+          <button onClick={() => setIsMobileMenuOpen(false)} className="text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Wallet Balance Display (Dynamic API Data) */}
+        {/* Wallet Balance Display */}
         <div className="bg-[#1A1C24] border border-[#8B5CF6]/30 rounded-xl p-4 flex flex-col mb-6 shadow-[0_0_15px_rgba(139,92,246,0.1)] shrink-0">
           <span className="text-[#8F95A3] text-xs font-bold uppercase tracking-wider mb-1">Your Balance</span>
           <div className="flex items-center gap-1">
