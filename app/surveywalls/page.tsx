@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Sidebar from '@/components/Sidebar';
+// 🔥 Sidebar import hata diya 🔥
 import OfferCard from '@/components/offers/OfferCard';
 import { ListChecks, List, Star, Zap, ChevronDown, ChevronLeft, Search } from "lucide-react";
 
@@ -84,12 +84,12 @@ export default function AllSurveywallsPage() {
   };
 
   return (
-    <div className="flex bg-[#0E1015] min-h-screen text-white">
-      {/* 👈 LEFT SIDEBAR */}
-      <Sidebar />
+    <div className="flex flex-col bg-[#0B0D19] min-h-[calc(100vh-80px)] text-white relative">
+      {/* GLOBAL BACKGROUND AMBIENCE */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
 
       {/* 👉 MAIN CONTENT AREA */}
-      <div className="flex-1 overflow-x-hidden pt-20 md:pt-24 pb-20 px-4 md:px-8 custom-scrollbar">
+      <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 custom-scrollbar">
         
         {/* 🔥 HERO BANNER 🔥 */}
         <div className="relative w-full bg-[#111319] border border-white/5 rounded-[24px] mb-6 overflow-hidden flex flex-col justify-center px-6 md:px-10 py-8 shadow-lg">
@@ -194,7 +194,7 @@ export default function AllSurveywallsPage() {
           .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
           .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(16, 185, 129, 0.5); }
         `}} />
-      </div>
+      </main>
     </div>
   );
 }

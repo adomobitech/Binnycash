@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Sidebar from '@/components/Sidebar'; 
 import { 
   ChevronLeft, MessageSquare, Send, 
   ChevronRight, Headset, AlertCircle, Wallet, 
@@ -140,10 +138,11 @@ export default function SupportChatPage() {
   };
 
   return (
-    <div className="flex bg-[#0E1015] min-h-screen text-white overflow-hidden">
-      <Sidebar />
+    <div className="flex flex-col bg-[#0B0D19] min-h-[calc(100vh-80px)] text-white relative">
+      {/* GLOBAL BACKGROUND AMBIENCE */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[#8B5CF6]/5 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="flex-1 pt-6 px-4 md:px-8 overflow-y-auto h-screen pb-12 custom-scrollbar">
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         
         <div className="flex items-center gap-4 mb-6">
           <button 
@@ -152,13 +151,13 @@ export default function SupportChatPage() {
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-2xl font-black text-white">Community Chat & Support</h1>
+          <h1 className="text-2xl md:text-3xl font-black text-white">Community Chat & Support</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* LEFT COLUMN: CHAT INTERFACE (STICKY TO PREVENT BLANK SPACE AT BOTTOM) */}
-          <div className="lg:col-span-8 sticky top-6 flex flex-col bg-[#111319] border border-white/5 rounded-[24px] h-[calc(100vh-120px)] shadow-lg overflow-hidden relative shrink-0">
+          {/* LEFT COLUMN: CHAT INTERFACE (Sticky with offset for 80px Navbar) */}
+          <div className="lg:col-span-8 lg:sticky lg:top-[104px] flex flex-col bg-[#111319] border border-white/5 rounded-[24px] h-[calc(100vh-140px)] shadow-[0_10px_40px_rgba(0,0,0,0.3)] overflow-hidden relative shrink-0">
             
             {showContactForm ? (
               /* CONTACT FORM VIEW */
@@ -189,7 +188,7 @@ export default function SupportChatPage() {
                       <p className="text-xs text-[#8F95A3]">Our team has received your request and will get back to you soon.</p>
                       <button 
                         onClick={() => setShowContactForm(false)} 
-                        className="mt-4 px-6 py-2.5 rounded-xl bg-[#00E57A] text-[#0E1015] font-black text-xs cursor-pointer"
+                        className="mt-4 px-6 py-2.5 rounded-xl bg-[#00E57A] text-[#0E1015] font-black text-xs cursor-pointer hover:bg-[#00b359] transition-colors"
                       >
                         Return to Global Chat
                       </button>
@@ -253,13 +252,13 @@ export default function SupportChatPage() {
                 </div>
 
                 {/* CHAT MESSAGES */}
-                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-[#0E1015]/30 flex flex-col gap-6">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-[#0E1015]/30 flex flex-col gap-6">
                   {isLoading ? (
                     <div className="flex justify-center items-center h-full">
-                      <div className="w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-8 h-8 border-4 border-[#8B5CF6]/20 border-t-[#8B5CF6] rounded-full animate-spin"></div>
                     </div>
                   ) : messages.length === 0 ? (
-                    <div className="flex justify-center items-center h-full text-[#8F95A3] text-sm">
+                    <div className="flex justify-center items-center h-full text-[#8F95A3] text-sm font-medium">
                       Be the first to send a message!
                     </div>
                   ) : (
@@ -279,15 +278,15 @@ export default function SupportChatPage() {
                       return (
                         <div key={msg._id || index} className={`flex gap-3 ${isMe ? 'justify-end' : 'justify-start'}`}>
                           {!isMe && (
-                            <div className="w-10 h-10 rounded-full bg-[#1A1C24] border border-white/10 shrink-0 overflow-hidden mt-4">
+                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#1A1C24] border border-white/10 shrink-0 overflow-hidden mt-4">
                               <img src={avatarUrl} alt={msg.userName} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = fallbackAvatar; }} />
                             </div>
                           )}
-                          <div className="flex flex-col max-w-[75%]">
+                          <div className="flex flex-col max-w-[85%] md:max-w-[75%]">
                             <div className={`flex items-center gap-2 mb-1 ${isMe ? 'justify-end' : 'justify-start ml-1'}`}>
                               <span className="text-[11px] font-bold text-[#8F95A3]">{isMe ? 'You' : msg.userName || `User ${msg.userId}`}</span>
                             </div>
-                            <div className={`p-4 text-[14px] font-medium leading-relaxed whitespace-pre-wrap break-words ${
+                            <div className={`p-3.5 md:p-4 text-[13px] md:text-[14px] font-medium leading-relaxed whitespace-pre-wrap break-words ${
                               isMe ? 'bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] text-white rounded-[20px] rounded-tr-sm shadow-[0_4px_15px_rgba(139,92,246,0.3)]' : 'bg-[#1A1C24] text-[#E2E8F0] border border-white/5 rounded-[20px] rounded-tl-sm shadow-sm'
                             }`}>
                               {msg.message}
@@ -298,7 +297,7 @@ export default function SupportChatPage() {
                             </div>
                           </div>
                           {isMe && (
-                            <div className="w-10 h-10 rounded-full bg-[#1A1C24] border border-[#8B5CF6]/30 shrink-0 overflow-hidden mt-4">
+                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#1A1C24] border border-[#8B5CF6]/30 shrink-0 overflow-hidden mt-4">
                               <img src={fallbackAvatar} alt="You" className="w-full h-full object-cover" />
                             </div>
                           )}
@@ -310,23 +309,23 @@ export default function SupportChatPage() {
                 </div>
 
                 {/* INPUT BAR */}
-                <div className="p-4 bg-[#14171F] border-t border-white/5 shrink-0">
-                  <form onSubmit={handleSendMessage} className="relative flex items-center gap-3">
+                <div className="p-3 md:p-4 bg-[#14171F] border-t border-white/5 shrink-0">
+                  <form onSubmit={handleSendMessage} className="relative flex items-center gap-2 md:gap-3">
                     <div className="relative flex-1">
                       <input 
                         type="text" 
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Type your message..." 
-                        className="w-full bg-[#0E1015] border border-white/10 text-white text-[14px] rounded-xl pl-4 pr-4 py-4 focus:ring-1 focus:ring-[#8B5CF6]/50 focus:border-[#8B5CF6]/50 outline-none transition-all placeholder:text-[#8F95A3]"
+                        className="w-full bg-[#0E1015] border border-white/10 text-white text-[13px] md:text-[14px] rounded-xl pl-4 pr-4 py-3.5 md:py-4 focus:ring-1 focus:ring-[#8B5CF6]/50 focus:border-[#8B5CF6]/50 outline-none transition-all placeholder:text-[#8F95A3]"
                       />
                     </div>
                     <button 
                       type="submit" 
                       disabled={!newMessage.trim()}
-                      className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] flex items-center justify-center text-white shadow-[0_4px_15px_rgba(139,92,246,0.4)] disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-all shrink-0 cursor-pointer"
+                      className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] flex items-center justify-center text-white shadow-[0_4px_15px_rgba(139,92,246,0.4)] disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-all shrink-0 cursor-pointer"
                     >
-                      <Send className="w-5 h-5 ml-[-2px]" />
+                      <Send className="w-4 h-4 md:w-5 md:h-5 ml-[-2px]" />
                     </button>
                   </form>
                 </div>
@@ -384,7 +383,7 @@ export default function SupportChatPage() {
               </div>
             </div>
 
-            <div className="bg-[#111319] border border-white/5 rounded-[24px] p-5 shadow-lg shrink-0">
+            <div className="bg-[#111319] border border-white/5 rounded-[24px] p-5 shadow-lg shrink-0 mb-20 lg:mb-0">
               <h3 className="text-[15px] font-black text-white flex items-center gap-2 mb-4">
                 <Headset className="w-4 h-4 text-[#8B5CF6]" /> Contact Info
               </h3>
@@ -406,7 +405,7 @@ export default function SupportChatPage() {
                   </div>
                   <div>
                     <h4 className="text-[13px] font-bold text-white">Average Reply Time</h4>
-                    <p className="text-[12px] text-[#8F95A3]">2 - 5 minutes</p>
+                    <p className="text-[12px] text-[#8F95A3]">24 - 48 hours</p>
                   </div>
                 </div>
 
@@ -432,7 +431,7 @@ export default function SupportChatPage() {
           </div>
         </div>
 
-      </div>
+      </main>
       
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }

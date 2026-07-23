@@ -9,7 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "emoji-picker-react": "^4.19.1",
     "flag-icons": "^7.5.0",
+    "framer-motion": "^12.42.2",
     "lucide-react": "^1.25.0",
     "next": "16.2.10",
     "react": "19.2.4",

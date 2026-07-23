@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Sidebar from '@/components/Sidebar';
-import OfferCard from '@/components/offers/OfferCard';
+import OfferwallCard from '@/components/offerwalls/OfferwallCard';
+import OfferwallModal from '@/components/offerwalls/OfferwallModal'; // 🔥 Naya Import 🔥
 import { Boxes, List, Star, Zap, ChevronDown, ChevronLeft, Search } from "lucide-react";
 
 export default function AllOfferwallsPage() {
@@ -13,6 +13,9 @@ export default function AllOfferwallsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('All');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  // 🔥 Modal State 🔥
+  const [selectedOfferwall, setSelectedOfferwall] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,14 +87,11 @@ export default function AllOfferwallsPage() {
   };
 
   return (
-    <div className="flex bg-[#0E1015] min-h-screen text-white">
-      {/* 👈 LEFT SIDEBAR */}
-      <Sidebar />
+    <div className="flex flex-col bg-[#0B0D19] min-h-[calc(100vh-80px)] text-white relative">
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[#10B981]/5 blur-[120px] rounded-full pointer-events-none" />
 
-      {/* 👉 MAIN CONTENT AREA */}
-      <div className="flex-1 overflow-x-hidden pt-20 md:pt-24 pb-20 px-4 md:px-8 custom-scrollbar">
+      <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 custom-scrollbar">
         
-        {/* 🔥 HERO BANNER 🔥 */}
         <div className="relative w-full bg-[#111319] border border-white/5 rounded-[24px] mb-6 overflow-hidden flex flex-col justify-center px-6 md:px-10 py-8 shadow-lg">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#10B981]/10 blur-[100px] rounded-full translate-x-1/3 -translate-y-1/3"></div>
           <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#3B82F6]/5 blur-[80px] rounded-full -translate-x-1/3 translate-y-1/3"></div>
@@ -115,7 +115,6 @@ export default function AllOfferwallsPage() {
           </div>
         </div>
 
-        {/* 🔥 MAIN FILTERS BAR 🔥 */}
         <div className="flex flex-col xl:flex-row justify-between items-center gap-4 mb-6">
           <div className="relative w-full xl:w-[320px] shrink-0">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -130,7 +129,6 @@ export default function AllOfferwallsPage() {
             />
           </div>
 
-          {/* CUSTOM DROPDOWN */}
           <div className="relative shrink-0 w-full sm:w-[220px] z-10" ref={dropdownRef}>
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
@@ -159,7 +157,6 @@ export default function AllOfferwallsPage() {
           </div>
         </div>
 
-        {/* 🔥 GRID CONTENT 🔥 */}
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
@@ -176,7 +173,8 @@ export default function AllOfferwallsPage() {
                   : item.image
               };
               return (
-                <OfferCard key={item._id || item.id || index} offer={fixedItem} />
+                // 🔥 Passed onClick to open modal 🔥
+                <OfferwallCard key={item._id || item.id || index} offerwall={fixedItem} onClick={setSelectedOfferwall} />
               );
             })}
           </div>
@@ -194,7 +192,14 @@ export default function AllOfferwallsPage() {
           .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
           .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(16, 185, 129, 0.5); }
         `}} />
-      </div>
+      </main>
+
+      {/* 🔥 The Modal Injection 🔥 */}
+      <OfferwallModal 
+        isOpen={!!selectedOfferwall} 
+        onClose={() => setSelectedOfferwall(null)} 
+        offerwall={selectedOfferwall} 
+      />
     </div>
   );
 }

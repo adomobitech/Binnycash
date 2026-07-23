@@ -4,8 +4,13 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from './AuthContext';
-import { Rocket, Trophy, Wallet, Globe, ChevronDown, User } from "lucide-react";
+import { 
+  Bell, Rocket, Trophy, Wallet, ChevronDown, User, 
+  LogOut, MessageSquare, ShieldCheck, HelpCircle, Gift, BarChart3, Users, X
+} from "lucide-react";
+import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
+import ChatDrawer from '@/components/chat/ChatDrawer';
 
 declare global {
   interface Window {
@@ -24,6 +29,14 @@ const LANGUAGES = [
   { code: 'ar', name: 'Arabic', tag: 'sa', flag: '🇸🇦' }
 ];
 
+const MAIN_LINKS = [
+  { name: 'Earn', href: '/dashboard' },
+  { name: 'My Offers', href: '/myoffers' },
+  { name: 'Affiliate', href: '/affiliate' },
+  { name: 'Leaderboard', href: '/leaderboard' },
+  { name: 'Rewards', href: '/rewards' },
+];
+
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -32,10 +45,19 @@ export default function Navbar() {
   
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [usdToggle, setUsdToggle] = useState(true);
   const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
+  const [balance, setBalance] = useState('0.00');
+
+  // Inbox Modal States
+  const [isInboxOpen, setIsInboxOpen] = useState(false);
+  const [inboxMessages, setInboxMessages] = useState<any[]>([]);
+  const [isInboxLoading, setIsInboxLoading] = useState(false);
+
+  // Chat Drawer State
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const navRef = useRef<HTMLElement>(null);
 
@@ -52,20 +74,20 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(event.target as Node)) {
-        setIsProfileOpen(false);
-        setIsLangModalOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('token');
-      setIsLoggedIn(!!token);
+      if (token) {
+        setIsLoggedIn(true);
+        fetch('https://apitest.binnycash.com/api/user/wallet/total-earning', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(res => res.json())
+          .then(data => { if (data && data.data !== undefined) setBalance(data.data); })
+          .catch(err => console.error("Wallet fetch error:", err));
+      } else {
+        setIsLoggedIn(false);
+      }
     };
     checkAuth();
     window.addEventListener('storage', checkAuth);
@@ -74,6 +96,39 @@ export default function Navbar() {
       window.removeEventListener('storage', checkAuth);
       clearInterval(interval);
     };
+  }, []);
+
+  const fetchInboxMessages = async () => {
+    setIsInboxLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('https://apitest.binnycash.com/api/user/inbox/inbox', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      const list = data?.data || data || [];
+      setInboxMessages(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.error("Inbox fetch error:", err);
+    } finally { 
+      setIsInboxLoading(false); 
+    }
+  };
+
+  useEffect(() => { 
+    if (isInboxOpen) fetchInboxMessages(); 
+  }, [isInboxOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+        setIsLangModalOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -91,14 +146,12 @@ export default function Navbar() {
     }
     
     if (window.google && window.google.translate) return;
-
     window.googleTranslateElementInit = () => {
       new window.google.translate.TranslateElement(
         { pageLanguage: 'en', autoDisplay: false, includedLanguages: LANGUAGES.map(l => l.code).join(',') },
         'google_translate_element'
       );
     };
-
     if (!document.getElementById('google-translate-script')) {
       const script = document.createElement('script');
       script.id = 'google-translate-script';
@@ -111,7 +164,6 @@ export default function Navbar() {
   const handleLanguageChange = (lang: any) => {
     setSelectedLang(lang);
     setIsLangModalOpen(false);
-
     if (lang.code === 'en') {
       document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + window.location.hostname;
@@ -124,7 +176,6 @@ export default function Navbar() {
   const handleLogoutConfirm = async () => {
     setShowLogoutConfirm(false);
     setIsTransitioning(true);
-
     try {
       const token = localStorage.getItem('token');
       await fetch('https://apitest.binnycash.com/api/user/logout', {
@@ -137,11 +188,9 @@ export default function Navbar() {
     } catch (error) {
       console.error("Logout API failed:", error);
     } finally {
-      // 🔥 CLEAR TOKENS & STATE FIRST BEFORE REDIRECTING 🔥
       localStorage.removeItem('token');
       localStorage.removeItem('userId'); 
       setIsLoggedIn(false);
-
       setTimeout(() => {
         setIsTransitioning(false);
         router.replace('/');
@@ -149,118 +198,228 @@ export default function Navbar() {
     }
   };
 
-  const ProfileDropdown = ({ isMobile = false }) => (
-    <div className={`absolute ${isMobile ? 'left-0' : 'right-0'} mt-3 w-56 bg-[#1A1C24] border border-white/5 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200`}>
-      <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
-        <User className="w-4 h-4" /> Profile
-      </button>
-      <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-[#8F95A3] hover:text-red-400 hover:bg-white/5 transition-colors">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-        Logout
-      </button>
-      <div className="my-2 border-t border-white/5"></div>
-      <div className="px-4 py-2 flex items-center justify-between">
-        <span className="text-sm font-semibold text-white">Show USD</span>
-        <button onClick={() => setUsdToggle(!usdToggle)} className={`w-10 h-5 rounded-full relative transition-colors ${usdToggle ? 'bg-[#8B5CF6]' : 'bg-gray-600'}`}>
-          <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${usdToggle ? 'left-[22px]' : 'left-1'}`}></div>
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <>
-      {isTransitioning && (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0B0E14] transition-opacity duration-300">
-          <div className="w-24 h-24 mb-6 rounded-full border border-[#00E57A]/30 bg-[#1A1C23] flex items-center justify-center shadow-[0_0_30px_rgba(0,229,122,0.2)]">
-            <img src="/logo.png" alt="BinnyCash" className="w-14 h-14 object-contain animate-bounce" />
-          </div>
-          <h2 className="text-white text-xl font-black tracking-wide animate-pulse">Logging out securely...</h2>
-        </div>
-      )}
-
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-[#111315] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
-            <h3 className="text-white text-lg font-black mb-2 mt-4">Are you sure?</h3>
-            <p className="text-[#8F95A3] text-sm mb-6">You will be logged out of your session.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold transition-colors">Cancel</button>
-              <button onClick={handleLogoutConfirm} className="flex-1 py-3 rounded-xl bg-[#8B5CF6] hover:bg-[#7c3aed] text-white font-bold shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-colors">Yes, Logout</button>
+      <AnimatePresence>
+        {isTransitioning && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0B0E14]">
+            <div className="w-24 h-24 mb-6 rounded-full border border-[#8B5CF6]/30 bg-[#1A1C23] flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.3)]">
+              <motion.img animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 1 }} src="/logo.png" alt="BinnyCash" className="w-14 h-14 object-contain" />
             </div>
-          </div>
-        </div>
-      )}
+            <h2 className="text-white text-xl font-black tracking-wide animate-pulse">Logging out securely...</h2>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <nav ref={navRef} className="w-full bg-[#111319] sticky top-0 z-40 border-b border-white/5 h-[80px] flex items-center">
-        <div className="w-full px-4 md:px-6 flex justify-between items-center relative">
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-[#111315] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
+              <h3 className="text-white text-lg font-black mb-2 mt-4">Are you sure?</h3>
+              <p className="text-[#8F95A3] text-sm mb-6">You will be logged out of your session.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold transition-colors">Cancel</button>
+                <button onClick={handleLogoutConfirm} className="flex-1 py-3 rounded-xl bg-[#8B5CF6] hover:bg-[#7c3aed] text-white font-bold shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-colors">Yes, Logout</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Inbox Modal */}
+      <AnimatePresence>
+        {isInboxOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-[#161922] border border-[#8B5CF6]/30 w-full max-w-lg rounded-3xl p-6 shadow-[0_0_50px_rgba(139,92,246,0.2)] relative overflow-hidden flex flex-col max-h-[80vh]">
+              <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6]"><Bell className="w-5 h-5 animate-bounce" /></div>
+                  <div><h3 className="text-white font-black text-lg">Notifications Inbox</h3><p className="text-xs text-[#8F95A3]">Recent activities and offer rewards</p></div>
+                </div>
+                <button onClick={() => setIsInboxOpen(false)} className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all cursor-pointer border border-white/5"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="py-4 overflow-y-auto custom-scrollbar flex-1 space-y-3 pr-1">
+                {isInboxLoading ? (
+                  <div className="flex flex-col items-center justify-center h-48 gap-3"><div className="w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div><span className="text-xs text-[#8F95A3] font-medium">Loading notifications...</span></div>
+                ) : inboxMessages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-center text-[#8F95A3]"><Bell className="w-10 h-10 mb-2 opacity-30" /><p className="text-sm font-medium">No new notifications in your inbox.</p></div>
+                ) : (
+                  inboxMessages.map((item, idx) => {
+                    const userName = item.userName || 'User';
+                    const offerName = item.offer || item.title || 'Offer Completed';
+                    const reward = item.totalUsdValue ? `+$${item.totalUsdValue}` : (item.reward ? `+$${item.reward}` : '');
+                    let imageUrl = item.image && item.image.startsWith('http') ? item.image : `https://apitest.binnycash.com${item.image}`;
+                    if(!item.image) imageUrl = `https://ui-avatars.com/api/?name=${userName}&background=random`;
+
+                    return (
+                      <div key={item._id || idx} className="bg-[#111319] border border-white/5 rounded-2xl p-4 flex items-center justify-between gap-4 hover:border-[#8B5CF6]/40 transition-all">
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <img src={imageUrl} alt="avatar" className="w-11 h-11 rounded-xl object-cover bg-white/5 border border-white/10 shrink-0" onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${userName}&background=random`; }} />
+                          <div className="min-w-0"><h4 className="text-white text-sm font-black truncate">{userName}</h4><p className="text-[#8F95A3] text-xs truncate mt-0.5">{offerName}</p></div>
+                        </div>
+                        {reward && <div className="text-right shrink-0"><span className="text-xs font-black text-[#00E57A] bg-[#00E57A]/10 px-2.5 py-1 rounded-lg border border-[#00E57A]/20 block">{reward}</span></div>}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* NAVBAR */}
+      <nav ref={navRef} className="w-full bg-[#0E1015]/80 backdrop-blur-xl sticky top-0 z-50 border-b border-white/5 h-[80px] flex items-center shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+        <div className="w-full px-4 lg:px-10 flex justify-between items-center relative">
           
           <div className="flex items-center shrink-0">
             <Link href="/" className="flex items-center gap-3 cursor-pointer group">
-              <img src="/logo.png" alt="BinnyCash" className="h-12 w-auto object-contain transition-transform group-hover:scale-105" />
+              <img src="/logo.png" alt="BinnyCash" className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" />
               <div className="flex flex-col justify-center">
-                <span className="font-black text-2xl tracking-wide text-white leading-none">Binny<span className="text-[#8B5CF6]">Cash</span></span>
-                <span className="text-[9px] text-[#00E57A] font-bold tracking-[0.2em] uppercase mt-1 drop-shadow-[0_0_5px_rgba(0,229,122,0.4)]">Play. Earn. Dominate.</span>
+                <span className="font-black text-xl md:text-2xl tracking-wide text-white leading-none">Binny<span className="text-[#8B5CF6]">Cash</span></span>
+                <span className="text-[8px] md:text-[9px] text-[#00E57A] font-bold tracking-[0.2em] uppercase mt-1 drop-shadow-[0_0_5px_rgba(0,229,122,0.4)]">Play. Earn. Dominate.</span>
               </div>
             </Link>
           </div>
+
+          {/* CENTER: Navigation Links (Shifted Left & Properly Spaced via mx-auto) */}
+          {isLoggedIn && (
+            <div className="hidden lg:flex items-center gap-6 xl:gap-8 mx-auto">
+              {MAIN_LINKS.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link key={link.name} href={link.href} className="relative group px-2 py-1">
+                    <span className={`text-sm font-bold transition-colors duration-300 ${isActive ? 'text-white' : 'text-[#8F95A3] group-hover:text-white'}`}>
+                      {link.name}
+                    </span>
+                    {isActive && (
+                      <motion.div layoutId="nav-underline" className="absolute left-0 bottom-[-4px] w-full h-[3px] bg-gradient-to-r from-[#8B5CF6] to-[#00E57A] rounded-full shadow-[0_0_10px_rgba(139,92,246,0.6)]" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
             <div id="google_translate_element" style={{ display: 'none' }}></div>
             
             <div className="relative">
-              <button 
-                onClick={() => setIsLangModalOpen(!isLangModalOpen)}
-                className="flex items-center gap-2 bg-[#1A1C24] border border-white/5 hover:bg-[#252836] transition-all px-3 py-2 rounded-xl text-white text-xs font-bold cursor-pointer"
-              >
+              <button onClick={() => setIsLangModalOpen(!isLangModalOpen)} className="flex items-center gap-1.5 md:gap-2 bg-white/5 border border-white/10 hover:bg-white/10 transition-all px-2.5 md:px-3 py-2 rounded-xl text-white text-xs font-bold backdrop-blur-md cursor-pointer">
                 <span className={`fi fi-${selectedLang.tag} w-4 h-3 rounded-[2px] shadow-sm`}></span>
                 <span className="hidden sm:inline uppercase">{selectedLang.code}</span>
                 <ChevronDown className="w-3 h-3 text-[#8F95A3]" />
               </button>
 
-              {isLangModalOpen && (
-                <div className="absolute right-0 mt-3 w-48 bg-[#1A1C24] border border-white/5 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                  {LANGUAGES.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => handleLanguageChange(lang)}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors text-left cursor-pointer"
-                    >
-                      <span className={`fi fi-${lang.tag} w-5 h-3.5 rounded-[2px] shadow-sm`}></span>
-                      <span>{lang.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <AnimatePresence>
+                {isLangModalOpen && (
+                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} transition={{ duration: 0.2 }} className="absolute right-0 mt-3 w-48 bg-[#1A1C24]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl py-2 z-50">
+                    {LANGUAGES.map((lang) => (
+                      <button key={lang.code} onClick={() => handleLanguageChange(lang)} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors text-left cursor-pointer">
+                        <span className={`fi fi-${lang.tag} w-5 h-3.5 rounded-[2px] shadow-sm`}></span>
+                        <span>{lang.name}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {isLoggedIn ? (
-              <>
-                <div className="hidden md:block relative">
-                  <button onClick={() => { setIsProfileOpen(!isProfileOpen); }} className="flex items-center gap-2 bg-[#1A1C24] border border-white/5 hover:bg-[#252836] transition-all rounded-lg pl-1.5 pr-3 py-1.5 cursor-pointer">
-                    <div className="w-6 h-6 rounded-md bg-[#8B5CF6]/20 text-[#8B5CF6] flex items-center justify-center text-xs font-black">W</div>
-                    <span className="text-white text-xs font-bold max-w-[80px] truncate">wranglerl...</span>
-                    <span className="text-[#8F95A3] text-[10px] ml-1">▼</span>
-                  </button>
-                  {isProfileOpen && <ProfileDropdown />}
+              <div className="flex items-center gap-2 md:gap-4">
+                
+                {/* OPEN CHAT DRAWER */}
+                <button 
+                  onClick={() => setIsChatOpen(true)}
+                  className="relative w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors group cursor-pointer"
+                >
+                  <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-[#8F95A3] group-hover:text-white transition-colors" />
+                </button>
+
+                <button 
+                  onClick={() => setIsInboxOpen(true)}
+                  className="relative w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors group cursor-pointer"
+                >
+                  <motion.div animate={{ rotate: [0, -15, 15, -15, 15, 0] }} transition={{ repeat: Infinity, repeatDelay: 3, duration: 0.5 }}>
+                    <Bell className="w-4 h-4 md:w-5 md:h-5 text-[#8F95A3] group-hover:text-white transition-colors" />
+                  </motion.div>
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-[#00E57A] rounded-full shadow-[0_0_10px_rgba(0,229,122,1)] animate-pulse"></span>
+                </button>
+
+                <div className="hidden lg:flex items-center gap-3 bg-gradient-to-r from-white/5 to-white/10 border border-white/10 px-4 py-2 rounded-xl backdrop-blur-md shadow-inner">
+                  <Wallet className="w-4 h-4 text-[#8B5CF6]" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-[#8F95A3] font-bold uppercase leading-tight">Balance</span>
+                    <span className="text-sm font-black text-white leading-tight">${balance}</span>
+                  </div>
                 </div>
-              </>
+
+                <div className="relative">
+                  <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] p-1 pr-2 md:pr-3 rounded-full hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all cursor-pointer">
+                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black shadow-sm">U</div>
+                    <span className="text-white text-xs font-bold max-w-[80px] truncate hidden md:block">Profile</span>
+                    <ChevronDown className="w-3 h-3 text-white/70" />
+                  </button>
+
+                  <AnimatePresence>
+                    {isProfileOpen && (
+                      <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} transition={{ duration: 0.2 }} className="absolute right-0 mt-4 w-56 bg-[#1A1C24]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] py-2 z-50">
+                        <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
+                          <User className="w-4 h-4 text-[#8B5CF6]" /> Profile
+                        </Link>
+                        <button onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
+                          <ShieldCheck className="w-4 h-4 text-[#00E57A]" /> Account Status
+                        </button>
+                        <Link href="/support" onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
+                          <HelpCircle className="w-4 h-4 text-orange-400" /> Help Center
+                        </Link>
+                        <div className="my-2 border-t border-white/5"></div>
+                        <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer">
+                          <LogOut className="w-4 h-4" /> Logout
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <button onClick={openLogin} className="text-sm font-bold text-white hover:text-[#8B5CF6] transition-colors cursor-pointer">Login</button>
-                <button onClick={openRegister} className="text-sm font-bold text-white bg-[#8B5CF6] hover:bg-[#7c3aed] px-4 py-2 rounded-lg transition-colors cursor-pointer">Sign Up</button>
+              <div className="flex items-center gap-2 md:gap-3">
+                <button onClick={openLogin} className="text-xs md:text-sm font-bold text-white hover:text-[#8B5CF6] transition-colors cursor-pointer">Login</button>
+                <button onClick={openRegister} className="text-xs md:text-sm font-bold text-white bg-[#8B5CF6] hover:bg-[#7c3aed] px-3 md:px-4 py-1.5 md:py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(139,92,246,0.3)] cursor-pointer">Sign Up</button>
               </div>
             )}
           </div>
         </div>
       </nav>
 
+      {/* THE CHAT DRAWER */}
+      {isLoggedIn && (
+        <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      )}
+
       {/* MOBILE BOTTOM NAVIGATION */}
       {isLoggedIn && (
-        <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#111319] border-t border-white/5 z-50 flex items-center justify-between px-2 pb-safe pt-2">
-          <Link href="/myoffers" className="flex flex-col items-center w-[33%] h-14"><Trophy className="w-5 h-5 mb-1 text-[#8F95A3]" /><span className="text-[10px] font-bold text-[#8F95A3]">My Offer</span></Link>
-          <Link href="/dashboard" className="flex flex-col items-center w-[33%] h-14"><Rocket className="w-6 h-6 mb-1 text-[#8B5CF6]" /><span className="text-[10px] font-bold text-white">Earn</span></Link>
-          <Link href="/cashout" className="flex flex-col items-center w-[33%] h-14"><Wallet className="w-5 h-5 mb-1 text-[#8F95A3]" /><span className="text-[10px] font-bold text-[#8F95A3]">Cashout</span></Link>
+        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-[#111319]/90 backdrop-blur-xl border-t border-white/5 z-50 flex items-center justify-between px-2 pb-safe pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+          <Link href="/dashboard" className="flex flex-col items-center w-[20%] h-14">
+            <Rocket className={`w-5 h-5 mb-1 ${pathname === '/dashboard' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
+            <span className={`text-[10px] font-bold ${pathname === '/dashboard' ? 'text-white' : 'text-[#8F95A3]'}`}>Earn</span>
+          </Link>
+          <Link href="/myoffers" className="flex flex-col items-center w-[20%] h-14">
+            <Trophy className={`w-5 h-5 mb-1 ${pathname === '/myoffers' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
+            <span className={`text-[10px] font-bold ${pathname === '/myoffers' ? 'text-white' : 'text-[#8F95A3]'}`}>My Offers</span>
+          </Link>
+          <Link href="/affiliate" className="flex flex-col items-center w-[20%] h-14">
+            <Users className={`w-5 h-5 mb-1 ${pathname === '/affiliate' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
+            <span className={`text-[10px] font-bold ${pathname === '/affiliate' ? 'text-white' : 'text-[#8F95A3]'}`}>Affiliate</span>
+          </Link>
+          <Link href="/leaderboard" className="flex flex-col items-center w-[20%] h-14">
+            <BarChart3 className={`w-5 h-5 mb-1 ${pathname === '/leaderboard' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
+            <span className={`text-[10px] font-bold ${pathname === '/leaderboard' ? 'text-white' : 'text-[#8F95A3]'}`}>Leaders</span>
+          </Link>
+          <Link href="/rewards" className="flex flex-col items-center w-[20%] h-14">
+            <Gift className={`w-5 h-5 mb-1 ${pathname === '/rewards' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
+            <span className={`text-[10px] font-bold ${pathname === '/rewards' ? 'text-white' : 'text-[#8F95A3]'}`}>Rewards</span>
+          </Link>
         </div>
       )}
     </>
