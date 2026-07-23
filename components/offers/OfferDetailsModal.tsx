@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, PlayCircle, Star, CheckCircle2, Monitor, Smartphone, ShieldCheck, Sparkles } from "lucide-react";
 
-// Icons
 const AndroidIcon = () => (
   <svg viewBox="0 0 24 24" className="w-6 h-6 fill-[#A4C639]">
     <path d="M17.523 15.3414C17.523 15.3414 17.523 15.3414 17.523 15.3414C17.523 16.1432 16.8924 16.7738 16.0906 16.7738C15.2889 16.7738 14.6583 16.1432 14.6583 15.3414C14.6583 14.5397 15.2889 13.9091 16.0906 13.9091C16.8924 13.9091 17.523 14.5397 17.523 15.3414ZM9.34167 15.3414C9.34167 15.3414 9.34167 15.3414 9.34167 15.3414C9.34167 16.1432 8.71108 16.7738 7.90933 16.7738C7.10759 16.7738 6.47699 16.1432 6.47699 15.3414C6.47699 14.5397 7.10759 13.9091 7.90933 13.9091C8.71108 13.9091 9.34167 14.5397 9.34167 15.3414ZM17.9622 10.7416L19.8661 7.44426C19.9868 7.23517 19.915 6.96781 19.7059 6.84717C19.4968 6.72652 19.2295 6.79828 19.1088 7.00737L17.1706 10.3644C15.6171 9.64654 13.8631 9.24584 12.0003 9.24584C10.1374 9.24584 8.38338 9.64654 6.82998 10.3644L4.89173 7.00737C4.77109 6.79828 4.50373 6.72652 4.29464 6.84717C4.08554 6.96781 4.01379 7.23517 4.13444 7.44426L6.03831 10.7416C2.63935 12.6075 0.354181 16.166 0.0546875 20.315H23.9458C23.6463 16.166 21.3612 12.6075 17.9622 10.7416Z" />
@@ -25,7 +24,6 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   const [details, setDetails] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // 🔥 New States for API Click & QR Code 🔥
   const [isProcessingClick, setIsProcessingClick] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [targetDeviceName, setTargetDeviceName] = useState<string>('Android');
@@ -94,26 +92,40 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
         body: JSON.stringify({ offerId: targetId }) 
       });
 
-      const htmlData = await res.text();
-      const urlMatch = htmlData.match(/location\.replace\("([^"]+)"\)/i) || htmlData.match(/url=([^"]+)/i);
-      const finalRedirectUrl = urlMatch ? urlMatch[1] : (offer?.click_url || offer?.link || '#');
+      const responseText = await res.text();
+      let finalRedirectUrl = offer?.click_url || offer?.link || offer?.url || '';
 
-      if (!finalRedirectUrl || finalRedirectUrl === '#') throw new Error("No URL");
+      try {
+        const jsonRes = JSON.parse(responseText);
+        finalRedirectUrl = jsonRes?.url || jsonRes?.data?.url || jsonRes?.click_url || finalRedirectUrl;
+      } catch (e) {
+        const urlMatch = responseText.match(/location\.replace\("([^"]+)"\)/i) || 
+                         responseText.match(/url=([^"]+)/i) || 
+                         responseText.match(/https?:\/\/[^\s"'<>]+/i);
+        if (urlMatch) {
+          finalRedirectUrl = urlMatch[1] || urlMatch[0];
+        }
+      }
+
+      if (!finalRedirectUrl || finalRedirectUrl === '#') {
+        finalRedirectUrl = offer?.click_url || offer?.link || 'https://binnycash.com';
+      }
 
       const userAgent = navigator.userAgent || navigator.vendor;
       const isUserOnMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
       
+      const currentData = details || offer;
       const combinedPlatformString = String(
-        details?.browsers || offer?.browsers || offer?.category || ''
+        currentData?.browsers || currentData?.platform || currentData?.device || currentData?.categories || currentData?.category || ''
       ).toLowerCase();
-      const platforms = details?.platforms || offer?.platforms || {};
+      const platforms = currentData?.platforms || {};
 
       const isAndroidOffer = combinedPlatformString.includes('android') || platforms.android === true;
-      const isIosOffer = combinedPlatformString.includes('ios') || combinedPlatformString.includes('iphone') || platforms.ios === true;
-      const isDesktopOffer = combinedPlatformString.includes('web') || combinedPlatformString.includes('desktop') || platforms.web === true;
-      const isMobileOffer = isAndroidOffer || isIosOffer;
+      const isIosOffer = combinedPlatformString.includes('ios') || combinedPlatformString.includes('iphone') || combinedPlatformString.includes('ipad') || platforms.ios === true;
+      const isDesktopOffer = combinedPlatformString.includes('web') || combinedPlatformString.includes('desktop') || combinedPlatformString.includes('pc') || combinedPlatformString.includes('windows') || platforms.web === true;
+      const isMobileOffer = (isAndroidOffer || isIosOffer) && !isDesktopOffer;
 
-      if (!isUserOnMobile && isMobileOffer && !isDesktopOffer) {
+      if (!isUserOnMobile && isMobileOffer) {
         setTargetDeviceName(isAndroidOffer && !isIosOffer ? 'Android' : (isIosOffer && !isAndroidOffer ? 'iOS' : 'Mobile'));
         setQrCodeUrl(finalRedirectUrl);
       } else {
@@ -122,7 +134,9 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       }
     } catch (err) {
       console.error("Error processing click URL:", err);
-      if (offer?.link || offer?.click_url) { window.open(offer.link || offer.click_url, '_blank'); onClose(); }
+      const fallbackUrl = offer?.link || offer?.click_url || 'https://binnycash.com';
+      window.open(fallbackUrl, '_blank');
+      onClose();
     } finally {
       setIsProcessingClick(false);
     }
@@ -159,7 +173,6 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
           transition={{ duration: 0.2 }}
           className={`w-full max-w-[500px] rounded-[28px] max-h-[90vh] overflow-y-auto no-scrollbar relative border border-white/10 shadow-2xl ${qrCodeUrl ? 'bg-[#0B0D15]' : 'bg-[#111319]'}`}
         >
-          {/* Close Button Top Right (Absolute) */}
           <button 
             onClick={onClose}
             className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-[#8F95A3] hover:text-white transition-colors border border-white/5 cursor-pointer z-50"
@@ -168,7 +181,6 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
           </button>
 
           {qrCodeUrl ? (
-            // 🔥 PREMIUM QR CODE UI EXACTLY LIKE SCREENSHOT 🔥
             <div className="relative p-8 pt-10 flex flex-col items-center text-center overflow-hidden">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#8B5CF6]/20 blur-[100px] rounded-full pointer-events-none" />
 
@@ -215,7 +227,6 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
               </div>
             </div>
           ) : (
-            // 🔥 STANDARD OFFER DETAILS UI 🔥
             <>
               <div className="sticky top-0 bg-[#111319]/95 backdrop-blur-md z-20 flex items-center p-4 border-b border-white/5">
                 <h2 className="text-white font-black text-base truncate pr-10">{title}</h2>

@@ -11,21 +11,29 @@ export function filterOffersByDevice(offers: any[], selectedDevices: string[]) {
 
   return offers.filter((offer) => {
     const browsers = (offer?.browsers || '').toLowerCase();
-    const categories = (offer?.categories || offer?.category || '').toLowerCase();
+    const categories = (offer?.categories || offer?.category || offer?.sub || '').toLowerCase();
     const offerType = (offer?.offer_type || '').toLowerCase();
-    
-    const isAndroid = browsers.includes('android') || categories.includes('android') || offerType.includes('android');
-    const isIos = browsers.includes('ios') || browsers.includes('iphone') || browsers.includes('ipad') || categories.includes('ios') || offerType.includes('ios');
-    const isDesktop = browsers.includes('desktop') || browsers.includes('web') || browsers.includes('pc') || categories.includes('web') || offerType.includes('web');
-    const isAll = browsers.includes('all') || (!isAndroid && !isIos && !isDesktop);
+    const pStr = `${browsers} ${categories} ${offerType}`;
 
-    if (isAll) return true;
+    const isAndroid = pStr.includes('android');
+    const isIos = pStr.includes('ios') || pStr.includes('iphone') || pStr.includes('ipad');
+    const isMac = pStr.includes('mac') || pStr.includes('osx');
+    const isWindows = pStr.includes('windows') || pStr.includes('win') || pStr.includes('pc');
+    const isWeb = pStr.includes('web') || browsers.length > 0;
 
     return selectedDevices.some((device) => {
-      if (device === 'android' && isAndroid) return true;
-      if (device === 'ios' && isIos) return true;
-      if ((device === 'desktop' || device === 'mac' || device === 'windows') && isDesktop) return true;
-      if (device === 'ipad' && isIos) return true;
+      // Android filter: Android apps + Web offers (jo har jagah chalte hain)
+      if (device === 'android') return isAndroid || isWeb;
+      
+      // iOS / iPad filter: iOS specific apps/browsers
+      if (device === 'ios' || device === 'ipad') return isIos;
+      
+      // Mac filter: Mac specific + Web offers (Mac browser par web offers chalenge hi)
+      if (device === 'mac') return isMac || isWeb;
+      
+      // Windows filter: Windows specific + Web offers + Android (Win 11 compatibility)
+      if (device === 'windows') return isWindows || isWeb || isAndroid;
+      
       return false;
     });
   });
@@ -61,7 +69,7 @@ export default function OfferSlider({
 
   const scroll = (direction: 'left' | 'right') => {
     if (sliderRef.current) {
-      const { scrollLeft, clientWidth } = sliderRef.current;
+      const { clientWidth } = sliderRef.current;
       const scrollAmount = clientWidth * 0.75;
       sliderRef.current.scrollBy({
         left: direction === 'left' ? -scrollAmount : scrollAmount,
@@ -72,20 +80,15 @@ export default function OfferSlider({
 
   return (
     <div className="w-full flex flex-col gap-3">
-      {/* Header Container */}
       <div className="flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 bg-[#14171F] p-3 md:p-4 rounded-xl border border-white/5">
-        
-        {/* 💥 LEFT SIDE: Title + OfferFilters Ek Saath Grouped Hain */}
         <div className="flex items-center gap-3 overflow-x-auto no-scrollbar max-w-full">
           <div className="flex items-center gap-2 shrink-0">
             <Sparkles className="w-5 h-5 text-violet-400" />
             <h2 className="text-base font-black text-white whitespace-nowrap">Featured Offers</h2>
           </div>
-
           <OfferFilters selectedDevices={selectedDevices} onSelectDevice={onSelectDevice} />
         </div>
 
-        {/* RIGHT SIDE: Navigation Arrows + View All */}
         <div className="flex items-center gap-2 shrink-0 ml-auto lg:ml-0">
           {showArrows && (
             <div className="hidden sm:flex items-center gap-1.5">
@@ -107,7 +110,6 @@ export default function OfferSlider({
         </div>
       </div>
 
-      {/* Offers List / Slider */}
       {isLoading ? (
         <div className="flex gap-3 overflow-hidden py-1">
           {[1, 2, 3, 4].map((i) => (
@@ -124,7 +126,7 @@ export default function OfferSlider({
         </div>
       ) : (
         <div className="text-center py-12 bg-[#1A1C24] border border-white/5 rounded-2xl text-[#8F95A3] text-sm">
-          No matching offers found
+          No matching offers found for this device filter.
         </div>
       )}
     </div>

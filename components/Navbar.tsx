@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from './AuthContext';
 import { 
   Bell, Rocket, Trophy, Wallet, ChevronDown, User, 
-  LogOut, MessageSquare, ShieldCheck, HelpCircle, Gift, BarChart3, Users, X
+  LogOut, MessageSquare, ShieldCheck, HelpCircle, Gift, BarChart3, Users, X, CheckCheck
 } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
@@ -51,9 +51,10 @@ export default function Navbar() {
   const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
   const [balance, setBalance] = useState('0.00');
 
-  // Inbox Modal States
+  // Inbox & Notification States
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [inboxMessages, setInboxMessages] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isInboxLoading, setIsInboxLoading] = useState(false);
 
   // Chat Drawer State
@@ -85,6 +86,20 @@ export default function Navbar() {
           .then(res => res.json())
           .then(data => { if (data && data.data !== undefined) setBalance(data.data); })
           .catch(err => console.error("Wallet fetch error:", err));
+
+        // Fetch initial unread notification count
+        fetch('https://apitest.binnycash.com/api/user/notificationList', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data?.data?.unreadCount !== undefined) {
+              setUnreadCount(data.data.unreadCount);
+            }
+          })
+          .catch(err => console.error("Notification count error:", err));
+
       } else {
         setIsLoggedIn(false);
       }
@@ -98,21 +113,47 @@ export default function Navbar() {
     };
   }, []);
 
+  // 🔥 Updated Fetch Notifications API Integration 🔥
   const fetchInboxMessages = async () => {
     setIsInboxLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('https://apitest.binnycash.com/api/user/inbox/inbox', {
+      const res = await fetch('https://apitest.binnycash.com/api/user/notificationList', {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      const list = data?.data || data || [];
-      setInboxMessages(Array.isArray(list) ? list : []);
+      
+      const notificationsList = data?.data?.notifications || data?.notifications || [];
+      setInboxMessages(Array.isArray(notificationsList) ? notificationsList : []);
+      if (data?.data?.unreadCount !== undefined) {
+        setUnreadCount(data.data.unreadCount);
+      }
     } catch (err) {
-      console.error("Inbox fetch error:", err);
+      console.error("Notifications fetch error:", err);
     } finally { 
       setIsInboxLoading(false); 
+    }
+  };
+
+  // 🔥 Mark All As Read API Integration 🔥
+  const handleMarkAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('https://apitest.binnycash.com/api/user/markAllRead', {
+        method: 'POST', // or GET depending on backend, using POST/GET fallback securely
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+      if (res.ok) {
+        setUnreadCount(0);
+        // Local state update so isRead becomes true instantly
+        setInboxMessages(prev => prev.map(item => ({ ...item, isRead: true })));
+      }
+    } catch (err) {
+      console.error("Mark all read error:", err);
     }
   };
 
@@ -226,38 +267,69 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Inbox Modal */}
+      {/* Inbox & Notifications Modal */}
       <AnimatePresence>
         {isInboxOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-[#161922] border border-[#8B5CF6]/30 w-full max-w-lg rounded-3xl p-6 shadow-[0_0_50px_rgba(139,92,246,0.2)] relative overflow-hidden flex flex-col max-h-[80vh]">
+              
+              {/* Modal Header */}
               <div className="flex items-center justify-between pb-4 border-b border-white/10">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6]"><Bell className="w-5 h-5 animate-bounce" /></div>
-                  <div><h3 className="text-white font-black text-lg">Notifications Inbox</h3><p className="text-xs text-[#8F95A3]">Recent activities and offer rewards</p></div>
+                  <div>
+                    <h3 className="text-white font-black text-lg">Notifications Inbox</h3>
+                    <p className="text-xs text-[#8F95A3]">Recent system activities & streak alerts</p>
+                  </div>
                 </div>
-                <button onClick={() => setIsInboxOpen(false)} className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all cursor-pointer border border-white/5"><X className="w-5 h-5" /></button>
+                
+                <div className="flex items-center gap-2">
+                  {/* Mark All as Read Button */}
+                  <button 
+                    onClick={handleMarkAllAsRead} 
+                    className="text-[11px] font-bold text-[#8B5CF6] bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 border border-[#8B5CF6]/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" /> Mark all read
+                  </button>
+                  <button onClick={() => setIsInboxOpen(false)} className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all cursor-pointer border border-white/5"><X className="w-5 h-5" /></button>
+                </div>
               </div>
+
+              {/* Notifications List Container */}
               <div className="py-4 overflow-y-auto custom-scrollbar flex-1 space-y-3 pr-1">
                 {isInboxLoading ? (
-                  <div className="flex flex-col items-center justify-center h-48 gap-3"><div className="w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div><span className="text-xs text-[#8F95A3] font-medium">Loading notifications...</span></div>
+                  <div className="flex flex-col items-center justify-center h-48 gap-3">
+                    <div className="w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-xs text-[#8F95A3] font-medium">Loading notifications...</span>
+                  </div>
                 ) : inboxMessages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-48 text-center text-[#8F95A3]"><Bell className="w-10 h-10 mb-2 opacity-30" /><p className="text-sm font-medium">No new notifications in your inbox.</p></div>
+                  <div className="flex flex-col items-center justify-center h-48 text-center text-[#8F95A3]">
+                    <Bell className="w-10 h-10 mb-2 opacity-30" />
+                    <p className="text-sm font-medium">No new notifications in your inbox.</p>
+                  </div>
                 ) : (
                   inboxMessages.map((item, idx) => {
-                    const userName = item.userName || 'User';
-                    const offerName = item.offer || item.title || 'Offer Completed';
-                    const reward = item.totalUsdValue ? `+$${item.totalUsdValue}` : (item.reward ? `+$${item.reward}` : '');
-                    let imageUrl = item.image && item.image.startsWith('http') ? item.image : `https://apitest.binnycash.com${item.image}`;
-                    if(!item.image) imageUrl = `https://ui-avatars.com/api/?name=${userName}&background=random`;
+                    const title = item.title || 'Notification';
+                    const message = item.message || '';
+                    const amount = item.amount ? `+$${item.amount}` : '';
+                    const timeAgo = new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                     return (
-                      <div key={item._id || idx} className="bg-[#111319] border border-white/5 rounded-2xl p-4 flex items-center justify-between gap-4 hover:border-[#8B5CF6]/40 transition-all">
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <img src={imageUrl} alt="avatar" className="w-11 h-11 rounded-xl object-cover bg-white/5 border border-white/10 shrink-0" onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${userName}&background=random`; }} />
-                          <div className="min-w-0"><h4 className="text-white text-sm font-black truncate">{userName}</h4><p className="text-[#8F95A3] text-xs truncate mt-0.5">{offerName}</p></div>
+                      <div key={item._id || idx} className={`bg-[#111319] border rounded-2xl p-4 flex flex-col gap-2 transition-all ${item.isRead ? 'border-white/5 opacity-80' : 'border-[#8B5CF6]/40 bg-[#141721]'}`}>
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-white text-sm font-black flex items-center gap-2">
+                            {title}
+                          </h4>
+                          <span className="text-[10px] text-[#8F95A3]">{timeAgo}</span>
                         </div>
-                        {reward && <div className="text-right shrink-0"><span className="text-xs font-black text-[#00E57A] bg-[#00E57A]/10 px-2.5 py-1 rounded-lg border border-[#00E57A]/20 block">{reward}</span></div>}
+                        <p className="text-[#8F95A3] text-xs leading-relaxed">{message}</p>
+                        
+                        {(amount || item.method) && (
+                          <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-1">
+                            <span className="text-[10px] uppercase tracking-wider font-bold text-[#8B5CF6] bg-[#8B5CF6]/10 px-2 py-0.5 rounded-md">{item.method || 'SYSTEM'}</span>
+                            {amount && <span className="text-xs font-black text-[#00E57A]">{amount}</span>}
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -282,7 +354,7 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* CENTER: Navigation Links (Shifted Left & Properly Spaced via mx-auto) */}
+          {/* CENTER: Navigation Links */}
           {isLoggedIn && (
             <div className="hidden lg:flex items-center gap-6 xl:gap-8 mx-auto">
               {MAIN_LINKS.map((link) => {
@@ -336,6 +408,7 @@ export default function Navbar() {
                   <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-[#8F95A3] group-hover:text-white transition-colors" />
                 </button>
 
+                {/* INBOX NOTIFICATION BUTTON WITH DYNAMIC UNREAD PULSE */}
                 <button 
                   onClick={() => setIsInboxOpen(true)}
                   className="relative w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors group cursor-pointer"
@@ -343,7 +416,9 @@ export default function Navbar() {
                   <motion.div animate={{ rotate: [0, -15, 15, -15, 15, 0] }} transition={{ repeat: Infinity, repeatDelay: 3, duration: 0.5 }}>
                     <Bell className="w-4 h-4 md:w-5 md:h-5 text-[#8F95A3] group-hover:text-white transition-colors" />
                   </motion.div>
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-[#00E57A] rounded-full shadow-[0_0_10px_rgba(0,229,122,1)] animate-pulse"></span>
+                  {unreadCount > 0 && (
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-[#00E57A] rounded-full shadow-[0_0_10px_rgba(0,229,122,1)] animate-pulse"></span>
+                  )}
                 </button>
 
                 <div className="hidden lg:flex items-center gap-3 bg-gradient-to-r from-white/5 to-white/10 border border-white/10 px-4 py-2 rounded-xl backdrop-blur-md shadow-inner">
