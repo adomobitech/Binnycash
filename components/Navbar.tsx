@@ -2,65 +2,23 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from './AuthContext';
-import { Rocket, Trophy, Wallet, Globe, ChevronDown, Send, X, MessageSquare, Users } from "lucide-react";
-import "flag-icons/css/flag-icons.min.css";
-
-declare global {
-  interface Window {
-    googleTranslateElementInit: () => void;
-    google: any;
-  }
-}
-
-const LANGUAGES = [
-  { code: 'en', name: 'English', tag: 'us', flag: '🇺🇸' },
-  { code: 'hi', name: 'Hindi', tag: 'in', flag: '🇮🇳' },
-  { code: 'bn', name: 'Bengali', tag: 'bd', flag: '🇧🇩' },
-  { code: 'es', name: 'Spanish', tag: 'es', flag: '🇪🇸' },
-  { code: 'fr', name: 'French', tag: 'fr', flag: '🇫🇷' },
-  { code: 'de', name: 'German', tag: 'de', flag: '🇩🇪' },
-  { code: 'ar', name: 'Arabic', tag: 'sa', flag: '🇸🇦' }
-];
-
-// 🔥 JWT TOKEN DECODE HELPER 🔥
-const getUserIdFromToken = (token: string) => {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload._id || payload.id || payload.userId || null;
-  } catch (e) {
-    return null;
-  }
-};
 
 export default function Navbar() {
   const router = useRouter();
-  const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { openLogin, openRegister } = useAuth();
   
-  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [usdToggle, setUsdToggle] = useState(true);
-  const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
-
-  // CHAT STATE VARIABLES
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [isChatLoading, setIsChatLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
   const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
-        setIsLangModalOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -68,59 +26,12 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('token');
-      setIsLoggedIn(!!token);
-    };
+    const checkAuth = () => { setIsLoggedIn(!!localStorage.getItem('token')); };
     checkAuth();
     window.addEventListener('storage', checkAuth);
     const interval = setInterval(checkAuth, 1000);
-    return () => {
-      window.removeEventListener('storage', checkAuth);
-      clearInterval(interval);
-    };
+    return () => { window.removeEventListener('storage', checkAuth); clearInterval(interval); };
   }, []);
-
-  useEffect(() => {
-    if (!document.getElementById('google-translate-overrides')) {
-      const style = document.createElement('style');
-      style.id = 'google-translate-overrides';
-      style.innerHTML = `
-        .goog-te-banner-frame.skiptranslate, iframe.goog-te-banner-frame, .goog-te-banner-frame { display: none !important; visibility: hidden !important; height: 0 !important; width: 0 !important; }
-        body { top: 0px !important; position: static !important; }
-        .goog-te-balloon-frame, #goog-gt-tt { display: none !important; }
-        .goog-text-highlight { background-color: transparent !important; box-shadow: none !important; }
-      `;
-      document.head.appendChild(style);
-    }
-
-    if (document.getElementById('google-translate-script')) return;
-    window.googleTranslateElementInit = () => {
-      new window.google.translate.TranslateElement(
-        { pageLanguage: 'en', autoDisplay: false, includedLanguages: LANGUAGES.map(l => l.code).join(','), layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE },
-        'google_translate_element'
-      );
-    };
-    const script = document.createElement('script');
-    script.id = 'google-translate-script';
-    script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-    script.async = true;
-    document.body.appendChild(script);
-  }, []);
-
-  const handleLanguageChange = (lang: any) => {
-    setSelectedLang(lang);
-    const selectElement = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-    if (selectElement) {
-      selectElement.value = lang.code;
-      selectElement.dispatchEvent(new Event('change', { bubbles: true }));
-    } else {
-      document.cookie = `googtrans=/en/${lang.code}; path=/`;
-      document.cookie = `googtrans=/en/${lang.code}; path=/; domain=${window.location.hostname}`;
-      window.location.reload();
-    }
-    setIsLangModalOpen(false);
-  };
 
   const handleLogoutConfirm = async () => {
     setShowLogoutConfirm(false);
@@ -129,15 +40,9 @@ export default function Navbar() {
       const token = localStorage.getItem('token');
       await fetch('https://apitest.binnycash.com/api/user/logout', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Bearer ${token}`,
-          'token': token || ''
-        }
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Bearer ${token}` }
       });
-    } catch (error) {
-      console.error("Logout API failed:", error);
-    } 
+    } catch (error) {} 
     setTimeout(() => {
       router.push('/');
       setTimeout(() => {
@@ -149,129 +54,8 @@ export default function Navbar() {
     }, 1500); 
   };
 
-  const fetchChatMessages = async () => {
-    setIsChatLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('https://apitest.binnycash.com/api/user/chat/messages', {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      const msgs = Array.isArray(data) ? data : (data.data || data.messages || []);
-      setMessages(msgs);
-    } catch (err) {
-      console.error("Failed to fetch messages:", err);
-    } finally {
-      setIsChatLoading(false);
-    }
-  };
-
- const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim()) return;
-
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    // 🔥 SMART CHECK: Fetch ID from local storage OR decode it from Token 🔥
-    let userId = localStorage.getItem('userId'); 
-    
-    if (!userId) {
-      userId = getUserIdFromToken(token);
-      if (userId) {
-        localStorage.setItem('userId', userId);
-      }
-    }
-
-    if (!userId) {
-      console.error("Missing User ID! Token decode failed.");
-      alert("Session issue: Please log out and log in again.");
-      return;
-    }
-
-    const msgText = newMessage.trim();
-    
-    // Optimistic UI update
-    const tempMsg = { _id: Date.now(), message: msgText, sender: 'user', role: 'user' };
-    setMessages(prev => [...prev, tempMsg]);
-    setNewMessage('');
-
-    // 🔥 BACK TO x-www-form-urlencoded (Jo tere Login me chal raha tha) 🔥
-    const urlEncoded = new URLSearchParams();
-    urlEncoded.append('userId', userId); 
-    urlEncoded.append('message', msgText);
-
-    try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/chat/messages', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/x-www-form-urlencoded', // 👈 Isko wapas laana zaroori tha
-          'Authorization': `Bearer ${token}` 
-        },
-        body: urlEncoded
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        console.error("Backend Error Response:", errorData); // 👈 Agar ab 400 aaya to exact reason console me dikhega
-      } else {
-        fetchChatMessages();
-      }
-    } catch (err) {
-      console.error("Failed to send message:", err);
-    }
-  };
-  useEffect(() => {
-    if (isChatOpen) {
-      fetchChatMessages();
-    }
-  }, [isChatOpen]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isChatOpen]);
-
-
-  const ProfileDropdown = ({ isMobile = false }) => (
-    <div className={`absolute ${isMobile ? 'left-0' : 'right-0'} mt-3 w-56 bg-[#1A1C24] border border-white/5 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200`}>
-      <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
-        Profile
-      </button>
-      <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-        Account Status
-      </button>
-      <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
-        Help
-      </button>
-      <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-[#8F95A3] hover:text-red-400 hover:bg-white/5 transition-colors">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-        Logout
-      </button>
-
-      <div className="my-2 border-t border-white/5"></div>
-      
-      <div className="px-4 py-2 flex items-center justify-between">
-        <span className="text-sm font-semibold text-white">Show USD</span>
-        <button onClick={() => setUsdToggle(!usdToggle)} className={`w-10 h-5 rounded-full relative transition-colors ${usdToggle ? 'bg-[#8B5CF6]' : 'bg-gray-600'}`}>
-          <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${usdToggle ? 'left-[22px]' : 'left-1'}`}></div>
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <>
-      <style dangerouslySetInnerHTML={{__html: `
-        .custom-chat-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-chat-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-chat-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-        .custom-chat-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
-      `}} />
-
       {isTransitioning && (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0B0E14] transition-opacity duration-300">
           <div className="w-24 h-24 mb-6 rounded-full border border-[#00E57A]/30 bg-[#1A1C23] flex items-center justify-center shadow-[0_0_30px_rgba(0,229,122,0.2)]">
@@ -294,109 +78,39 @@ export default function Navbar() {
         </div>
       )}
 
-      <nav ref={navRef} className="w-full bg-[#111319] sticky top-0 z-40 border-b border-white/5 h-[70px] md:h-[80px] flex items-center">
+      <nav ref={navRef} className="w-full bg-[#111319] sticky top-0 z-40 border-b border-white/5 h-[80px] flex items-center">
         <div className="w-full px-4 md:px-6 flex justify-between items-center relative">
           
+          {/* LEFT: LOGO ONLY */}
           <div className="flex items-center shrink-0">
-            {isLoggedIn ? (
-              <>
-                <div className="md:hidden relative">
-                  <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="w-10 h-10 rounded-full bg-[#1A56DB] flex items-center justify-center text-white font-black text-xl shadow-md">
-                    m
-                  </button>
-                  {isProfileOpen && <ProfileDropdown isMobile={true} />}
-                </div>
-
-                <Link href="/" className="hidden md:flex items-center gap-3 cursor-pointer group">
-                  <img src="/logo.png" alt="BinnyCash" className="h-12 w-auto object-contain transition-transform group-hover:scale-105" />
-                  <div className="flex flex-col justify-center">
-                    <span className="font-black text-2xl tracking-wide text-white leading-none">Binny<span className="text-[#8B5CF6]">Cash</span></span>
-                    <span className="text-[9px] text-[#00E57A] font-bold tracking-[0.2em] uppercase mt-1 drop-shadow-[0_0_5px_rgba(0,229,122,0.4)]">Play. Earn. Dominate.</span>
-                  </div>
-                </Link>
-              </>
-            ) : (
-              <Link href="/" className="flex items-center gap-2 md:gap-3 cursor-pointer group">
-                <img src="/logo.png" alt="BinnyCash" className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" />
-                <div className="flex flex-col justify-center">
-                  <span className="font-black text-xl md:text-2xl tracking-wide text-white leading-none">Binny<span className="text-[#8B5CF6]">Cash</span></span>
-                  <span className="text-[8px] md:text-[9px] text-[#00E57A] font-bold tracking-[0.2em] uppercase mt-1 drop-shadow-[0_0_5px_rgba(0,229,122,0.4)]">Play. Earn. Dominate.</span>
-                </div>
-              </Link>
-            )}
+            <Link href="/" className="flex items-center gap-3 cursor-pointer group">
+              <img src="/logo.png" alt="BinnyCash" className="h-12 w-auto object-contain transition-transform group-hover:scale-105" />
+              <div className="flex flex-col justify-center">
+                <span className="font-black text-2xl tracking-wide text-white leading-none">Binny<span className="text-[#8B5CF6]">Cash</span></span>
+                <span className="text-[9px] text-[#00E57A] font-bold tracking-[0.2em] uppercase mt-1 drop-shadow-[0_0_5px_rgba(0,229,122,0.4)]">Play. Earn. Dominate.</span>
+              </div>
+            </Link>
           </div>
 
-          {isLoggedIn && (
-            <div className="hidden lg:flex items-center gap-1 bg-[#1A1C24] p-1 rounded-xl border border-white/5 absolute left-1/2 -translate-x-1/2">
-              <Link href="/dashboard" className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${pathname === '/earn' || pathname === '/dashboard' ? 'bg-[#252836] text-white shadow-sm' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
-                <Rocket className={`w-4 h-4 ${pathname === '/earn' || pathname === '/dashboard' ? 'text-violet-400' : ''}`} /> Earn
-              </Link>
-              <Link href="/myoffers" className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${pathname === '/myoffers' ? 'bg-[#252836] text-white shadow-sm' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
-                <Trophy className={`w-4 h-4 ${pathname === '/myoffers' ? 'text-amber-400' : ''}`} /> Started
-              </Link>
-              <Link href="/cashout" className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${pathname === '/cashout' ? 'bg-[#252836] text-white shadow-sm' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
-                <Wallet className={`w-4 h-4 ${pathname === '/cashout' ? 'text-emerald-400' : ''}`} /> Cashout
-              </Link>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 md:gap-4 shrink-0">
-            <div id="google_translate_element" className="hidden"></div>
-            
-            <div className="relative">
-              <button 
-                onClick={() => setIsLangModalOpen(!isLangModalOpen)}
-                className="flex items-center gap-2 bg-[#1A1C24] border border-white/5 hover:bg-[#252836] transition-all px-3 py-2 rounded-xl text-white text-xs font-bold cursor-pointer"
-              >
-                <span className={`fi fi-${selectedLang.tag} w-4 h-3 rounded-[2px] shadow-sm`}></span>
-                <span className="hidden sm:inline uppercase">{selectedLang.code}</span>
-                <ChevronDown className="w-3 h-3 text-[#8F95A3]" />
-              </button>
-
-              {isLangModalOpen && (
-                <div className="absolute right-0 mt-3 w-48 bg-[#1A1C24] border border-white/5 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                  {LANGUAGES.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => handleLanguageChange(lang)}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors text-left cursor-pointer"
-                    >
-                      <span className={`fi fi-${lang.tag} w-5 h-3.5 rounded-[2px] shadow-sm`}></span>
-                      <span>{lang.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
+          {/* RIGHT: JUST PROFILE & LOGOUT */}
+          <div className="flex items-center shrink-0">
             {isLoggedIn ? (
-              <>
-                <div className="flex items-center bg-[#3D1466] border border-[#8B5CF6]/40 px-3 py-1.5 md:py-2 rounded-lg cursor-pointer hover:bg-[#4c1d7a] transition-colors">
-                  <span className="text-[#C4B5FD] mr-1 text-sm">$</span>
-                  <span className="text-white font-black text-sm">0.10</span>
-                </div>
-
-                <button className="w-10 h-10 rounded-xl bg-[#1A1C24] border border-white/5 flex items-center justify-center text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
-                </button>
-                
-                <button 
-                  onClick={() => setIsChatOpen(!isChatOpen)}
-                  className={`w-10 h-10 rounded-xl border border-white/5 flex items-center justify-center transition-colors relative cursor-pointer ${isChatOpen ? 'bg-[#8B5CF6] text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]' : 'bg-[#1A1C24] text-[#8F95A3] hover:text-white hover:bg-[#252836]'}`}
-                >
-                  <MessageSquare className="w-5 h-5" />
-                  {!isChatOpen && <span className="absolute top-2 right-2 w-2 h-2 bg-[#00E57A] rounded-full border-2 border-[#1A1C24]"></span>}
+              <div className="relative">
+                <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-[#1A1C24] border border-white/5 hover:bg-[#252836] transition-all rounded-xl px-2 py-2 cursor-pointer shadow-sm">
+                  <div className="w-8 h-8 rounded-lg bg-[#8B5CF6]/20 text-[#8B5CF6] flex items-center justify-center text-sm font-black">W</div>
+                  <span className="text-white text-sm font-bold px-1 max-w-[100px] truncate">wranglerl...</span>
+                  <span className="text-[#8F95A3] text-[10px] ml-1 pr-1">▼</span>
                 </button>
 
-                <div className="hidden md:block relative">
-                  <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-[#1A1C24] border border-white/5 hover:bg-[#252836] transition-all rounded-lg pl-1.5 pr-3 py-1.5 cursor-pointer">
-                    <div className="w-6 h-6 rounded-md bg-[#8B5CF6]/20 text-[#8B5CF6] flex items-center justify-center text-xs font-black">W</div>
-                    <span className="text-white text-xs font-bold max-w-[80px] truncate">wranglerl...</span>
-                    <span className="text-[#8F95A3] text-[10px] ml-1">▼</span>
-                  </button>
-                  {isProfileOpen && <ProfileDropdown isMobile={false} />}
-                </div>
-              </>
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-3 w-48 bg-[#1A1C24] border border-white/5 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-400 hover:text-white hover:bg-red-500/20 transition-colors">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                      Logout Session
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="flex items-center gap-3">
                 <button onClick={openLogin} className="text-sm font-bold text-white hover:text-[#8B5CF6] transition-colors cursor-pointer">Login</button>
@@ -404,111 +118,9 @@ export default function Navbar() {
               </div>
             )}
           </div>
+
         </div>
       </nav>
-
-      {/* 🔥 NEW PREMIUM CHAT WINDOW 🔥 */}
-      {isLoggedIn && isChatOpen && (
-        <div className="fixed bottom-20 md:bottom-[90px] right-4 md:right-6 w-[360px] h-[520px] bg-[#111319]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[90] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
-          
-          {/* Header */}
-          <div className="bg-[#1A1C24]/80 px-5 py-4 border-b border-white/10 flex items-center justify-between backdrop-blur-md">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#6d28d9] flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.3)]">
-                <Users className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 className="text-white text-[15px] font-black tracking-wide">Community Chat</h3>
-                <p className="text-[#8F95A3] text-[11px] font-medium mt-0.5">Connect with other earners</p>
-              </div>
-            </div>
-            <button onClick={() => setIsChatOpen(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#8F95A3] hover:text-white hover:bg-white/10 transition-all cursor-pointer">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4 bg-[#0B0E14]/80 custom-chat-scrollbar">
-            {isChatLoading ? (
-              <div className="flex-1 flex justify-center items-center">
-                <div className="w-6 h-6 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            ) : messages.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-60">
-                <MessageSquare className="w-12 h-12 text-[#8F95A3] mb-3 stroke-[1.5]" />
-                <p className="text-[13px] text-[#8F95A3] font-medium">Say hello to the community!</p>
-              </div>
-            ) : (
-              messages.map((msg, idx) => {
-                const isUser = msg.sender === 'user' || msg.role === 'user';
-                return (
-                  <div key={idx} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-                    <div className={`max-w-[85%] px-4 py-2.5 text-[13px] font-medium leading-relaxed ${isUser ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7c3aed] text-white rounded-2xl rounded-tr-sm shadow-md' : 'bg-[#1A1C24] text-[#E2E8F0] border border-white/5 rounded-2xl rounded-tl-sm'}`}>
-                      {msg.message || msg.text}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input Area */}
-          <div className="p-4 bg-[#1A1C24]/90 border-t border-white/10 backdrop-blur-md">
-            <form onSubmit={handleSendMessage} className="relative flex items-center">
-              <input 
-                type="text" 
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..." 
-                className="w-full bg-[#0B0E14] text-white text-[13px] font-medium pl-4 pr-12 py-3.5 rounded-xl border border-white/10 outline-none focus:border-[#8B5CF6]/50 focus:ring-1 focus:ring-[#8B5CF6]/30 transition-all placeholder:text-[#8F95A3]"
-              />
-              <button 
-                type="submit" 
-                disabled={!newMessage.trim()}
-                className="absolute right-1.5 w-9 h-9 rounded-lg bg-[#8B5CF6] flex items-center justify-center text-white disabled:opacity-0 disabled:scale-75 disabled:pointer-events-none hover:bg-[#7c3aed] transition-all duration-200 cursor-pointer shadow-[0_0_10px_rgba(139,92,246,0.4)]"
-              >
-                <Send className="w-4 h-4 ml-[-2px]" />
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MOBILE BOTTOM NAVIGATION */}
-      {isLoggedIn && (
-        <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#111319] border-t border-white/5 z-50 flex items-center justify-between px-2 pb-safe pt-2 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-          <Link href="/myoffers" className="relative flex flex-col items-center justify-center w-[20%] h-14 group">
-            {pathname === '/myoffers' && <div className="absolute top-[-8px] left-1/2 -translate-x-1/2 w-8 h-[3px] bg-[#8B5CF6] rounded-b-full shadow-[0_2px_8px_rgba(139,92,246,0.8)]"></div>}
-            <Trophy className={`w-5 h-5 mb-1 ${pathname === '/myoffers' ? 'text-white' : 'text-[#8F95A3]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/myoffers' ? 'text-white' : 'text-[#8F95A3]'}`}>Started</span>
-          </Link>
-
-          <Link href="/cashout" className="relative flex flex-col items-center justify-center w-[20%] h-14 group">
-            {pathname === '/cashout' && <div className="absolute top-[-8px] left-1/2 -translate-x-1/2 w-8 h-[3px] bg-[#8B5CF6] rounded-b-full shadow-[0_2px_8px_rgba(139,92,246,0.8)]"></div>}
-            <Wallet className={`w-5 h-5 mb-1 ${pathname === '/cashout' ? 'text-white' : 'text-[#8F95A3]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/cashout' ? 'text-white' : 'text-[#8F95A3]'}`}>Cashout</span>
-          </Link>
-
-          <Link href="/dashboard" className="relative flex flex-col items-center justify-center w-[20%] h-14 group">
-            {(pathname === '/earn' || pathname === '/dashboard' || pathname === '/') && <div className="absolute top-[-8px] left-1/2 -translate-x-1/2 w-8 h-[3px] bg-[#8B5CF6] rounded-b-full shadow-[0_2px_8px_rgba(139,92,246,0.8)]"></div>}
-            <Rocket className={`w-6 h-6 mb-1 ${pathname === '/earn' || pathname === '/dashboard' || pathname === '/' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/earn' || pathname === '/dashboard' || pathname === '/' ? 'text-white' : 'text-[#8F95A3]'}`}>Earn</span>
-          </Link>
-
-          <Link href="/rewards" className="relative flex flex-col items-center justify-center w-[20%] h-14 group">
-            {pathname === '/rewards' && <div className="absolute top-[-8px] left-1/2 -translate-x-1/2 w-8 h-[3px] bg-[#8B5CF6] rounded-b-full shadow-[0_2px_8px_rgba(139,92,246,0.8)]"></div>}
-            <svg className={`w-5 h-5 mb-1 ${pathname === '/rewards' ? 'text-white' : 'text-[#8F95A3]'}`} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 11a1 1 0 112 0v2a1 1 0 11-2 0v-2zm1-7a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
-            <span className={`text-[10px] font-bold ${pathname === '/rewards' ? 'text-white' : 'text-[#8F95A3]'}`}>Rewards</span>
-          </Link>
-
-          <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="relative flex flex-col items-center justify-center w-[20%] h-14 group">
-            {isProfileOpen && <div className="absolute top-[-8px] left-1/2 -translate-x-1/2 w-8 h-[3px] bg-[#8B5CF6] rounded-b-full shadow-[0_2px_8px_rgba(139,92,246,0.8)]"></div>}
-            <svg className={`w-5 h-5 mb-1 ${isProfileOpen ? 'text-white' : 'text-[#8F95A3]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7"/></svg>
-            <span className={`text-[10px] font-bold ${isProfileOpen ? 'text-white' : 'text-[#8F95A3]'}`}>More</span>
-          </button>
-        </div>
-      )}
     </>
   );
 }
