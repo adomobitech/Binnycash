@@ -10,19 +10,11 @@ import {
   User, Mail, Clock, CheckCircle2, CheckCheck
 } from 'lucide-react';
 
-const getUserIdFromToken = (token: string) => {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload._id || payload.id || payload.userId || null;
-  } catch (e) { return null; }
-};
-
 export default function SupportChatPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | number | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -37,11 +29,13 @@ export default function SupportChatPage() {
       });
       const resData = await res.json();
       
+      let list = [];
       if (resData && resData.data) {
-        setMessages(resData.data);
+        list = resData.data;
       } else if (Array.isArray(resData)) {
-        setMessages(resData);
+        list = resData;
       }
+      setMessages(list);
     } catch (error) {
       console.error("Failed to fetch messages:", error);
     } finally {
@@ -49,16 +43,13 @@ export default function SupportChatPage() {
     }
   };
 
-  // 🔒 Single Auth Guard & Fetch Initializer
+  // Auth Guard & Initial Fetch
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       router.push('/'); 
       return;
     }
-
-    const myId = localStorage.getItem('userId') || getUserIdFromToken(token);
-    if (myId) setCurrentUserId(String(myId));
     
     fetchMessages();
     
@@ -71,17 +62,17 @@ export default function SupportChatPage() {
     if (!newMessage.trim()) return;
 
     const token = localStorage.getItem('token');
-    if (!token || !currentUserId) {
-      alert("Session issue: Please log out and log in again.");
+    if (!token) {
+      alert("Session expired: Please log in again.");
+      router.push('/');
       return;
     }
 
     const msgText = newMessage.trim();
     setNewMessage('');
 
-    // 🔥 Exact URL-Encoded payload matching your cURL request
+    // Form-urlencoded payload as required by the backend
     const urlEncoded = new URLSearchParams();
-    urlEncoded.append('userId', String(currentUserId)); 
     urlEncoded.append('message', msgText);
 
     try {
@@ -94,11 +85,21 @@ export default function SupportChatPage() {
         body: urlEncoded
       });
       
+      const responseText = await res.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (err) {
+        result = { raw: responseText };
+      }
+
       if (res.ok) {
         fetchMessages();
+      } else {
+        console.error("Server rejected message:", result);
       }
     } catch (err) {
-      console.error("Failed to send message:", err);
+      console.error("Failed to send message network error:", err);
     }
   };
 
@@ -162,15 +163,21 @@ export default function SupportChatPage() {
                 </div>
               ) : (
                 messages.map((msg, index) => {
-                  const isMe = String(msg.userId) === String(currentUserId) || msg.userName === 'You';
+                  // Check if message belongs to current user by matching role or token
+                  const isMe = msg.userName === 'You' || msg.role === 'user' && !msg.isAgent;
                   
                   const fallbackAvatar = `https://ui-avatars.com/api/?name=${(msg.userName || 'User').replace(/\s+/g, '+')}&background=8B5CF6&color=fff`;
                   
                   let avatarUrl = fallbackAvatar;
                   if (msg.image) {
-                    avatarUrl = msg.image.startsWith('http') 
-                      ? msg.image 
-                      : `https://apitest.binnycash.com${msg.image}`;
+                    const fixedImageUrl = msg.image
+                      .replace('api.binnycash.com', 'apitest.binnycash.com')
+                      .replace('api.binycash.com', 'apitest.binnycash.com')
+                      .replace('binycash.com', 'binnycash.com');
+                      
+                    avatarUrl = fixedImageUrl.startsWith('http') 
+                      ? fixedImageUrl 
+                      : `https://apitest.binnycash.com${fixedImageUrl}`;
                   }
 
                   return (
