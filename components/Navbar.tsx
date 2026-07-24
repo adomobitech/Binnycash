@@ -34,6 +34,7 @@ const MAIN_LINKS = [
   { name: 'My Offers', href: '/myoffers' },
   { name: 'Affiliate', href: '/affiliate' },
   { name: 'Leaderboard', href: '/leaderboard' },
+  { name: 'Cashout', href: '/cashout' },
   { name: 'Rewards', href: '/rewards' },
 ];
 
@@ -59,6 +60,7 @@ export default function Navbar() {
 
   // Chat Drawer State
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0); // Added for Chat Green Dot logic
 
   const navRef = useRef<HTMLElement>(null);
 
@@ -113,7 +115,6 @@ export default function Navbar() {
     };
   }, []);
 
-  // 🔥 Updated Fetch Notifications API Integration 🔥
   const fetchInboxMessages = async () => {
     setIsInboxLoading(true);
     try {
@@ -136,20 +137,18 @@ export default function Navbar() {
     }
   };
 
-  // 🔥 Mark All As Read API Integration 🔥
   const handleMarkAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
       const res = await fetch('https://apitest.binnycash.com/api/user/markAllRead', {
-        method: 'POST', // or GET depending on backend, using POST/GET fallback securely
+        method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         }
       });
       if (res.ok) {
-        setUnreadCount(0);
-        // Local state update so isRead becomes true instantly
+        setUnreadCount(0); // Remove Green Dot
         setInboxMessages(prev => prev.map(item => ({ ...item, isRead: true })));
       }
     } catch (err) {
@@ -267,36 +266,53 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Inbox & Notifications Modal */}
+      {/* RIGHT-SIDE SLIDING NOTIFICATIONS DRAWER */}
       <AnimatePresence>
         {isInboxOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-[#161922] border border-[#8B5CF6]/30 w-full max-w-lg rounded-3xl p-6 shadow-[0_0_50px_rgba(139,92,246,0.2)] relative overflow-hidden flex flex-col max-h-[80vh]">
-              
-              {/* Modal Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-white/10">
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setIsInboxOpen(false)}
+              className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm" 
+            />
+            
+            <motion.div 
+              initial={{ x: '100%' }} 
+              animate={{ x: 0 }} 
+              exit={{ x: '100%' }} 
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-[#0E1015] border-l border-white/10 z-[160] flex flex-col shadow-[-10px_0_40px_rgba(0,0,0,0.8)]"
+            >
+              <div className="p-6 border-b border-white/10 flex items-center justify-between bg-[#12151C]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6]"><Bell className="w-5 h-5 animate-bounce" /></div>
+                  <div className="w-10 h-10 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6]">
+                    <Bell className="w-5 h-5 animate-bounce" />
+                  </div>
                   <div>
-                    <h3 className="text-white font-black text-lg">Notifications Inbox</h3>
-                    <p className="text-xs text-[#8F95A3]">Recent system activities & streak alerts</p>
+                    <h3 className="text-white font-black text-lg">Notifications</h3>
+                    <p className="text-xs text-[#8F95A3]">System updates & alerts</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
-                  {/* Mark All as Read Button */}
                   <button 
                     onClick={handleMarkAllAsRead} 
                     className="text-[11px] font-bold text-[#8B5CF6] bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 border border-[#8B5CF6]/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1"
                   >
-                    <CheckCheck className="w-3.5 h-3.5" /> Mark all read
+                    <CheckCheck className="w-3.5 h-3.5" /> Mark read
                   </button>
-                  <button onClick={() => setIsInboxOpen(false)} className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all cursor-pointer border border-white/5"><X className="w-5 h-5" /></button>
+                  <button 
+                    onClick={() => setIsInboxOpen(false)} 
+                    className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all cursor-pointer border border-white/5"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
 
-              {/* Notifications List Container */}
-              <div className="py-4 overflow-y-auto custom-scrollbar flex-1 space-y-3 pr-1">
+              <div className="p-6 overflow-y-auto flex-1 space-y-3 custom-scrollbar">
                 {isInboxLoading ? (
                   <div className="flex flex-col items-center justify-center h-48 gap-3">
                     <div className="w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
@@ -305,7 +321,7 @@ export default function Navbar() {
                 ) : inboxMessages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-center text-[#8F95A3]">
                     <Bell className="w-10 h-10 mb-2 opacity-30" />
-                    <p className="text-sm font-medium">No new notifications in your inbox.</p>
+                    <p className="text-sm font-medium">No notifications yet.</p>
                   </div>
                 ) : (
                   inboxMessages.map((item, idx) => {
@@ -315,11 +331,9 @@ export default function Navbar() {
                     const timeAgo = new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                     return (
-                      <div key={item._id || idx} className={`bg-[#111319] border rounded-2xl p-4 flex flex-col gap-2 transition-all ${item.isRead ? 'border-white/5 opacity-80' : 'border-[#8B5CF6]/40 bg-[#141721]'}`}>
+                      <div key={item._id || idx} className={`bg-[#12151C] border rounded-2xl p-4 flex flex-col gap-2 transition-all ${item.isRead ? 'border-white/5 opacity-75' : 'border-[#8B5CF6]/40 bg-[#161922]'}`}>
                         <div className="flex items-center justify-between">
-                          <h4 className="text-white text-sm font-black flex items-center gap-2">
-                            {title}
-                          </h4>
+                          <h4 className="text-white text-sm font-black">{title}</h4>
                           <span className="text-[10px] text-[#8F95A3]">{timeAgo}</span>
                         </div>
                         <p className="text-[#8F95A3] text-xs leading-relaxed">{message}</p>
@@ -336,7 +350,7 @@ export default function Navbar() {
                 )}
               </div>
             </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
 
@@ -400,15 +414,21 @@ export default function Navbar() {
             {isLoggedIn ? (
               <div className="flex items-center gap-2 md:gap-4">
                 
-                {/* OPEN CHAT DRAWER */}
+                {/* OPEN CHAT DRAWER WITH DYNAMIC UNREAD DOT */}
                 <button 
-                  onClick={() => setIsChatOpen(true)}
+                  onClick={() => {
+                    setIsChatOpen(true);
+                    setUnreadChatCount(0); // Remove dot when opened
+                  }}
                   className="relative w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors group cursor-pointer"
                 >
                   <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-[#8F95A3] group-hover:text-white transition-colors" />
+                  {unreadChatCount > 0 && (
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-[#00E57A] rounded-full shadow-[0_0_10px_rgba(0,229,122,1)] animate-pulse"></span>
+                  )}
                 </button>
 
-                {/* INBOX NOTIFICATION BUTTON WITH DYNAMIC UNREAD PULSE */}
+                {/* NOTIFICATIONS DRAWER TOGGLE BUTTON WITH GREEN DOT */}
                 <button 
                   onClick={() => setIsInboxOpen(true)}
                   className="relative w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors group cursor-pointer"
@@ -475,23 +495,27 @@ export default function Navbar() {
       {/* MOBILE BOTTOM NAVIGATION */}
       {isLoggedIn && (
         <div className="lg:hidden fixed bottom-0 left-0 w-full bg-[#111319]/90 backdrop-blur-xl border-t border-white/5 z-50 flex items-center justify-between px-2 pb-safe pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-          <Link href="/dashboard" className="flex flex-col items-center w-[20%] h-14">
+          <Link href="/dashboard" className="flex flex-col items-center w-[16.6%] h-14">
             <Rocket className={`w-5 h-5 mb-1 ${pathname === '/dashboard' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
             <span className={`text-[10px] font-bold ${pathname === '/dashboard' ? 'text-white' : 'text-[#8F95A3]'}`}>Earn</span>
           </Link>
-          <Link href="/myoffers" className="flex flex-col items-center w-[20%] h-14">
+          <Link href="/myoffers" className="flex flex-col items-center w-[16.6%] h-14">
             <Trophy className={`w-5 h-5 mb-1 ${pathname === '/myoffers' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/myoffers' ? 'text-white' : 'text-[#8F95A3]'}`}>My Offers</span>
+            <span className={`text-[10px] font-bold ${pathname === '/myoffers' ? 'text-white' : 'text-[#8F95A3]'}`}>Offers</span>
           </Link>
-          <Link href="/affiliate" className="flex flex-col items-center w-[20%] h-14">
+          <Link href="/affiliate" className="flex flex-col items-center w-[16.6%] h-14">
             <Users className={`w-5 h-5 mb-1 ${pathname === '/affiliate' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
             <span className={`text-[10px] font-bold ${pathname === '/affiliate' ? 'text-white' : 'text-[#8F95A3]'}`}>Affiliate</span>
           </Link>
-          <Link href="/leaderboard" className="flex flex-col items-center w-[20%] h-14">
+          <Link href="/leaderboard" className="flex flex-col items-center w-[16.6%] h-14">
             <BarChart3 className={`w-5 h-5 mb-1 ${pathname === '/leaderboard' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
             <span className={`text-[10px] font-bold ${pathname === '/leaderboard' ? 'text-white' : 'text-[#8F95A3]'}`}>Leaders</span>
           </Link>
-          <Link href="/rewards" className="flex flex-col items-center w-[20%] h-14">
+          <Link href="/cashout" className="flex flex-col items-center w-[16.6%] h-14">
+            <Wallet className={`w-5 h-5 mb-1 ${pathname === '/cashout' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
+            <span className={`text-[10px] font-bold ${pathname === '/cashout' ? 'text-white' : 'text-[#8F95A3]'}`}>Cashout</span>
+          </Link>
+          <Link href="/rewards" className="flex flex-col items-center w-[16.6%] h-14">
             <Gift className={`w-5 h-5 mb-1 ${pathname === '/rewards' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
             <span className={`text-[10px] font-bold ${pathname === '/rewards' ? 'text-white' : 'text-[#8F95A3]'}`}>Rewards</span>
           </Link>

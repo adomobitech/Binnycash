@@ -5,49 +5,82 @@ import { motion } from 'framer-motion';
 import { Star } from 'lucide-react';
 
 export default function OfferwallCard({ offerwall, onClick }: { offerwall: any, onClick?: (ow: any) => void }) {
-  // 🔥 API JSON ke hisaab se "title" fetch kar rahe hain
   const name = offerwall.title || offerwall.offerwall_name || offerwall.name || 'Offerwall';
   
-  let imageUrl = offerwall.image || `https://ui-avatars.com/api/?name=${name.replace(/\s+/g, '+')}&background=8B5CF6&color=fff`;
+  let imageUrl = offerwall.image || `https://ui-avatars.com/api/?name=${name.replace(/\s+/g, '+')}&background=5A2E87&color=fff`;
   if (imageUrl && !imageUrl.startsWith('http')) {
     imageUrl = `https://apitest.binnycash.com${imageUrl}`;
   }
 
-  // API se aayi hui original rating ya default 5 visual stars
   const ratingCount = offerwall.rating ? Math.min(5, Math.max(1, offerwall.rating)) : 5;
 
   return (
     <motion.div 
       onClick={() => onClick && onClick(offerwall)}
-      whileHover={{ y: -6, scale: 1.02 }}
-      className="w-[150px] sm:w-[160px] h-[220px] rounded-[24px] p-4 flex flex-col items-center justify-between cursor-pointer border border-white/5 relative overflow-hidden group shadow-[0_10px_20px_rgba(0,0,0,0.3)]"
-      style={{
-        background: 'linear-gradient(180deg, #2D2145 0%, #1E1730 100%)'
+      whileHover={{ y: -6, scale: 1.03 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      // 🔥 Perfect Slider Size 🔥
+      className="relative w-[160px] sm:w-[180px] h-[230px] sm:h-[250px] shrink-0 rounded-[24px] p-4 sm:p-5 flex flex-col justify-between cursor-pointer overflow-hidden group shadow-[0_20px_40px_-12px_rgba(90,46,135,0.55)] border border-white/10"
+      style={{ 
+        // 💜 Premium Transparent Purple Glassmorphism Effect 💜
+        background: 'linear-gradient(160deg, #7C3FC4 0%, #6829A8 35%, #4B1D82 70%, #2E1155 100%)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)'
       }}
     >
-      <div className="absolute inset-0 bg-[#8B5CF6] opacity-0 group-hover:opacity-10 transition-opacity duration-300 blur-2xl pointer-events-none"></div>
+      {/* 🔮 Subtle Inner Glass Highlight & Light Flare */}
+      <div className="absolute inset-0 rounded-[24px] shadow-[inset_0_1px_2px_rgba(255,255,255,0.25)] pointer-events-none z-10"></div>
+      {/* Soft glow blob top-left for glass sheen */}
+      <div className="absolute -top-8 -left-8 w-[130px] h-[130px] bg-white/20 rounded-full blur-[45px] pointer-events-none z-0"></div>
+      {/* Diagonal reflective streak */}
+      <div 
+        className="absolute -top-10 -right-16 w-[120px] h-[260px] rotate-[25deg] bg-white/10 pointer-events-none z-0 blur-[2px]"
+      ></div>
+      {/* Bottom-right dark vignette for depth */}
+      <div className="absolute -bottom-10 -right-10 w-[140px] h-[140px] bg-black/30 rounded-full blur-[50px] pointer-events-none z-0"></div>
 
-      <div className="flex-1 flex items-center justify-center w-full mt-2 relative z-10 pointer-events-none">
-        <img 
-          src={imageUrl} 
-          alt={name} 
-          className="max-w-[85%] max-h-[60px] object-contain drop-shadow-xl group-hover:scale-110 transition-transform duration-300"
-          onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${name.replace(/\s+/g, '+')}&background=8B5CF6&color=fff`; }}
-        />
+      {/* 🚀 TOP: Small Logo + Name Side-by-Side */}
+      <div className="relative z-20 flex items-center gap-2.5">
+        {/* Adjusted Logo Box to fit in small card */}
+        <div className="w-[36px] h-[36px] sm:w-[42px] sm:h-[42px] flex items-center justify-center shrink-0 bg-white rounded-xl p-1.5 shadow-[0_4px_10px_rgba(0,0,0,0.25)] border border-white/40">
+          <img 
+            src={imageUrl} 
+            alt={name} 
+            className="max-w-full max-h-full object-contain drop-shadow-sm rounded-lg"
+            onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${name.replace(/\s+/g, '+')}&background=5A2E87&color=fff`; }}
+          />
+        </div>
+        
+        {/* Top Name (Small & Truncated) */}
+        <span className="text-white/80 font-semibold text-[12px] sm:text-[13px] tracking-wide truncate drop-shadow-sm">
+          {name}
+        </span>
       </div>
 
-      <div className="flex flex-col items-center w-full relative z-10 mb-2 pointer-events-none">
-        <h3 className="text-white font-bold text-[15px] text-center w-full truncate mb-1.5 drop-shadow-sm">
+      {/* 📝 BOTTOM: Big App Name + Stars */}
+      <div className="relative z-20 mt-auto flex flex-col gap-2">
+        {/* Big Name Above Stars */}
+        <h3 className="text-white text-[20px] sm:text-[22px] font-bold leading-[1.15] tracking-tight drop-shadow-md line-clamp-2">
           {name}
         </h3>
 
-        <div className="flex items-center gap-[2px]">
-          {/* Creating visual stars based on rating */}
+        {/* ⭐ Stars */}
+        <div className="flex items-center gap-[3px] sm:gap-[4px]">
           {[...Array(5)].map((_, i) => (
-            <Star key={i} className={`w-3.5 h-3.5 ${i < ratingCount ? 'fill-[#FACC15] text-[#FACC15]' : 'text-white/20'}`} />
+            <Star 
+              key={i} 
+              className={`w-[14px] h-[14px] sm:w-[16px] sm:h-[16px] ${
+                i < ratingCount 
+                  ? 'fill-[#FFC107] text-[#FFC107]' 
+                  : 'text-white/10 fill-white/5'
+              } drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]`} 
+            />
           ))}
         </div>
       </div>
+
+      {/* 🔥 Hover Border Glow */}
+      <div className="absolute inset-0 rounded-[24px] border-[1.5px] border-transparent group-hover:border-white/20 transition-colors duration-300 pointer-events-none z-10"></div>
     </motion.div>
   );
 }

@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import OfferwallCard from '@/components/offerwalls/OfferwallCard';
-import OfferwallModal from '@/components/offerwalls/OfferwallModal'; // 🔥 Naya Import 🔥
+import OfferwallModal from '@/components/offerwalls/OfferwallModal';
 import { Boxes } from "lucide-react";
 
 export default function OfferwallSlider({ offerwalls = [], isLoading = false }: any) {
@@ -12,7 +12,6 @@ export default function OfferwallSlider({ offerwalls = [], isLoading = false }: 
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   
-  // 🔥 Modal State 🔥
   const [selectedOfferwall, setSelectedOfferwall] = useState<any>(null);
 
   const checkScroll = () => {
@@ -75,11 +74,12 @@ export default function OfferwallSlider({ offerwalls = [], isLoading = false }: 
       {isLoading ? (
         <div className="flex gap-4 overflow-hidden py-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-[220px] w-[150px] sm:w-[160px] bg-white/5 animate-pulse rounded-[24px] shrink-0 border border-white/5"></div>
+            /* 🔥 Skeleton updated to match new 180x250 size and 24px rounded 🔥 */
+            <div key={i} className="h-[230px] sm:h-[250px] w-[160px] sm:w-[180px] bg-white/5 animate-pulse rounded-[24px] shrink-0 border border-white/5"></div>
           ))}
         </div>
       ) : offerwalls.length > 0 ? (
-        <div ref={sliderRef} onScroll={checkScroll} className="flex overflow-x-auto no-scrollbar gap-4 pb-4 pt-2 snap-x scroll-smooth" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div ref={sliderRef} onScroll={checkScroll} className="flex overflow-x-auto no-scrollbar gap-4 sm:gap-5 pb-5 pt-2 snap-x scroll-smooth" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {offerwalls.map((item: any, index: number) => {
             const fixedItem = {
               ...item,
@@ -89,7 +89,6 @@ export default function OfferwallSlider({ offerwalls = [], isLoading = false }: 
             };
             return (
               <div key={item._id || item.id || index} className="snap-start shrink-0">
-                {/* 🔥 Passed onClick to open modal 🔥 */}
                 <OfferwallCard offerwall={fixedItem} onClick={setSelectedOfferwall} />
               </div>
             );
@@ -101,7 +100,6 @@ export default function OfferwallSlider({ offerwalls = [], isLoading = false }: 
         </div>
       )}
 
-      {/* 🔥 The Modal Injection 🔥 */}
       <OfferwallModal 
         isOpen={!!selectedOfferwall} 
         onClose={() => setSelectedOfferwall(null)} 
