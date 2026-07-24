@@ -96,22 +96,43 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
 
       if (!finalRedirectUrl || finalRedirectUrl === '#') throw new Error("No URL");
 
-      const userAgent = navigator.userAgent || navigator.vendor;
-      const isUserOnMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+      // 🔥 1. BULLETPROOF USER DEVICE DETECTION 🔥
+      const ua = (navigator.userAgent || navigator.vendor || (window as any).opera).toLowerCase();
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isUserOnMobile = /mobi|android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua) || (isTouchDevice && /macintosh|mac os/i.test(ua));
+      const isUserOnDesktop = !isUserOnMobile;
       
-      const combinedPlatformString = String(
+      // 🔥 2. EXACT TARGET DEVICE DETECTION FROM JSON 🔥
+      const targetPlatforms = String(
         details?.browsers || offer?.browsers || details?.platform || offer?.platform || 
         details?.device || offer?.device || details?.categories || offer?.categories || ''
       ).toLowerCase();
 
-      const platforms = details?.platforms || offer?.platforms || {};
-      const isAndroidOffer = combinedPlatformString.includes('android') || platforms.android === true;
-      const isIosOffer = combinedPlatformString.includes('ios') || combinedPlatformString.includes('iphone') || platforms.ios === true;
-      const isDesktopOffer = combinedPlatformString.includes('web') || combinedPlatformString.includes('desktop') || platforms.web === true;
-      const isMobileOffer = isAndroidOffer || isIosOffer;
+      const isUniversal = targetPlatforms === 'all' || targetPlatforms === 'global' || targetPlatforms === '';
 
-      if (!isUserOnMobile && isMobileOffer && !isDesktopOffer) {
-        setTargetDeviceName(isAndroidOffer && !isIosOffer ? 'Android' : (isIosOffer && !isAndroidOffer ? 'iOS' : 'Mobile'));
+      const isOfferAndroid = targetPlatforms.includes('android');
+      const isOfferIos = targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad');
+      const isOfferWindows = targetPlatforms.includes('windows') || targetPlatforms.includes('win') || targetPlatforms.includes('pc') || targetPlatforms.includes('desktop');
+      const isOfferMac = targetPlatforms.includes('mac') || targetPlatforms.includes('osx');
+
+      const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isOfferMac || isUniversal);
+      const isStrictlyDesktopOffer = (isOfferWindows || isOfferMac) && !(isOfferAndroid || isOfferIos || isUniversal);
+
+      // 🔥 3. CROSS-DEVICE VERIFICATION LOGIC 🔥
+      let showQR = false;
+      let generateQRFor = '';
+
+      if (isUserOnDesktop && isStrictlyMobileOffer) {
+        showQR = true;
+        generateQRFor = isOfferAndroid && !isOfferIos ? 'Android' : (isOfferIos && !isOfferAndroid ? 'iOS' : 'Mobile Device');
+      } else if (isUserOnMobile && isStrictlyDesktopOffer) {
+        showQR = true;
+        generateQRFor = isOfferWindows && !isOfferMac ? 'Windows PC' : (isOfferMac && !isOfferWindows ? 'Mac' : 'Desktop PC');
+      }
+
+      // 🔥 4. ACTION FIRE 🔥
+      if (showQR) {
+        setTargetDeviceName(generateQRFor);
         setQrCodeUrl(finalRedirectUrl);
       } else {
         window.open(finalRedirectUrl, '_blank');
@@ -155,7 +176,7 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
           </button>
 
           {qrCodeUrl ? (
-            // 🔥 PREMIUM QR CODE UI EXACTLY LIKE SCREENSHOT 🔥
+            // 櫨 PREMIUM QR CODE UI EXACTLY LIKE SCREENSHOT 櫨
             <div className="relative p-8 pt-10 flex flex-col items-center text-center overflow-hidden">
               {/* Ambient Glow */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#8B5CF6]/20 blur-[100px] rounded-full pointer-events-none" />
@@ -208,7 +229,7 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
 
             </div>
           ) : (
-            // 🔥 STANDARD LOADING / CONTINUE UI 🔥
+            // 櫨 STANDARD LOADING / CONTINUE UI 櫨
             <>
               {!isLoading && (
                 <div className="h-[60px] bg-[#1A1C24] border-b border-white/5 flex items-center justify-between px-6 shrink-0">

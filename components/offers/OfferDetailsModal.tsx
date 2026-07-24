@@ -111,27 +111,55 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
         finalRedirectUrl = offer?.click_url || offer?.link || 'https://binnycash.com';
       }
 
-      const userAgent = navigator.userAgent || navigator.vendor;
-      const isUserOnMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
-      
+      // 🔥 1. BULLETPROOF USER DEVICE DETECTION (Works on Chrome, Brave, Safari, Edge) 🔥
+      const ua = (navigator.userAgent || navigator.vendor || (window as any).opera).toLowerCase();
+      // maxTouchPoints ensures iPads pretending to be Macs are caught
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0; 
+      const isUserOnMobile = /mobi|android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua) || (isTouchDevice && /macintosh|mac os/i.test(ua));
+      const isUserOnDesktop = !isUserOnMobile;
+
+      // 🔥 2. EXACT TARGET DEVICE DETECTION FROM JSON 🔥
       const currentData = details || offer;
-      const combinedPlatformString = String(
-        currentData?.browsers || currentData?.platform || currentData?.device || currentData?.categories || currentData?.category || ''
+      const targetPlatforms = String(
+        currentData?.browsers || currentData?.platform || currentData?.os || currentData?.device_type || ''
       ).toLowerCase();
-      const platforms = currentData?.platforms || {};
 
-      const isAndroidOffer = combinedPlatformString.includes('android') || platforms.android === true;
-      const isIosOffer = combinedPlatformString.includes('ios') || combinedPlatformString.includes('iphone') || combinedPlatformString.includes('ipad') || platforms.ios === true;
-      const isDesktopOffer = combinedPlatformString.includes('web') || combinedPlatformString.includes('desktop') || combinedPlatformString.includes('pc') || combinedPlatformString.includes('windows') || platforms.web === true;
-      const isMobileOffer = (isAndroidOffer || isIosOffer) && !isDesktopOffer;
+      const isUniversal = targetPlatforms === 'all' || targetPlatforms === 'global' || targetPlatforms === '';
+      
+      const isOfferAndroid = targetPlatforms.includes('android');
+      const isOfferIos = targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad');
+      const isOfferWindows = targetPlatforms.includes('windows') || targetPlatforms.includes('win') || targetPlatforms.includes('pc') || targetPlatforms.includes('desktop');
+      const isOfferMac = targetPlatforms.includes('mac') || targetPlatforms.includes('osx');
 
-      if (!isUserOnMobile && isMobileOffer) {
-        setTargetDeviceName(isAndroidOffer && !isIosOffer ? 'Android' : (isIosOffer && !isAndroidOffer ? 'iOS' : 'Mobile'));
+      // Strictly classify offer type (Agar universal h to dono me chalega)
+      const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isOfferMac || isUniversal);
+      const isStrictlyDesktopOffer = (isOfferWindows || isOfferMac) && !(isOfferAndroid || isOfferIos || isUniversal);
+
+      // 🔥 3. CROSS-DEVICE VERIFICATION LOGIC 🔥
+      let showQR = false;
+      let generateQRFor = '';
+
+      // Agar User Desktop pe hai aur Offer Mobile ka hai -> SHOW QR
+      if (isUserOnDesktop && isStrictlyMobileOffer) {
+        showQR = true;
+        generateQRFor = isOfferAndroid && !isOfferIos ? 'Android' : (isOfferIos && !isOfferAndroid ? 'iOS' : 'Mobile Device');
+      } 
+      // Agar User Mobile pe hai aur Offer Desktop ka hai -> SHOW QR
+      else if (isUserOnMobile && isStrictlyDesktopOffer) {
+        showQR = true;
+        generateQRFor = isOfferWindows && !isOfferMac ? 'Windows PC' : (isOfferMac && !isOfferWindows ? 'Mac' : 'Desktop PC');
+      }
+
+      // 🔥 4. ACTION FIRE 🔥
+      if (showQR) {
+        setTargetDeviceName(generateQRFor);
         setQrCodeUrl(finalRedirectUrl);
       } else {
+        // Device matched or Offer is universal
         window.open(finalRedirectUrl, '_blank');
         onClose();
       }
+
     } catch (err) {
       console.error("Error processing click URL:", err);
       const fallbackUrl = offer?.link || offer?.click_url || 'https://binnycash.com';

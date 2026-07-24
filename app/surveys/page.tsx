@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-// Sidebar removed
 import OfferCard from '@/components/offers/OfferCard';
 import { ClipboardList, List, Star, Clock, Zap, ChevronDown, ChevronLeft, Search } from "lucide-react";
 
@@ -96,10 +95,10 @@ export default function AllSurveysPage() {
 
   const getFilterIcon = (type: string) => {
     switch (type) {
-      case 'Featured Survey': return <Star className="w-4 h-4 text-white" />;
-      case 'Short Survey': return <Clock className="w-4 h-4 text-white" />;
-      case 'High Paying Survey': return <Zap className="w-4 h-4 text-white" />;
-      default: return <List className="w-4 h-4 text-white" />;
+      case 'Featured Survey': return <Star className="w-4 h-4 text-white"/>;
+      case 'Short Survey': return <Clock className="w-4 h-4 text-white"/>;
+      case 'High Paying Survey': return <Zap className="w-4 h-4 text-white"/>;
+      default: return <List className="w-4 h-4 text-white"/>;
     }
   };
 
@@ -108,21 +107,21 @@ export default function AllSurveysPage() {
       {/* GLOBAL BACKGROUND AMBIENCE */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-amber-500/5 blur-[120px] rounded-full pointer-events-none" />
 
-      {/* 👉 MAIN CONTENT AREA */}
+      {/* MAIN CONTENT AREA */}
       <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 custom-scrollbar">
         
-        {/* 🔥 HERO BANNER 🔥 */}
+        {/* HERO BANNER */}
         <div className="relative w-full bg-[#111319] border border-white/5 rounded-[24px] mb-6 overflow-hidden flex flex-col justify-center px-6 md:px-10 py-8 shadow-lg">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-500/10 blur-[100px] rounded-full translate-x-1/3 -translate-y-1/3"></div>
           <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#3B82F6]/5 blur-[80px] rounded-full -translate-x-1/3 translate-y-1/3"></div>
           
           <div className="relative z-10">
             <div className="flex items-center gap-4 mb-3">
-              <Link href="/dashboard" className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all backdrop-blur-md border border-white/5 shadow-sm">
-                <ChevronLeft className="w-6 h-6" />
+              <Link className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all backdrop-blur-md border border-white/5 shadow-sm" href="/dashboard">
+                <ChevronLeft className="w-6 h-6"/>
               </Link>
               <h1 className="text-3xl md:text-4xl font-black text-white flex items-center gap-3">
-                <ClipboardList className="w-8 h-8 text-amber-400" /> All Surveys
+                <ClipboardList className="w-8 h-8 text-amber-400"/> All Surveys
               </h1>
             </div>
             
@@ -135,11 +134,11 @@ export default function AllSurveysPage() {
           </div>
         </div>
 
-        {/* 🔥 MAIN FILTERS BAR 🔥 */}
+        {/* MAIN FILTERS BAR */}
         <div className="flex flex-col xl:flex-row justify-between items-center gap-4 mb-6">
           <div className="relative w-full xl:w-[320px] shrink-0">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="w-4 h-4 text-[#8F95A3]" />
+              <Search className="w-4 h-4 text-[#8F95A3]"/>
             </div>
             <input 
               type="text" 
@@ -151,7 +150,7 @@ export default function AllSurveysPage() {
           </div>
 
           {/* CUSTOM DROPDOWN */}
-          <div className="relative shrink-0 w-full sm:w-[220px] z-10" ref={dropdownRef}>
+          <div className="relative shrink-0 w-full sm:w-[220px] z-20" ref={dropdownRef}>
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
               className="w-full flex items-center justify-between gap-2 bg-[#111319] border border-white/5 rounded-[14px] px-4 py-3.5 text-[13px] font-medium text-white hover:bg-[#1A1C24] transition-colors shadow-sm"
@@ -164,25 +163,25 @@ export default function AllSurveysPage() {
             </button>
             
             {isDropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-full bg-[#111319] border border-white/5 rounded-xl shadow-xl overflow-hidden z-50">
+              <div className="absolute right-0 top-full mt-2 w-full bg-[#111319] border border-white/5 rounded-xl shadow-xl overflow-hidden z-[100]">
                 <button onClick={() => {setFilterType('All'); setIsDropdownOpen(false)}} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
-                   <List className="w-4 h-4" /> All
+                   <List className="w-4 h-4"/> All
                 </button>
                 <button onClick={() => {setFilterType('Featured Survey'); setIsDropdownOpen(false)}} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
-                   <Star className="w-4 h-4" /> Featured Survey
+                   <Star className="w-4 h-4"/> Featured Survey
                 </button>
                 <button onClick={() => {setFilterType('Short Survey'); setIsDropdownOpen(false)}} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
-                   <Clock className="w-4 h-4" /> Short Survey
+                   <Clock className="w-4 h-4"/> Short Survey
                 </button>
                 <button onClick={() => {setFilterType('High Paying Survey'); setIsDropdownOpen(false)}} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
-                   <Zap className="w-4 h-4" /> High Paying Survey
+                   <Zap className="w-4 h-4"/> High Paying Survey
                 </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* 🔥 GRID CONTENT 🔥 */}
+        {/* GRID CONTENT */}
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
@@ -193,7 +192,7 @@ export default function AllSurveysPage() {
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4 lg:gap-5">
               {paginatedSurveys.map((survey, index) => (
-                <OfferCard key={survey._id || survey.id || index} offer={survey} />
+                <OfferCard key={survey._id || survey.id || index} offer={survey} isSurveyCard={true} />
               ))}
             </div>
 
@@ -216,7 +215,7 @@ export default function AllSurveysPage() {
           </>
         ) : (
           <div className="text-center py-24 bg-[#111319] border border-white/5 rounded-2xl flex flex-col items-center justify-center mt-4">
-            <Search className="w-12 h-12 text-[#8F95A3] mb-4 opacity-50" />
+            <Search className="w-12 h-12 text-[#8F95A3] mb-4 opacity-50"/>
             <p className="text-white font-bold text-lg mb-1">No matching surveys found</p>
             <p className="text-[#8F95A3] text-sm">Try adjusting your filters or search query.</p>
           </div>

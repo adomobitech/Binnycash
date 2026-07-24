@@ -76,7 +76,8 @@ export default function SurveySlider({ surveys = [], isLoading = false }: any) {
         <div ref={sliderRef} onScroll={checkScroll} className="flex overflow-x-auto no-scrollbar gap-3 pb-3 pt-1 snap-x scroll-smooth" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {surveys.map((survey: any, index: number) => (
             <div key={survey._id || survey.id || index} className="snap-start">
-              <OfferCard offer={survey} />
+              {/* 🔥 Yahan isSurveyCard={true} pass kiya hai 🔥 */}
+              <OfferCard offer={survey} isSurveyCard={true} />
             </div>
           ))}
         </div>

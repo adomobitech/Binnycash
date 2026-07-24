@@ -5,21 +5,24 @@ import Link from 'next/link';
 import OfferCard from '@/components/offers/OfferCard';
 import OfferFilters from '@/components/offers/OfferFilters';
 import { filterOffersByDevice } from '@/components/offers/OfferSlider';
-import { Search, ChevronLeft, ChevronDown, Filter, LayoutGrid, Flame, ArrowUpCircle, ArrowDownCircle, Settings2 } from "lucide-react"; 
+import { 
+  Search, ChevronLeft, ChevronDown, Filter, Flame, ArrowUp, ArrowDown, 
+  Settings2, Smartphone, Diamond, Bitcoin, Gamepad2, ShoppingBag, 
+  CreditCard, LogIn, ClipboardList, Hexagon, LayoutGrid
+} from "lucide-react"; 
 
-// 🔥 Dropdown Options as per your screenshot requirement 🔥
+// 🔥 Categories mapped exactly to your screenshot 🔥
 const CATEGORIES = [
-  { id: 'All', label: 'All Categories', icon: '✨' },
-  { id: 'Games', label: 'Game', icon: '🎮' },
-  { id: 'Surveys', label: 'Survey', icon: '📋' },
-  { id: 'Apps', label: 'App', icon: '📱' },
-  { id: 'Casino', label: 'Casino', icon: '🎲' },
-  { id: 'Crypto', label: 'Crypto', icon: '₿' },
-  { id: 'Purchase', label: 'Purchase', icon: '🛍️' },
-  { id: 'Freetrial', label: 'Free Trial', icon: '💳' },
-  { id: 'Signup', label: 'Sign Up', icon: '✍️' },
-  { id: 'Quizzes', label: 'Quiz', icon: '❓' },
-  { id: 'Other', label: 'Other', icon: '📦' }
+  { id: 'All', label: 'All Categories', icon: <Filter className="w-4 h-4" /> },
+  { id: 'Apps', label: 'App', icon: <Smartphone className="w-4 h-4" /> },
+  { id: 'Casino', label: 'Casino', icon: <Diamond className="w-4 h-4" /> },
+  { id: 'Crypto', label: 'Cripto', icon: <Bitcoin className="w-4 h-4" /> },
+  { id: 'Games', label: 'Game', icon: <Gamepad2 className="w-4 h-4" /> },
+  { id: 'Purchase', label: 'Purchase', icon: <ShoppingBag className="w-4 h-4" /> },
+  { id: 'Freetrial', label: 'Freetrial', icon: <CreditCard className="w-4 h-4" /> },
+  { id: 'Signup', label: 'Signup', icon: <LogIn className="w-4 h-4" /> },
+  { id: 'Quizzes', label: 'Quiz', icon: <ClipboardList className="w-4 h-4" /> },
+  { id: 'Other', label: 'Other', icon: <Hexagon className="w-4 h-4" /> }
 ];
 
 export default function AllOffersPage() {
@@ -29,32 +32,74 @@ export default function AllOffersPage() {
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // States for new Dropdowns
-  const [sortBy, setSortBy] = useState('popular'); 
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedProvider, setSelectedProvider] = useState('All');
+  // API Networks Data State
+  const [apiNetworks, setApiNetworks] = useState<{name: string, count: number}[]>([]);
+
+  // States for Dropdowns
+  const [sortBy, setSortBy] = useState('Sort By'); 
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [selectedNetwork, setSelectedNetwork] = useState('All Networks'); 
   
   // Dropdown Toggle States
   const [isCatOpen, setIsCatOpen] = useState(false);
-  const [isProvOpen, setIsProvOpen] = useState(false);
+  const [isNetOpen, setIsNetOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 24; 
 
-  // Refs for closing dropdowns on outside click
   const catRef = useRef<HTMLDivElement>(null);
-  const provRef = useRef<HTMLDivElement>(null);
+  const netRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (catRef.current && !catRef.current.contains(event.target as Node)) setIsCatOpen(false);
-      if (provRef.current && !provRef.current.contains(event.target as Node)) setIsProvOpen(false);
+      if (netRef.current && !netRef.current.contains(event.target as Node)) setIsNetOpen(false);
       if (sortRef.current && !sortRef.current.contains(event.target as Node)) setIsSortOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // 🔥 FETCH NETWORKS (Added Auth Token) 🔥
+  useEffect(() => {
+    const fetchNetworks = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+        const res = await fetch('https://apitest.binnycash.com/api/user/network_Offer_Count', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'token': token || ''
+          }
+        });
+        
+        const text = await res.text();
+        let json;
+        try { json = JSON.parse(text); } catch(e) { json = {}; }
+        
+        let networkArr: any[] = [];
+        const sourceData = json?.data || [];
+
+        if (Array.isArray(sourceData)) {
+           // Maps {"network": "gemiad", "count": 43} -> name, count
+           networkArr = sourceData.map((item: any) => ({
+             name: item.network || item.name || 'Unknown',
+             count: Number(item.count || 0)
+           }));
+        } else if (typeof sourceData === 'object') {
+           networkArr = Object.entries(sourceData).map(([name, count]) => ({ name, count: Number(count) }));
+        }
+
+        networkArr.sort((a, b) => (b.count || 0) - (a.count || 0));
+        setApiNetworks(networkArr);
+      } catch (e) {
+        console.error("Failed to fetch networks", e);
+      }
+    };
+    fetchNetworks();
   }, []);
 
   useEffect(() => {
@@ -63,17 +108,15 @@ export default function AllOffersPage() {
       let allFetchedOffers: any[] = [];
       let pageNum = 1;
       let hasMoreData = true;
-      let maxPages = 20;
 
       try {
-        while (hasMoreData && pageNum <= maxPages) {
+        while (hasMoreData && pageNum <= 20) {
           const res = await fetch(`https://apitest.binnycash.com/api/user/offerlist?page=${pageNum}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`,
-              'token': token || '',
-              'x-access-token': token || ''
+              'token': token || ''
             }
           });
           
@@ -82,33 +125,28 @@ export default function AllOffersPage() {
           try { resData = JSON.parse(text); } catch (e) { resData = {}; }
 
           let list: any[] = [];
-          if (Array.isArray(resData)) { list = resData; } 
-          else if (Array.isArray(resData?.data?.list)) { list = resData.data.list; } 
-          else if (Array.isArray(resData?.data)) { list = resData.data; } 
-          else if (Array.isArray(resData?.offers)) { list = resData.offers; } 
-          else if (Array.isArray(resData?.data?.offers)) { list = resData.data.offers; } 
-          else if (Array.isArray(resData?.list)) { list = resData.list; }
+          if (Array.isArray(resData)) list = resData; 
+          else if (Array.isArray(resData?.data?.list)) list = resData.data.list; 
+          else if (Array.isArray(resData?.data)) list = resData.data; 
+          else if (Array.isArray(resData?.offers)) list = resData.offers; 
 
           if (list.length > 0) {
             allFetchedOffers = [...allFetchedOffers, ...list];
             pageNum++;
-            if (list.length < 20) { hasMoreData = false; }
+            if (list.length < 20) hasMoreData = false;
           } else { hasMoreData = false; }
         }
 
-        const uniqueOffers = Array.from(
-          new Map(allFetchedOffers.map(item => [item._id || item.id, item])).values()
-        );
+        const uniqueOffers = Array.from(new Map(allFetchedOffers.map(item => [item._id || item.id, item])).values());
         setOffers(uniqueOffers);
       } catch (err) {
-        console.error("Error fetching all pages:", err);
-        setOffers(allFetchedOffers);
+        console.error(err);
       } finally { setIsLoading(false); }
     };
     fetchAllOffers();
   }, []);
 
-  useEffect(() => { setCurrentPage(1); }, [searchQuery, selectedDevices, sortBy, selectedCategory, selectedProvider]);
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, selectedDevices, sortBy, selectedCategory, selectedNetwork]);
 
   const handleSelectDevice = (device: string) => {
     setSelectedDevices((prev) => {
@@ -117,66 +155,75 @@ export default function AllOffersPage() {
     });
   };
 
-  // Generate unique Providers list for the dropdown
-  const uniqueProviders = Array.from(new Set(offers.map(o => o.network || o.provider || 'Gemiad').filter(Boolean)));
-
   // --- FILTERING LOGIC ---
   let processedOffers = filterOffersByDevice(offers, selectedDevices);
+
+  // Helper to safely parse strings or arrays for categories
+  const parseCategoryString = (val: any) => {
+    if (!val) return '';
+    if (Array.isArray(val)) return val.join(' ').toLowerCase();
+    return String(val).toLowerCase();
+  };
 
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase();
     processedOffers = processedOffers.filter(offer => {
       const title = (offer.offerName || offer.title || offer.name || '').toLowerCase();
-      const sub = (offer.categories || offer.sub || offer.category || '').toLowerCase();
+      const sub = parseCategoryString(offer.categories || offer.sub || offer.category);
       return title.includes(q) || sub.includes(q);
     });
   }
 
-  // Category Filter
-  if (selectedCategory !== 'All') {
-    const q = selectedCategory.toLowerCase();
-    processedOffers = processedOffers.filter(offer => {
-      const cat = (offer.categories || offer.category || offer.tags || offer.offerName || '').toLowerCase();
-      if (q === 'games') return cat.includes('game') || cat.includes('play');
-      if (q === 'surveys') return cat.includes('survey') || cat.includes('opinion');
-      if (q === 'apps') return cat.includes('app') || cat.includes('install');
-      if (q === 'quizzes') return cat.includes('quiz') || cat.includes('trivia');
-      if (q === 'crypto') return cat.includes('crypto') || cat.includes('bitcoin');
-      if (q === 'casino') return cat.includes('casino') || cat.includes('slot');
-      if (q === 'freetrial') return cat.includes('trial') || cat.includes('free');
-      if (q === 'signup') return cat.includes('sign') || cat.includes('register');
-      if (q === 'purchase') return cat.includes('purchase') || cat.includes('buy');
-      return cat.includes(q);
-    });
+  // 🔥 Category Filter (Fixed for Arrays) 🔥
+  if (selectedCategory !== 'All Categories') {
+    const catMatch = CATEGORIES.find(c => c.label === selectedCategory)?.id.toLowerCase();
+    if (catMatch && catMatch !== 'all') {
+      processedOffers = processedOffers.filter(offer => {
+        const cat = parseCategoryString(offer.categories || offer.category || offer.tags || offer.offerName);
+        
+        if (catMatch === 'games') return cat.includes('game') || cat.includes('play');
+        if (catMatch === 'surveys') return cat.includes('survey') || cat.includes('opinion');
+        if (catMatch === 'apps') return cat.includes('app') || cat.includes('install');
+        if (catMatch === 'quizzes') return cat.includes('quiz') || cat.includes('trivia');
+        if (catMatch === 'crypto') return cat.includes('crypto') || cat.includes('bitcoin') || cat.includes('cripto');
+        if (catMatch === 'casino') return cat.includes('casino') || cat.includes('slot');
+        if (catMatch === 'freetrial') return cat.includes('trial') || cat.includes('free');
+        if (catMatch === 'signup') return cat.includes('sign') || cat.includes('register');
+        if (catMatch === 'purchase') return cat.includes('purchase') || cat.includes('buy');
+        
+        return cat.includes(catMatch);
+      });
+    }
   }
 
-  // Provider Filter
-  if (selectedProvider !== 'All') {
+  // Network / Provider Filter
+  if (selectedNetwork !== 'All Networks') {
     processedOffers = processedOffers.filter(offer => {
-      const prov = offer.network || offer.provider || 'Gemiad';
-      return prov.toLowerCase() === selectedProvider.toLowerCase();
+      const prov = offer.network || offer.provider || '';
+      return prov.toLowerCase() === selectedNetwork.toLowerCase();
     });
   }
 
   // Sorting
-  if (sortBy === 'reward-high') {
-    processedOffers.sort((a, b) => {
-      const valA = parseFloat(a.userCredits ?? a.reward ?? a.payout ?? 0);
-      const valB = parseFloat(b.userCredits ?? b.reward ?? b.payout ?? 0);
-      return valB - valA;
-    });
-  } else if (sortBy === 'reward-low') {
-    processedOffers.sort((a, b) => {
-      const valA = parseFloat(a.userCredits ?? a.reward ?? a.payout ?? 0);
-      const valB = parseFloat(b.userCredits ?? b.reward ?? b.payout ?? 0);
-      return valA - valB;
-    });
-  } else if (sortBy === 'popular') {
-    // Default or Popular sorting logic here (e.g. by rating or predefined order if exists)
+  if (sortBy === 'High Reward') {
+    processedOffers.sort((a, b) => parseFloat(b.userCredits ?? b.reward ?? b.payout ?? 0) - parseFloat(a.userCredits ?? a.reward ?? a.payout ?? 0));
+  } else if (sortBy === 'Low Reward') {
+    processedOffers.sort((a, b) => parseFloat(a.userCredits ?? a.reward ?? a.payout ?? 0) - parseFloat(b.userCredits ?? b.reward ?? b.payout ?? 0));
   }
 
   const totalPages = Math.ceil(processedOffers.length / itemsPerPage);
   const paginatedOffers = processedOffers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const getSortIcon = () => {
+    if (sortBy === 'High Reward') return <ArrowUp className="w-4 h-4" />;
+    if (sortBy === 'Low Reward') return <ArrowDown className="w-4 h-4" />;
+    return <Flame className="w-4 h-4" />;
+  };
+
+  const getCatIcon = () => {
+    const cat = CATEGORIES.find(c => c.label === selectedCategory);
+    return cat ? cat.icon : <Filter className="w-4 h-4" />;
+  };
 
   return (
     <div className="flex flex-col bg-[#0B0D19] min-h-[calc(100vh-80px)] text-white relative">
@@ -184,91 +231,105 @@ export default function AllOffersPage() {
 
       <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 custom-scrollbar">
         
-        {/* 🔥 Header Area 🔥 */}
-        <div className="flex items-center gap-4 mb-2">
-          <Link href="/dashboard" className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all backdrop-blur-md border border-white/5 shadow-sm">
-            <ChevronLeft className="w-6 h-6" />
-          </Link>
-          <h1 className="text-3xl md:text-4xl font-black text-white">Offers</h1>
+        {/* HERO BANNER */}
+        <div className="relative w-full bg-[#111319] border border-white/5 rounded-[24px] mb-6 overflow-hidden flex flex-col justify-center px-6 md:px-10 py-8 shadow-lg">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#8B5CF6]/10 blur-[100px] rounded-full translate-x-1/3 -translate-y-1/3"></div>
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#3B82F6]/5 blur-[80px] rounded-full -translate-x-1/3 translate-y-1/3"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-4 mb-3">
+              <Link href="/dashboard" className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all backdrop-blur-md border border-white/5 shadow-sm">
+                <ChevronLeft className="w-6 h-6" />
+              </Link>
+              <h1 className="text-3xl md:text-4xl font-black text-white flex items-center gap-3">
+                <LayoutGrid className="w-8 h-8 text-[#8B5CF6]" /> All Offers
+              </h1>
+            </div>
+            
+            <div className="pl-14">
+              <p className="text-[13px] md:text-sm text-[#8F95A3] font-medium mb-1">Explore a diverse collection of offers from verified networks.</p>
+              <p className="text-[13px] md:text-sm text-[#8F95A3] font-medium">
+                Total Available: <span className="text-[#8B5CF6] font-bold">{offers.length} Offers</span>
+              </p>
+            </div>
+          </div>
         </div>
-        <p className="text-[#8F95A3] text-[15px] font-medium mb-8 pl-14">Choose better tasks. Earn better rewards.</p>
 
-        {/* 🔥 MAIN FILTERS BAR (Replicating the Screenshot Layout) 🔥 */}
-        <div className="flex flex-col xl:flex-row justify-between items-center gap-4 mb-8 bg-[#111319]/80 backdrop-blur-md p-3 rounded-2xl border border-white/5 shadow-lg">
+        {/* FILTERS BAR */}
+        <div className="flex flex-col xl:flex-row justify-between items-center gap-4 mb-8 bg-[#111319]/80 backdrop-blur-md p-3 rounded-2xl border border-white/5 shadow-lg relative z-20">
           
           {/* Left Side: Search Bar */}
-          <div className="relative w-full xl:w-[350px] shrink-0">
+          <div className="relative w-full xl:w-[320px] shrink-0">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="w-4 h-4 text-[#8F95A3]" />
             </div>
             <input 
               type="text" 
-              placeholder="Search..." 
+              placeholder="Search offers..." 
               value={searchQuery} 
               onChange={(e) => setSearchQuery(e.target.value)} 
-              className="w-full bg-[#1A1C24] border border-white/5 text-white text-[13px] font-medium rounded-xl focus:ring-1 focus:ring-[#8B5CF6]/50 focus:border-[#8B5CF6]/50 block pl-11 p-3 placeholder-[#8F95A3] outline-none transition-all shadow-inner" 
+              className="w-full bg-[#1A1C24] border border-white/5 text-white text-[13px] font-medium rounded-xl focus:ring-1 focus:ring-[#8B5CF6]/50 focus:border-[#8B5CF6]/50 block pl-11 p-3.5 placeholder-[#8F95A3] outline-none transition-all shadow-inner" 
             />
           </div>
 
-          {/* Right Side: Device Icons & Dropdowns */}
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full xl:w-auto overflow-x-auto no-scrollbar pb-1 xl:pb-0">
+          {/* Right Side: Filters */}
+          <div className="flex flex-wrap items-center justify-start xl:justify-end gap-3 w-full xl:w-auto relative z-30">
             
-            {/* Device Filters */}
             <div className="shrink-0 flex items-center bg-[#1A1C24] p-1 rounded-xl border border-white/5">
               <OfferFilters selectedDevices={selectedDevices} onSelectDevice={handleSelectDevice} />
             </div>
 
             {/* 1. Category Dropdown */}
-            <div className="relative shrink-0 z-30" ref={catRef}>
+            <div className="relative shrink-0" ref={catRef}>
               <button 
                 onClick={() => setIsCatOpen(!isCatOpen)}
-                className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-xl px-4 py-2.5 text-[13px] font-bold text-white transition-colors h-10"
+                className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-xl px-4 py-2.5 text-[14px] font-medium text-white transition-colors h-11"
               >
-                <Filter className="w-4 h-4 text-[#8F95A3]" /> 
-                {selectedCategory === 'All' ? 'All Categories' : selectedCategory}
-                <ChevronDown className={`w-3.5 h-3.5 text-[#8F95A3] transition-transform ml-1 ${isCatOpen ? 'rotate-180' : ''}`} />
+                {getCatIcon()}
+                {selectedCategory}
+                <ChevronDown className={`w-4 h-4 text-[#A855F7] transition-transform ml-1 ${isCatOpen ? 'rotate-180' : ''}`} />
               </button>
               {isCatOpen && (
-                <div className="absolute left-0 top-full mt-2 w-[220px] bg-[#1A1C24] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 border-t-[#8B5CF6]">
+                <div className="absolute left-0 top-full mt-2 w-[220px] bg-[#111319] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 z-[100]">
                   {CATEGORIES.map(cat => (
                     <button 
                       key={cat.id} 
-                      onClick={() => {setSelectedCategory(cat.id); setIsCatOpen(false);}} 
-                      className={`flex items-center gap-3 px-4 py-2.5 text-[13px] font-semibold hover:bg-white/5 transition-colors ${selectedCategory === cat.id ? 'text-[#8B5CF6]' : 'text-[#8F95A3] hover:text-white'}`}
+                      onClick={() => {setSelectedCategory(cat.label); setIsCatOpen(false);}} 
+                      className={`flex items-center gap-3 px-4 py-3 text-[14px] font-medium transition-colors ${selectedCategory === cat.label ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
                     >
-                      <span className="w-5 text-center">{cat.icon}</span> {cat.label}
+                      <span className="w-5 flex justify-center text-white">{cat.icon}</span> {cat.label}
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* 2. Provider Dropdown */}
-            <div className="relative shrink-0 z-20" ref={provRef}>
+            {/* 2. Network Dropdown */}
+            <div className="relative shrink-0" ref={netRef}>
               <button 
-                onClick={() => setIsProvOpen(!isProvOpen)}
-                className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-xl px-4 py-2.5 text-[13px] font-bold text-white transition-colors h-10"
+                onClick={() => setIsNetOpen(!isNetOpen)}
+                className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-xl px-4 py-2.5 text-[14px] font-medium text-white transition-colors h-11"
               >
-                <LayoutGrid className="w-4 h-4 text-[#8F95A3]" /> 
-                {selectedProvider === 'All' ? 'All Providers' : selectedProvider}
-                <ChevronDown className={`w-3.5 h-3.5 text-[#8F95A3] transition-transform ml-1 ${isProvOpen ? 'rotate-180' : ''}`} />
+                <LayoutGrid className="w-4 h-4 text-white" /> 
+                {selectedNetwork}
+                <ChevronDown className={`w-4 h-4 text-[#A855F7] transition-transform ml-1 ${isNetOpen ? 'rotate-180' : ''}`} />
               </button>
-              {isProvOpen && (
-                <div className="absolute left-0 top-full mt-2 w-[220px] max-h-[300px] overflow-y-auto custom-scrollbar bg-[#1A1C24] border border-white/5 rounded-xl shadow-2xl flex flex-col py-2 border-t-[#8B5CF6]">
+              {isNetOpen && (
+                <div className="absolute left-0 xl:right-0 xl:left-auto top-full mt-2 w-[240px] max-h-[350px] overflow-y-auto custom-scrollbar bg-[#111319] border border-white/5 rounded-xl shadow-2xl flex flex-col py-2 z-[100]">
                   <button 
-                    onClick={() => {setSelectedProvider('All'); setIsProvOpen(false);}} 
-                    className={`flex items-center justify-between px-4 py-2.5 text-[13px] font-semibold hover:bg-white/5 transition-colors ${selectedProvider === 'All' ? 'text-[#8B5CF6]' : 'text-[#8F95A3] hover:text-white'}`}
+                    onClick={() => {setSelectedNetwork('All Networks'); setIsNetOpen(false);}} 
+                    className={`flex items-center justify-between px-4 py-3 text-[14px] font-medium transition-colors ${selectedNetwork === 'All Networks' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
                   >
-                    All Providers
+                    All Networks
                   </button>
-                  {uniqueProviders.map(prov => (
+                  {apiNetworks.map(net => (
                     <button 
-                      key={prov} 
-                      onClick={() => {setSelectedProvider(prov); setIsProvOpen(false);}} 
-                      className={`flex items-center justify-between px-4 py-2.5 text-[13px] font-semibold hover:bg-white/5 transition-colors ${selectedProvider === prov ? 'text-[#8B5CF6]' : 'text-[#8F95A3] hover:text-white'}`}
+                      key={net.name} 
+                      onClick={() => {setSelectedNetwork(net.name); setIsNetOpen(false);}} 
+                      className={`flex items-center justify-between px-4 py-3 text-[14px] font-medium transition-colors ${selectedNetwork === net.name ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
                     >
-                      <span className="truncate pr-2">{prov}</span>
-                      <span className="bg-[#8B5CF6] text-white text-[9px] px-2 py-0.5 rounded-full">Offers</span>
+                      <span className="truncate pr-2 capitalize">{net.name}</span>
+                      {net.count > 0 && <span className="bg-[#A855F7] text-white text-[11px] font-bold px-2 py-0.5 rounded-full">{net.count}</span>}
                     </button>
                   ))}
                 </div>
@@ -276,31 +337,25 @@ export default function AllOffersPage() {
             </div>
 
             {/* 3. Sort By Dropdown */}
-            <div className="relative shrink-0 z-10" ref={sortRef}>
+            <div className="relative shrink-0" ref={sortRef}>
               <button 
                 onClick={() => setIsSortOpen(!isSortOpen)}
-                className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-xl px-4 py-2.5 text-[13px] font-bold text-white transition-colors h-10"
+                className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-xl px-4 py-2.5 text-[14px] font-medium text-white transition-colors h-11"
               >
-                {sortBy === 'popular' && <Flame className="w-4 h-4 text-[#8F95A3]" />}
-                {sortBy === 'reward-high' && <ArrowUpCircle className="w-4 h-4 text-[#8F95A3]" />}
-                {sortBy === 'reward-low' && <ArrowDownCircle className="w-4 h-4 text-[#8F95A3]" />}
-                
-                {sortBy === 'popular' && 'Most Popular'}
-                {sortBy === 'reward-high' && 'High Reward'}
-                {sortBy === 'reward-low' && 'Low Reward'}
-                
-                <ChevronDown className={`w-3.5 h-3.5 text-[#8F95A3] transition-transform ml-1 ${isSortOpen ? 'rotate-180' : ''}`} />
+                {getSortIcon()}
+                {sortBy}
+                <ChevronDown className={`w-4 h-4 text-[#A855F7] transition-transform ml-1 ${isSortOpen ? 'rotate-180' : ''}`} />
               </button>
               {isSortOpen && (
-                <div className="absolute right-0 top-full mt-2 w-[180px] bg-[#1A1C24] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 border-t-[#8B5CF6]">
-                  <button onClick={() => {setSortBy('popular'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-2.5 text-[13px] font-semibold hover:bg-white/5 transition-colors ${sortBy === 'popular' ? 'text-[#8B5CF6]' : 'text-[#8F95A3] hover:text-white'}`}>
-                    <Flame className="w-4 h-4" /> Most Popular
+                <div className="absolute right-0 top-full mt-2 w-[180px] bg-[#111319] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 z-[100]">
+                  <button onClick={() => {setSortBy('Most Popular'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-3 text-[14px] font-medium transition-colors ${sortBy === 'Most Popular' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
+                    <Flame className="w-4 h-4 text-white" /> Most Popular
                   </button>
-                  <button onClick={() => {setSortBy('reward-high'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-2.5 text-[13px] font-semibold hover:bg-white/5 transition-colors ${sortBy === 'reward-high' ? 'text-[#8B5CF6]' : 'text-[#8F95A3] hover:text-white'}`}>
-                    <ArrowUpCircle className="w-4 h-4" /> High Reward
+                  <button onClick={() => {setSortBy('High Reward'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-3 text-[14px] font-medium transition-colors ${sortBy === 'High Reward' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
+                    <ArrowUp className="w-4 h-4 text-white" /> High Reward
                   </button>
-                  <button onClick={() => {setSortBy('reward-low'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-2.5 text-[13px] font-semibold hover:bg-white/5 transition-colors ${sortBy === 'reward-low' ? 'text-[#8B5CF6]' : 'text-[#8F95A3] hover:text-white'}`}>
-                    <ArrowDownCircle className="w-4 h-4" /> Low Reward
+                  <button onClick={() => {setSortBy('Low Reward'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-3 text-[14px] font-medium transition-colors ${sortBy === 'Low Reward' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
+                    <ArrowDown className="w-4 h-4 text-white" /> Low Reward
                   </button>
                 </div>
               )}
@@ -309,7 +364,7 @@ export default function AllOffersPage() {
           </div>
         </div>
 
-        {/* 🔥 OFFERS GRID 🔥 */}
+        {/* OFFERS GRID */}
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
@@ -346,7 +401,7 @@ export default function AllOffersPage() {
             <Settings2 className="w-12 h-12 text-[#8F95A3] mb-4 opacity-50" />
             <p className="text-white font-bold text-lg mb-1">No matching offers found</p>
             <p className="text-[#8F95A3] text-sm">Try adjusting your filters or clearing the search query.</p>
-            <button onClick={() => {setSearchQuery(''); setSelectedCategory('All'); setSelectedProvider('All');}} className="mt-4 px-6 py-2 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded-xl font-bold hover:bg-[#8B5CF6] hover:text-white transition-all">Clear All Filters</button>
+            <button onClick={() => {setSearchQuery(''); setSelectedCategory('All Categories'); setSelectedNetwork('All Networks');}} className="mt-4 px-6 py-2 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded-xl font-bold hover:bg-[#8B5CF6] hover:text-white transition-all">Clear All Filters</button>
           </div>
         )}
 

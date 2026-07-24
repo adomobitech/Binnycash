@@ -7,32 +7,31 @@ import OfferFilters from '@/components/offers/OfferFilters';
 import { Sparkles } from "lucide-react";
 
 export function filterOffersByDevice(offers: any[], selectedDevices: string[]) {
+  // Agar koi filter selected nahi hai, tabhi sab dikhao (View All / Default state)
   if (!selectedDevices || selectedDevices.length === 0) return offers;
 
   return offers.filter((offer) => {
-    const browsers = (offer?.browsers || '').toLowerCase();
-    const categories = (offer?.categories || offer?.category || offer?.sub || '').toLowerCase();
-    const offerType = (offer?.offer_type || '').toLowerCase();
-    const pStr = `${browsers} ${categories} ${offerType}`;
+    // Strictly JSON data ka browsers ya platform check karo
+    const browsers = String(offer?.browsers || offer?.platform || offer?.os || offer?.device_type || '').toLowerCase();
+    
+    // 🔥 Agar offer 'all' devices ke liye hai, toh filter selected hone pe isko hide kar do
+    if (browsers === 'all' || browsers === 'global' || browsers === '') {
+      return false; 
+    }
 
-    const isAndroid = pStr.includes('android');
-    const isIos = pStr.includes('ios') || pStr.includes('iphone') || pStr.includes('ipad');
-    const isMac = pStr.includes('mac') || pStr.includes('osx');
-    const isWindows = pStr.includes('windows') || pStr.includes('win') || pStr.includes('pc');
-    const isWeb = pStr.includes('web') || browsers.length > 0;
-
+    // Match karo based on filter
     return selectedDevices.some((device) => {
-      // Android filter: Android apps + Web offers (jo har jagah chalte hain)
-      if (device === 'android') return isAndroid || isWeb;
+      if (device === 'android') return browsers.includes('android');
       
-      // iOS / iPad filter: iOS specific apps/browsers
-      if (device === 'ios' || device === 'ipad') return isIos;
+      if (device === 'ios') return browsers.includes('ios') || browsers.includes('iphone');
       
-      // Mac filter: Mac specific + Web offers (Mac browser par web offers chalenge hi)
-      if (device === 'mac') return isMac || isWeb;
+      // 🔥 iPad me iOS wale offers bhi dikhane hain
+      if (device === 'ipad') return browsers.includes('ipad') || browsers.includes('ios'); 
       
-      // Windows filter: Windows specific + Web offers + Android (Win 11 compatibility)
-      if (device === 'windows') return isWindows || isWeb || isAndroid;
+      // 🔥 Windows me desktop wale offers bhi dikhane hain
+      if (device === 'windows') return browsers.includes('windows') || browsers.includes('win') || browsers.includes('pc') || browsers.includes('desktop');
+      
+      if (device === 'mac') return browsers.includes('mac') || browsers.includes('osx');
       
       return false;
     });
