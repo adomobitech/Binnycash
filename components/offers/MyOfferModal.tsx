@@ -29,6 +29,7 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [targetDeviceName, setTargetDeviceName] = useState<string>('Android');
   const [currentOS, setCurrentOS] = useState<string>('Windows');
+  const [apiError, setApiError] = useState<string | null>(null); 
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -43,6 +44,7 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
   useEffect(() => {
     if (!isOpen) {
       setQrCodeUrl(null);
+      setApiError(null);
       return;
     }
     if (!offer) return;
@@ -80,68 +82,110 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
 
   const handleContinueClick = async () => {
     setIsProcessingClick(true);
-    const token = localStorage.getItem('token') || '';
-    const targetId = offer.offerId || offer._id || offer.id;
+    setApiError(null);
+
+    // 🔥 1. DEVICE DETECTION (Synchronous to avoid popup blocks) 🔥
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(ua);
+    const isMobile = isIOS || isAndroid || /Mobi|Tablet/i.test(ua);
+    const isDesktop = !isMobile;
+
+    const currentData = details || offer;
+    const targetPlatforms = String(currentData?.browsers || currentData?.platform || currentData?.os || currentData?.device_type || '').toLowerCase();
+    const isUniversal = targetPlatforms === 'all' || targetPlatforms === 'global' || targetPlatforms === '';
+    
+    const isOfferAndroid = targetPlatforms.includes('android');
+    const isOfferIos = targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad');
+    const isOfferWindows = targetPlatforms.includes('windows') || targetPlatforms.includes('desktop') || targetPlatforms.includes('pc') || targetPlatforms.includes('win');
+    const isOfferMac = targetPlatforms.includes('mac') || targetPlatforms.includes('osx');
+
+    const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isOfferMac || isUniversal);
+    const isStrictlyDesktopOffer = (isOfferWindows || isOfferMac) && !(isOfferAndroid || isOfferIos || isUniversal);
+
+    let showQR = false;
+    let generateQRFor = 'Mobile Device';
+
+    // Desktop to Mobile -> Show QR
+    if (isDesktop && isStrictlyMobileOffer) {
+      showQR = true;
+      if (isOfferAndroid && !isOfferIos) generateQRFor = 'Android';
+      else if (isOfferIos && !isOfferAndroid) generateQRFor = 'iOS';
+      else generateQRFor = 'Android or iOS';
+    } 
+    // Mobile to Desktop -> Show Error (Can't scan phone with PC)
+    else if (isMobile && isStrictlyDesktopOffer) {
+      setApiError(`This offer is exclusively for ${isOfferWindows && !isOfferMac ? 'Windows' : isOfferMac && !isOfferWindows ? 'Mac' : 'Desktop'} PCs. Please complete this on your computer.`);
+      setIsProcessingClick(false);
+      return; 
+    }
+
+    // 🔥 2. OPEN BLANK TAB IMMEDIATELY (BYPASS POPUP BLOCKER) 🔥
+    let newTab: Window | null = null;
+    if (!showQR) {
+      newTab = window.open('about:blank', '_blank');
+    }
 
     try {
+      const token = localStorage.getItem('token') || '';
+      const targetId = offer.offerId || offer._id || offer.id;
+
       const res = await fetch(`https://apitest.binnycash.com/api/user/tracking/user_click`, {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ offerId: targetId }) 
       });
 
-      const htmlData = await res.text();
-      const urlMatch = htmlData.match(/location\.replace\("([^"]+)"\)/i) || htmlData.match(/url=([^"]+)/i);
-      const finalRedirectUrl = urlMatch ? urlMatch[1] : (offer?.click_url || '#');
+      const responseText = await res.text();
+      let finalRedirectUrl = '';
+      let errorMessage = '';
 
-      if (!finalRedirectUrl || finalRedirectUrl === '#') throw new Error("No URL");
-
-      // 🔥 1. BULLETPROOF USER DEVICE DETECTION 🔥
-      const ua = (navigator.userAgent || navigator.vendor || (window as any).opera).toLowerCase();
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const isUserOnMobile = /mobi|android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua) || (isTouchDevice && /macintosh|mac os/i.test(ua));
-      const isUserOnDesktop = !isUserOnMobile;
-      
-      // 🔥 2. EXACT TARGET DEVICE DETECTION FROM JSON 🔥
-      const targetPlatforms = String(
-        details?.browsers || offer?.browsers || details?.platform || offer?.platform || 
-        details?.device || offer?.device || details?.categories || offer?.categories || ''
-      ).toLowerCase();
-
-      const isUniversal = targetPlatforms === 'all' || targetPlatforms === 'global' || targetPlatforms === '';
-
-      const isOfferAndroid = targetPlatforms.includes('android');
-      const isOfferIos = targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad');
-      const isOfferWindows = targetPlatforms.includes('windows') || targetPlatforms.includes('win') || targetPlatforms.includes('pc') || targetPlatforms.includes('desktop');
-      const isOfferMac = targetPlatforms.includes('mac') || targetPlatforms.includes('osx');
-
-      const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isOfferMac || isUniversal);
-      const isStrictlyDesktopOffer = (isOfferWindows || isOfferMac) && !(isOfferAndroid || isOfferIos || isUniversal);
-
-      // 🔥 3. CROSS-DEVICE VERIFICATION LOGIC 🔥
-      let showQR = false;
-      let generateQRFor = '';
-
-      if (isUserOnDesktop && isStrictlyMobileOffer) {
-        showQR = true;
-        generateQRFor = isOfferAndroid && !isOfferIos ? 'Android' : (isOfferIos && !isOfferAndroid ? 'iOS' : 'Mobile Device');
-      } else if (isUserOnMobile && isStrictlyDesktopOffer) {
-        showQR = true;
-        generateQRFor = isOfferWindows && !isOfferMac ? 'Windows PC' : (isOfferMac && !isOfferWindows ? 'Mac' : 'Desktop PC');
+      try {
+        const jsonRes = JSON.parse(responseText);
+        if (jsonRes.type === 'error' || jsonRes.status === 'error' || jsonRes.code !== 200) {
+          errorMessage = jsonRes.message || 'Device not supported or offer unavailable.';
+        }
+        finalRedirectUrl = jsonRes?.url || jsonRes?.link || jsonRes?.click_url || jsonRes?.data?.url || jsonRes?.data?.link || jsonRes?.data?.click_url || '';
+      } catch (e) {
+        const urlMatch = responseText.match(/location\.replace\("([^"]+)"\)/i) || 
+                         responseText.match(/url=([^"]+)/i) || 
+                         responseText.match(/https?:\/\/[^\s"'<>]+/i);
+        if (urlMatch) {
+          finalRedirectUrl = urlMatch[1] || urlMatch[0];
+        }
       }
 
-      // 🔥 4. ACTION FIRE 🔥
+      // Backend Error Blocking
+      if (errorMessage && !finalRedirectUrl) {
+        if (newTab) newTab.close();
+        setApiError(errorMessage);
+        setIsProcessingClick(false);
+        return;
+      }
+
+      if (!finalRedirectUrl || finalRedirectUrl === '#') {
+        finalRedirectUrl = offer?.click_url || offer?.link || offer?.url; 
+      }
+
+      // 🔥 3. ACTION 🔥
       if (showQR) {
         setTargetDeviceName(generateQRFor);
         setQrCodeUrl(finalRedirectUrl);
       } else {
-        window.open(finalRedirectUrl, '_blank');
+        if (newTab) {
+          newTab.location.href = finalRedirectUrl;
+        } else {
+          window.open(finalRedirectUrl, '_blank');
+        }
         onClose();
       }
 
     } catch (err) {
       console.error("Error processing click URL:", err);
-      if (offer?.click_url) { window.open(offer.click_url, '_blank'); onClose(); }
+      if (newTab) {
+         newTab.location.href = offer?.click_url || offer?.link || offer?.url || 'https://binnycash.com';
+      }
+      onClose();
     } finally {
       setIsProcessingClick(false);
     }
@@ -156,7 +200,6 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-        {/* Dark Backdrop */}
         <motion.div 
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           onClick={onClose}
@@ -167,7 +210,6 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
           initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ duration: 0.3 }}
           className={`w-full max-w-md ${qrCodeUrl ? 'bg-[#0B0D15]' : 'bg-[#111319]'} border border-white/10 rounded-[28px] shadow-2xl relative overflow-hidden z-10 flex flex-col`}
         >
-          {/* Close Button Top Right */}
           <button 
             onClick={onClose}
             className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-[#8F95A3] hover:text-white transition-colors border border-white/5 cursor-pointer z-50"
@@ -176,14 +218,11 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
           </button>
 
           {qrCodeUrl ? (
-            // 櫨 PREMIUM QR CODE UI EXACTLY LIKE SCREENSHOT 櫨
             <div className="relative p-8 pt-10 flex flex-col items-center text-center overflow-hidden">
-              {/* Ambient Glow */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#8B5CF6]/20 blur-[100px] rounded-full pointer-events-none" />
 
-              {/* Target Device Icon */}
               <div className="relative w-12 h-12 rounded-full border border-[#8B5CF6]/30 bg-black/40 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(139,92,246,0.3)] z-10 backdrop-blur-md">
-                {targetDeviceName.includes('Android') ? <AndroidIcon /> : <AppleIcon />}
+                {targetDeviceName.toLowerCase().includes('android') ? <AndroidIcon /> : targetDeviceName.toLowerCase().includes('windows') ? <WindowsIcon /> : <AppleIcon />}
               </div>
 
               <h2 className="text-2xl font-black text-white mb-2 relative z-10">Open on {targetDeviceName}</h2>
@@ -193,7 +232,6 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
                 <Sparkles className="w-3.5 h-3.5 text-[#8B5CF6]" />
               </p>
 
-              {/* QR Code Container with Neon Glowing Border */}
               <div className="relative z-10 p-[2px] rounded-[24px] bg-gradient-to-b from-[#A855F7] to-[#8B5CF6]/10 shadow-[0_0_50px_rgba(139,92,246,0.4)] mb-8">
                 <div className="bg-white p-3 rounded-[22px]">
                   <img 
@@ -204,7 +242,6 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
                 </div>
               </div>
 
-              {/* Current Device Pill */}
               <div className="relative z-10 flex items-center justify-between bg-black/40 backdrop-blur-md border border-white/5 rounded-[20px] p-4 w-full max-w-[280px] mb-8 shadow-inner">
                 <div className="flex items-center gap-3">
                   <Smartphone className="w-5 h-5 text-white/40" />
@@ -218,7 +255,6 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
                 </div>
               </div>
 
-              {/* Secure Footer */}
               <div className="relative z-10 w-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 rounded-2xl p-4 flex items-center gap-3 text-left">
                 <ShieldCheck className="w-6 h-6 text-[#8B5CF6] shrink-0" />
                 <div className="flex flex-col">
@@ -229,7 +265,6 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
 
             </div>
           ) : (
-            // 櫨 STANDARD LOADING / CONTINUE UI 櫨
             <>
               {!isLoading && (
                 <div className="h-[60px] bg-[#1A1C24] border-b border-white/5 flex items-center justify-between px-6 shrink-0">
@@ -260,7 +295,7 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
                     </p>
 
                     {details && (
-                      <div className="w-full bg-[#1A1C24] border border-white/5 rounded-2xl p-4 flex justify-between items-center mb-8">
+                      <div className="w-full bg-[#1A1C24] border border-white/5 rounded-2xl p-4 flex justify-between items-center mb-6">
                         <div className="flex flex-col items-center w-1/2 border-r border-white/5">
                           <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Status</span>
                           <span className={`text-sm font-black ${clickAllowed ? 'text-[#00E57A]' : 'text-red-500'}`}>{clickAllowed ? 'Allowed' : 'Blocked'}</span>
@@ -269,6 +304,13 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
                           <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Retries Left</span>
                           <span className="text-sm font-black text-amber-400 flex items-center gap-1"><RotateCcw className="w-3.5 h-3.5" /> {retries}</span>
                         </div>
+                      </div>
+                    )}
+
+                    {/* 🔥 ERROR ALERT BOX 🔥 */}
+                    {apiError && (
+                      <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-3 rounded-xl mb-6 text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+                        {apiError}
                       </div>
                     )}
 
