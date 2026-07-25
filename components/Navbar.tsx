@@ -51,6 +51,9 @@ export default function Navbar() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
   const [balance, setBalance] = useState('0.00');
+  
+  const [userName, setUserName] = useState('Profile');
+  const [userAvatar, setUserAvatar] = useState<string | null>(null); // 🔥 User Avatar State Added
 
   // Inbox & Notification States
   const [isInboxOpen, setIsInboxOpen] = useState(false);
@@ -60,7 +63,7 @@ export default function Navbar() {
 
   // Chat Drawer State
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [unreadChatCount, setUnreadChatCount] = useState(0); // Added for Chat Green Dot logic
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
 
   const navRef = useRef<HTMLElement>(null);
 
@@ -89,7 +92,6 @@ export default function Navbar() {
           .then(data => { if (data && data.data !== undefined) setBalance(data.data); })
           .catch(err => console.error("Wallet fetch error:", err));
 
-        // Fetch initial unread notification count
         fetch('https://apitest.binnycash.com/api/user/notificationList', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -114,6 +116,42 @@ export default function Navbar() {
       clearInterval(interval);
     };
   }, []);
+
+  // Helper to resolve relative path images
+  const resolveImage = (imgSrc: string) => {
+    if (!imgSrc) return null;
+    if (imgSrc.startsWith('http')) return imgSrc;
+    return `https://apitest.binnycash.com${imgSrc}`;
+  };
+
+  // 🔥 FETCH USER DATA FOR NAME & REAL AVATAR 🔥
+  useEffect(() => {
+    if (isLoggedIn) {
+      const token = localStorage.getItem('token');
+      fetch('https://apitest.binnycash.com/api/user/viewData', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+         const user = data?.data?.user || data?.data;
+         if (user) {
+            let display = user.userName || user.firstName;
+            if (!display && user.email) {
+              display = user.email.split('@')[0];
+            }
+            if (display) {
+              setUserName(display);
+            }
+            const rawPic = user.image || user.profilePic;
+            if (rawPic) {
+              setUserAvatar(resolveImage(rawPic));
+            }
+         }
+      })
+      .catch(err => console.error("Profile fetch error:", err));
+    }
+  }, [isLoggedIn]);
 
   const fetchInboxMessages = async () => {
     setIsInboxLoading(true);
@@ -148,7 +186,7 @@ export default function Navbar() {
         }
       });
       if (res.ok) {
-        setUnreadCount(0); // Remove Green Dot
+        setUnreadCount(0);
         setInboxMessages(prev => prev.map(item => ({ ...item, isRead: true })));
       }
     } catch (err) {
@@ -414,11 +452,10 @@ export default function Navbar() {
             {isLoggedIn ? (
               <div className="flex items-center gap-2 md:gap-4">
                 
-                {/* OPEN CHAT DRAWER WITH DYNAMIC UNREAD DOT */}
                 <button 
                   onClick={() => {
                     setIsChatOpen(true);
-                    setUnreadChatCount(0); // Remove dot when opened
+                    setUnreadChatCount(0);
                   }}
                   className="relative w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors group cursor-pointer"
                 >
@@ -428,7 +465,6 @@ export default function Navbar() {
                   )}
                 </button>
 
-                {/* NOTIFICATIONS DRAWER TOGGLE BUTTON WITH GREEN DOT */}
                 <button 
                   onClick={() => setIsInboxOpen(true)}
                   className="relative w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors group cursor-pointer"
@@ -450,9 +486,18 @@ export default function Navbar() {
                 </div>
 
                 <div className="relative">
+                  {/* 🔥 UPDATED PROFILE BUTTON: Displays Real User Image if available, else Initial Letter 🔥 */}
                   <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] p-1 pr-2 md:pr-3 rounded-full hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all cursor-pointer">
-                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black shadow-sm">U</div>
-                    <span className="text-white text-xs font-bold max-w-[80px] truncate hidden md:block">Profile</span>
+                    {userAvatar ? (
+                      <img src={userAvatar} alt="Profile" className="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover border-2 border-[#8B5CF6] shadow-sm" />
+                    ) : (
+                      <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs md:text-sm font-black shadow-sm uppercase">
+                        {userName.charAt(0)}
+                      </div>
+                    )}
+                    <span className="text-white text-xs font-bold max-w-[90px] truncate hidden md:block">
+                      {userName}
+                    </span>
                     <ChevronDown className="w-3 h-3 text-white/70" />
                   </button>
 
@@ -462,9 +507,6 @@ export default function Navbar() {
                         <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
                           <User className="w-4 h-4 text-[#8B5CF6]" /> Profile
                         </Link>
-                        <button onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
-                          <ShieldCheck className="w-4 h-4 text-[#00E57A]" /> Account Status
-                        </button>
                         <Link href="/support" onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
                           <HelpCircle className="w-4 h-4 text-orange-400" /> Help Center
                         </Link>

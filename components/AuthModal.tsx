@@ -11,6 +11,18 @@ interface AuthModalProps {
 
 type ViewState = 'login' | 'register' | 'verifyOtp' | 'forgotPassword' | 'verifyForgotOtp' | 'loginSuccess';
 
+// 🔥 FIX: device_id ab ek hi jagah se generate/read hota hai (pehle sirf Google button ke
+// andar tha). referSignup API ko bhi device_id chahiye, isliye yeh helper dono jagah reuse hota hai.
+function getOrCreateDeviceId(): string {
+  if (typeof window === 'undefined') return '';
+  let deviceId = localStorage.getItem('device_id');
+  if (!deviceId) {
+    deviceId = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+    localStorage.setItem('device_id', deviceId);
+  }
+  return deviceId;
+}
+
 export default function AuthModal({ isOpen, onClose, initialView = 'login' }: AuthModalProps) {
   const router = useRouter();
   const [view, setView] = useState<ViewState>(initialView);
@@ -55,15 +67,22 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     setError('');
 
     const isSubUser = showPromo && promoCode.trim() !== '';
-    const endpoint = isSubUser 
-      ? 'https://apitest.binnycash.com/api/subUser/subUserSignup'
+    const endpoint = isSubUser
+      ? 'https://apitest.binnycash.com/api/user/referSignup'
       : 'https://apitest.binnycash.com/api/user/signup';
-    
+
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
     urlEncoded.append('password', password);
     if (isSubUser) {
-      urlEncoded.append('promoCode', promoCode);
+      // 🔥 FIX: referSignup API ka required field "referralCode" hai, "promoCode" nahi —
+      // backend dev ne dono ko same treat kiya hai (koi antar nahi rakha), isliye jo bhi
+      // value user ne "promo code" box me dali hai woh referralCode ke naam se bhejni padegi.
+      // promoCode bhi saath me bhej rahe hain (optional field) taaki dono side covered rahe.
+      const codeValue = promoCode.trim();
+      urlEncoded.append('referralCode', codeValue);
+      urlEncoded.append('promoCode', codeValue);
+      urlEncoded.append('device_id', getOrCreateDeviceId());
     }
 
     try {
@@ -109,10 +128,17 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           localStorage.setItem('token', userToken);
         }
 
-        // 🔥 ADDED THIS BLOCK TO SAVE USER ID FOR CHAT 🔥
-        const userId = data.userId || data.user?._id || data.data?.userId || data.data?._id || data.id;
+        // 🔥 FIX: login response ka asli shape { data: { token, userDetails: { id: 12, ... } } } hai.
+        // Pehle yahan se numeric "id" kabhi save hi nahi hota tha, isliye baaki jagah
+        // (OfferDetailsModal/MyOfferModal) fallback me galat Mongo ObjectId use ho rahi thi.
+        // Ab poora userDetails object save karte hain — usme numeric id (sid ke liye) hoti hai.
+        const userDetails = data.data?.userDetails || data.userDetails;
+        if (userDetails) {
+          localStorage.setItem('userDetails', JSON.stringify(userDetails));
+        }
+        const userId = userDetails?.id ?? userDetails?._id ?? data.userId ?? data.user?._id ?? data.data?.userId ?? data.data?._id ?? data.id;
         if (userId) {
-          localStorage.setItem('userId', userId);
+          localStorage.setItem('userId', String(userId));
         }
         
         setView('loginSuccess');
@@ -160,10 +186,14 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           localStorage.setItem('token', userToken);
         }
 
-        // 🔥 ADDED THIS BLOCK TO SAVE USER ID FOR CHAT 🔥
-        const userId = data.userId || data.user?._id || data.data?.userId || data.data?._id || data.id;
+        // 🔥 FIX: yahan bhi wahi userDetails object save karo jisme numeric id hoti hai.
+        const userDetails = data.data?.userDetails || data.userDetails;
+        if (userDetails) {
+          localStorage.setItem('userDetails', JSON.stringify(userDetails));
+        }
+        const userId = userDetails?.id ?? userDetails?._id ?? data.userId ?? data.user?._id ?? data.data?.userId ?? data.data?._id ?? data.id;
         if (userId) {
-          localStorage.setItem('userId', userId);
+          localStorage.setItem('userId', String(userId));
         }
         
         setView('loginSuccess');
@@ -265,11 +295,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
   const GoogleButton = () => {
     const handleGoogleLogin = () => {
-      let deviceId = localStorage.getItem('device_id');
-      if (!deviceId) {
-        deviceId = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-        localStorage.setItem('device_id', deviceId);
-      }
+      const deviceId = getOrCreateDeviceId();
 
       const params = new URLSearchParams();
       params.append('device_id', deviceId);

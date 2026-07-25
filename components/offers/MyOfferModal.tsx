@@ -22,6 +22,59 @@ const WindowsIcon = () => (
   </svg>
 );
 
+// 🔥 FIX: Backend ko "sid" ke liye NUMERIC userDetails.id chahiye (jaise sid=12), na ki
+// JWT payload wali Mongo "userId" (jo ek ObjectId string hoti hai, e.g. "6a5901...").
+// Login response ka shape hota hai: { data: { userDetails: { id: 12, ... } } }
+// Isliye pehle stored userDetails/user object me se numeric "id" dhundte hain, aur
+// JWT decode ko bilkul use nahi karte sid ke liye — warna galat sid chali jaayegi.
+function getUserId(): string {
+  if (typeof window === 'undefined') return '';
+
+  const isNumeric = (v: any) => v !== null && v !== undefined && /^\d+$/.test(String(v));
+
+  try {
+    // 1. Poora login response object kahin stored ho sakta hai
+    const wrapperKeys = ['loginResponse', 'authResponse', 'loginData'];
+    for (const key of wrapperKeys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        const id = parsed?.data?.userDetails?.id ?? parsed?.userDetails?.id;
+        if (isNumeric(id)) return String(id);
+      } catch {}
+    }
+
+    // 2. userDetails / user object directly stored
+    const objectKeys = ['userDetails', 'user', 'userData', 'profile', 'authUser'];
+    for (const key of objectKeys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        // numeric "id" ko priority do (yehi sid hai), _id/userId Mongo ObjectId ho sakti hai
+        const candidates = [parsed?.id, parsed?.userDetails?.id, parsed?._id, parsed?.userId, parsed?.user_id];
+        const numericMatch = candidates.find(isNumeric);
+        if (numericMatch !== undefined) return String(numericMatch);
+      } catch {}
+    }
+
+    // 3. Direct plain keys, sirf tab jab numeric ho
+    const directKeys = ['userId', 'user_id', 'uid', 'sid'];
+    for (const key of directKeys) {
+      const val = localStorage.getItem(key);
+      if (isNumeric(val)) return String(val);
+    }
+
+    // 🔥 NOTE: JWT token ka "userId" claim Mongo ObjectId hai, sid ke liye use NAHI karte —
+    // isse fallback me galat sid backend ko chali jaati thi. Agar upar kahin id nahi mili,
+    // toh explicitly '' return karo taaki UI "log in again" error dikhaye, silently galat id na bheje.
+  } catch (err) {
+    console.error('Could not resolve user id:', err);
+  }
+  return '';
+}
+
 export default function MyOfferModal({ isOpen, onClose, offer }: any) {
   const [details, setDetails] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +87,12 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const ua = navigator.userAgent;
-      if (ua.includes('Win')) setCurrentOS('Windows');
+      const isIOSUA = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      // 🔥 FIX: Android ke UA me bhi "Linux" word hota hai (e.g. "Linux; Android 10"),
+      // isliye Android/iOS ko Linux check se PEHLE test karna zaroori hai
+      if (/Android/i.test(ua)) setCurrentOS('Android');
+      else if (isIOSUA) setCurrentOS('iOS');
+      else if (ua.includes('Win')) setCurrentOS('Windows');
       else if (ua.includes('Mac')) setCurrentOS('macOS');
       else if (ua.includes('Linux')) setCurrentOS('Linux');
       else setCurrentOS('Desktop');
@@ -119,22 +177,56 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
       setIsProcessingClick(false);
       return; 
     }
-
-    // 🔥 2. OPEN BLANK TAB IMMEDIATELY (BYPASS POPUP BLOCKER) 🔥
-    let newTab: Window | null = null;
-    if (!showQR) {
-      newTab = window.open('about:blank', '_blank');
+    // 🔥 FIX: Android offer ko iOS se ya iOS offer ko Android se open karna bhi block karo
+    else if (isAndroid && isOfferIos && !isOfferAndroid && !isUniversal) {
+      setApiError('This offer is exclusively for iOS devices. Please open it on an iPhone/iPad.');
+      setIsProcessingClick(false);
+      return;
     }
+    else if (isIOS && isOfferAndroid && !isOfferIos && !isUniversal) {
+      setApiError('This offer is exclusively for Android devices. Please open it on an Android device.');
+      setIsProcessingClick(false);
+      return;
+    }
+
+    // 🔥 FIX: backend "o" param me offer ki numeric "id" chahiye (jaise o=3590), _id/campaign_id nahi
+    const targetId = offer.id ?? offer.offerId ?? offer._id;
+    const userId = getUserId();
+
+    if (!userId) {
+      setApiError('Could not identify your account. Please log in again and retry.');
+      setIsProcessingClick(false);
+      return;
+    }
+
+    // 🔥 FIX (asli fix): Jab QR dikhana hai, backend ko current (galat) device se call hi
+    // nahi karte — warna wahi "device not supported" wala error aata hai. Seedha apna hi
+    // tracking API link bana ke QR me daal do (sid=user, o=offer). Jo bhi device isko scan
+    // karke kholega, request USI device se jaayegi aur backend wahan se sahi redirect karega.
+    // Isme kabhi bhi third-party offer link seedha expose/QR nahi hota.
+    if (showQR) {
+      const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
+      setTargetDeviceName(generateQRFor);
+      setQrCodeUrl(trackingUrl);
+      setIsProcessingClick(false);
+      return;
+    }
+
+    // 🔥 2. OPEN BLANK TAB IMMEDIATELY (BYPASS POPUP BLOCKER) — sirf non-QR (same-device) case me 🔥
+    const newTab: Window | null = window.open('about:blank', '_blank');
 
     try {
       const token = localStorage.getItem('token') || '';
-      const targetId = offer.offerId || offer._id || offer.id;
 
-      const res = await fetch(`https://apitest.binnycash.com/api/user/tracking/user_click`, {
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ offerId: targetId }) 
-      });
+      // 🔥 Ye endpoint GET hai, query params "sid" (user id) aur "o" (offer id) leta hai —
+      // yahan call karna sahi hai kyunki user isi (matching) device par hai.
+      const res = await fetch(
+        `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`,
+        {
+          method: 'GET',
+          headers: { 'Accept': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+        }
+      );
 
       const responseText = await res.text();
       let finalRedirectUrl = '';
@@ -163,22 +255,19 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
         return;
       }
 
+      // Direct redirect (non-QR) flow: yahan fallback theek hai kyunki user seedha
+      // apne current (matching) device par redirect ho raha hai.
       if (!finalRedirectUrl || finalRedirectUrl === '#') {
-        finalRedirectUrl = offer?.click_url || offer?.link || offer?.url; 
+        finalRedirectUrl = offer?.click_url || offer?.link || offer?.url;
       }
 
-      // 🔥 3. ACTION 🔥
-      if (showQR) {
-        setTargetDeviceName(generateQRFor);
-        setQrCodeUrl(finalRedirectUrl);
+      // 🔥 3. ACTION (non-QR direct redirect) 🔥
+      if (newTab) {
+        newTab.location.href = finalRedirectUrl;
       } else {
-        if (newTab) {
-          newTab.location.href = finalRedirectUrl;
-        } else {
-          window.open(finalRedirectUrl, '_blank');
-        }
-        onClose();
+        window.open(finalRedirectUrl, '_blank');
       }
+      onClose();
 
     } catch (err) {
       console.error("Error processing click URL:", err);
@@ -251,7 +340,7 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
                   </div>
                 </div>
                 <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
-                  {currentOS === 'Windows' ? <WindowsIcon /> : <AppleIcon />}
+                  {currentOS === 'Windows' ? <WindowsIcon /> : currentOS === 'Android' ? <AndroidIcon /> : <AppleIcon />}
                 </div>
               </div>
 
