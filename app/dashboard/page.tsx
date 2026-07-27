@@ -48,7 +48,7 @@ export default function DashboardPage() {
     setSelectedDevices(prev => prev.includes(device) ? prev.filter(d => d !== device) : [...prev, device]);
   };
 
-  // API Fetching Hooks (Unchanged)
+  // 🔥 FIXED: Robust JSON parsing for Inbox/LiveFeeds API
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchLiveFeeds = async () => {
@@ -58,9 +58,26 @@ export default function DashboardPage() {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const resData = await res.json();
-        setLiveFeeds(resData?.data || resData || []);
-      } catch (err) { console.error(err); } finally { setIsLoadingFeeds(false); }
+        
+        const text = await res.text();
+        let resData; 
+        try { resData = JSON.parse(text); } catch (e) { resData = {}; }
+        
+        let feeds: any[] = [];
+        if (Array.isArray(resData)) feeds = resData; 
+        else if (Array.isArray(resData?.data?.data?.inbox)) feeds = resData.data.data.inbox; 
+        else if (Array.isArray(resData?.data?.inbox)) feeds = resData.data.inbox; 
+        else if (Array.isArray(resData?.data?.data)) feeds = resData.data.data;
+        else if (Array.isArray(resData?.data?.list)) feeds = resData.data.list; 
+        else if (Array.isArray(resData?.inbox)) feeds = resData.inbox;
+        else if (Array.isArray(resData?.data)) feeds = resData.data;
+        
+        setLiveFeeds(feeds);
+      } catch (err) { 
+        console.error("Error fetching live feeds:", err); 
+      } finally { 
+        setIsLoadingFeeds(false); 
+      }
     };
     fetchLiveFeeds();
   }, [isAuthenticated]);

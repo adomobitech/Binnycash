@@ -19,6 +19,41 @@ declare global {
   }
 }
 
+// --- UTILITY: Get User ID securely ---
+function getUserId(): string {
+  if (typeof window === 'undefined') return '';
+  const isNumeric = (v: any) => v !== null && v !== undefined && /^\d+$/.test(String(v));
+  try {
+    const wrapperKeys = ['loginResponse', 'authResponse', 'loginData'];
+    for (const key of wrapperKeys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        const id = parsed?.data?.userDetails?.id ?? parsed?.userDetails?.id;
+        if (isNumeric(id)) return String(id);
+      } catch {}
+    }
+    const objectKeys = ['userDetails', 'user', 'userData', 'profile', 'authUser'];
+    for (const key of objectKeys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        const candidates = [parsed?.id, parsed?.userDetails?.id, parsed?._id, parsed?.userId, parsed?.user_id];
+        const numericMatch = candidates.find(isNumeric);
+        if (numericMatch !== undefined) return String(numericMatch);
+      } catch {}
+    }
+    const directKeys = ['userId', 'user_id', 'uid', 'sid', 'numericUserId'];
+    for (const key of directKeys) {
+      const val = localStorage.getItem(key);
+      if (isNumeric(val)) return String(val);
+    }
+  } catch (err) {}
+  return '';
+}
+
 const LANGUAGES = [
   { code: 'en', name: 'English', tag: 'us', flag: '🇺🇸' },
   { code: 'hi', name: 'Hindi', tag: 'in', flag: '🇮🇳' },
@@ -53,7 +88,7 @@ export default function Navbar() {
   const [balance, setBalance] = useState('0.00');
   
   const [userName, setUserName] = useState('Profile');
-  const [userAvatar, setUserAvatar] = useState<string | null>(null); // 🔥 User Avatar State Added
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
   // Inbox & Notification States
   const [isInboxOpen, setIsInboxOpen] = useState(false);
@@ -117,14 +152,12 @@ export default function Navbar() {
     };
   }, []);
 
-  // Helper to resolve relative path images
   const resolveImage = (imgSrc: string) => {
     if (!imgSrc) return null;
     if (imgSrc.startsWith('http')) return imgSrc;
     return `https://apitest.binnycash.com${imgSrc}`;
   };
 
-  // 🔥 FETCH USER DATA FOR NAME & REAL AVATAR 🔥
   useEffect(() => {
     if (isLoggedIn) {
       const token = localStorage.getItem('token');
@@ -175,15 +208,19 @@ export default function Navbar() {
     }
   };
 
+  // 🔥 FIXED: Changed to PUT and appended userId 🔥
   const handleMarkAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('https://apitest.binnycash.com/api/user/markAllRead', {
-        method: 'POST',
+      const userId = getUserId();
+      
+      const res = await fetch(`https://apitest.binnycash.com/api/user/markAllRead?userId=${userId}`, {
+        method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
-        }
+        },
+        body: JSON.stringify({ userId }) // Sending in body as fallback
       });
       if (res.ok) {
         setUnreadCount(0);
@@ -486,7 +523,6 @@ export default function Navbar() {
                 </div>
 
                 <div className="relative">
-                  {/* 🔥 UPDATED PROFILE BUTTON: Displays Real User Image if available, else Initial Letter 🔥 */}
                   <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] p-1 pr-2 md:pr-3 rounded-full hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all cursor-pointer">
                     {userAvatar ? (
                       <img src={userAvatar} alt="Profile" className="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover border-2 border-[#8B5CF6] shadow-sm" />

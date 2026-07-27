@@ -46,20 +46,20 @@ function getUserId(): string {
   return '';
 }
 
-// 🔥 100% WORKING VERIFIED 3D & GAMING / CRYPTO AVATARS 🔥
+// 🔥 FIXED: Changed to /png to avoid backend SVG validation rejection 🔥
 const AVATAR_LIBRARY = [
-  'https://api.dicebear.com/9.x/adventurer/svg?seed=Nova&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/big-smile/svg?seed=Blaze&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/adventurer/svg?seed=Orbit&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/big-smile/svg?seed=Karma&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/adventurer/svg?seed=Phoenix&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/big-smile/svg?seed=Ranger&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/adventurer/svg?seed=Cipher&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/big-smile/svg?seed=Storm&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/adventurer/svg?seed=Vortex&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/big-smile/svg?seed=Comet&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/adventurer/svg?seed=Titan&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/big-smile/svg?seed=Raven&backgroundColor=a66cff,7c3aed,4c1d95'
+  'https://api.dicebear.com/9.x/adventurer/png?seed=Nova&backgroundColor=a66cff,7c3aed,4c1d95',
+  'https://api.dicebear.com/9.x/big-smile/png?seed=Blaze&backgroundColor=a66cff,7c3aed,4c1d95',
+  'https://api.dicebear.com/9.x/adventurer/png?seed=Orbit&backgroundColor=a66cff,7c3aed,4c1d95',
+  'https://api.dicebear.com/9.x/big-smile/png?seed=Karma&backgroundColor=a66cff,7c3aed,4c1d95',
+  'https://api.dicebear.com/9.x/adventurer/png?seed=Phoenix&backgroundColor=a66cff,7c3aed,4c1d95',
+  'https://api.dicebear.com/9.x/big-smile/png?seed=Ranger&backgroundColor=a66cff,7c3aed,4c1d95',
+  'https://api.dicebear.com/9.x/adventurer/png?seed=Cipher&backgroundColor=a66cff,7c3aed,4c1d95',
+  'https://api.dicebear.com/9.x/big-smile/png?seed=Storm&backgroundColor=a66cff,7c3aed,4c1d95',
+  'https://api.dicebear.com/9.x/adventurer/png?seed=Vortex&backgroundColor=a66cff,7c3aed,4c1d95',
+  'https://api.dicebear.com/9.x/big-smile/png?seed=Comet&backgroundColor=a66cff,7c3aed,4c1d95',
+  'https://api.dicebear.com/9.x/adventurer/png?seed=Titan&backgroundColor=a66cff,7c3aed,4c1d95',
+  'https://api.dicebear.com/9.x/big-smile/png?seed=Raven&backgroundColor=a66cff,7c3aed,4c1d95'
 ];
 
 function CountUp({ value, prefix = '', decimals = 0 }: { value: number; prefix?: string; decimals?: number }) {
@@ -441,6 +441,8 @@ export default function ProfilePage() {
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [imgError, setImgError] = useState(false);
+
   // Tabs State
   const [mainTab, setMainTab] = useState<'earning' | 'reversal'>('earning');
   const [subTab, setSubTab] = useState<'offers' | 'surveys' | 'rewards'>('offers');
@@ -474,34 +476,29 @@ export default function ProfilePage() {
 
   const fetchProfileData = async () => {
     setIsLoading(true);
+    setImgError(false);
     const token = localStorage.getItem('token') || '';
     const userId = getUserId();
 
     try {
-      let res = await fetch(`https://apitest.binnycash.com/api/user/editProfile?userId=${userId}`, {
+      const res = await fetch('https://apitest.binnycash.com/api/user/viewData', {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-
-      if (!res.ok) {
-        res = await fetch('https://apitest.binnycash.com/api/user/viewData', {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-      }
 
       const json = await res.json();
       const user = json?.data?.user || json?.data || json;
       setUserData(user);
 
+      // Populate form data accurately
       setFormData({
-        firstName: user?.firstName || '',
-        lastName: user?.lastName || '',
+        firstName: user?.firstName || user?.name?.split(' ')[0] || '',
+        lastName: user?.lastName || user?.name?.split(' ')[1] || '',
         email: user?.email || '',
         education: user?.education || '',
         city: user?.city || '',
         address: user?.address || '',
-        mobileNumber: user?.mobileNumber || '',
+        mobileNumber: user?.mobileNumber || user?.mobileCode ? `${user.mobileCode}${user.mobileNumber}` : '',
         zipCode: user?.zipCode || '',
       });
 
@@ -653,12 +650,12 @@ export default function ProfilePage() {
   };
 
   const resolveImage = (imgSrc: string) => {
-    if (!imgSrc) return null;
+    if (!imgSrc || imgSrc.trim() === '') return null;
     if (imgSrc.startsWith('http')) return imgSrc;
-    return `https://apitest.binnycash.com${imgSrc}`;
+    return imgSrc.startsWith('/') ? `https://apitest.binnycash.com${imgSrc}` : `https://apitest.binnycash.com/${imgSrc}`;
   };
 
-  const name = userData?.firstName ? `${userData.firstName} ${userData.lastName || ''}` : userData?.name || 'User';
+  const name = userData?.userName || userData?.firstName ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.userName : 'User';
   
   const rawProfilePic = userData?.image || userData?.profilePic;
   const displayImage = resolveImage(rawProfilePic);
@@ -736,10 +733,11 @@ export default function ProfilePage() {
                 <div className="relative shrink-0">
                   <div className="absolute -inset-2 rounded-full border border-solid border-[#A66CFF]/20" />
                   <div className="w-16 h-16 bg-[#1A1725] p-[3px] shadow-inner" style={{ clipPath: HEX_CLIP }}>
-                    {displayImage ? (
+                    {displayImage && !imgError ? (
                       <img 
                         src={displayImage} 
                         alt="Profile" 
+                        onError={() => setImgError(true)}
                         className="w-full h-full object-cover" 
                         style={{ clipPath: HEX_CLIP }} 
                       />
@@ -1066,10 +1064,11 @@ export default function ProfilePage() {
               <div className="flex items-center gap-5 my-6">
                 <div className="relative shrink-0">
                   <div className="w-20 h-20 bg-[#1A1725] p-1" style={{ clipPath: HEX_CLIP }}>
-                    {displayImage ? (
+                    {displayImage && !imgError ? (
                       <img 
                         src={displayImage} 
                         alt="Profile" 
+                        onError={() => setImgError(true)}
                         className="w-full h-full object-cover" 
                         style={{ clipPath: HEX_CLIP }} 
                       />
