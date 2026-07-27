@@ -127,29 +127,36 @@ export default function SupportPage() {
     }
   }, [activeTab]);
 
+  // 🔥 FIXED TICKET SUBMISSION LOGIC 🔥
   const handleTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSuccessMsg('');
 
     const token = localStorage.getItem('token') || '';
+    const userId = getUserId(); // Extract User ID
+    
     try {
       const data = new FormData();
       data.append('ticketSubject', ticketSubject);
       data.append('category', category);
       data.append('contactEmail', contactEmail);
       data.append('message', message);
+      data.append('userId', userId); // Append User ID to body
+
       if (imageFile) {
         data.append('image', imageFile);
       }
 
-      const res = await fetch('https://apitest.binnycash.com/api/user/createTicket', {
+      // Appended userId to URL query as well to ensure backend routes catch it
+      const res = await fetch(`https://apitest.binnycash.com/api/user/createTicket?userId=${userId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: data
       });
 
       const json = await res.json();
+      
       if (res.ok || json.code === 200 || json.responseCode === 0) {
         setSuccessMsg('Support ticket submitted successfully!');
         setSubmitDone(true);
@@ -161,13 +168,18 @@ export default function SupportPage() {
         setTimeout(() => {
           setActiveTab('myTickets');
           setSubmitDone(false);
+          fetchTickets(); // Refresh the list
         }, 1200);
       } else {
-        setSuccessMsg(json.message || 'Failed to submit ticket.');
+        // Smart Error Extraction for validation arrays/objects
+        let errMsg = json.message || json.error || 'Failed to submit ticket.';
+        if (Array.isArray(errMsg)) errMsg = errMsg.join(', ');
+        else if (typeof errMsg === 'object') errMsg = JSON.stringify(errMsg);
+        setSuccessMsg(`Error: ${errMsg}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Ticket creation error:', err);
-      setSuccessMsg('Something went wrong. Please try again.');
+      setSuccessMsg(`Something went wrong: ${err.message || 'Network Error'}`);
     } finally {
       setIsSubmitting(false);
     }
