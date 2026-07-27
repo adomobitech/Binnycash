@@ -1,10 +1,42 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from './AuthContext'; // AuthContext hook for register modal
 
 export default function Footer() {
   const { openRegister } = useAuth();
+  const router = useRouter();
+
+  // Helper Function for Auth & Routing logic
+  const handleAuthNavigation = (e: React.MouseEvent<HTMLAnchorElement>, path: string, targetId?: string) => {
+    e.preventDefault(); // Default link navigation ko roko
+    
+    // Check if user is logged in
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+    if (!token) {
+      // User login nahi hai -> Form kholo
+      openRegister();
+    } else {
+      // User login hai -> Us route par bhejo
+      if (targetId) {
+        // Agar id mili hai toh Dashboard open kar ke waha scroll karna hai
+        router.push(path);
+        // Timeout isliye taaki naya page mount ho sake
+        setTimeout(() => {
+          const section = document.getElementById(targetId);
+          if (section) {
+            const yOffset = -100;
+            const y = section.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+          }
+        }, 500);
+      } else {
+        router.push(path);
+      }
+    }
+  };
 
   const socialLinks = [
     {
@@ -125,10 +157,27 @@ export default function Footer() {
                 <span className="w-1.5 h-1.5 rounded-full bg-[#a855f7]"></span> Platform
               </h4>
               <ul className="space-y-3 text-[#8F95A3] text-xs font-medium">
-                <li><Link href="/offers" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-[#a855f7]">›</span> Offerwalls</Link></li>
-                <li><Link href="/surveys" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-[#a855f7]">›</span> Premium Surveys</Link></li>
-                <li><Link href="/leaderboard" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-[#a855f7]">›</span> Live Leaderboard</Link></li>
-                <li><Link href="/cashout" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-[#a855f7]">›</span> Cashout Options</Link></li>
+                {/* Custom Auth Navigations applied here */}
+                <li>
+                  <a href="/dashboard" onClick={(e) => handleAuthNavigation(e, '/dashboard', 'offerwalls')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+                    <span className="text-[#a855f7]">›</span> Offerwalls
+                  </a>
+                </li>
+                <li>
+                  <a href="/dashboard" onClick={(e) => handleAuthNavigation(e, '/dashboard', 'surveys')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+                    <span className="text-[#a855f7]">›</span> Premium Surveys
+                  </a>
+                </li>
+                <li>
+                  <a href="/leaderboard" onClick={(e) => handleAuthNavigation(e, '/leaderboard')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+                    <span className="text-[#a855f7]">›</span> Live Leaderboard
+                  </a>
+                </li>
+                <li>
+                  <a href="/cashout" onClick={(e) => handleAuthNavigation(e, '/cashout')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+                    <span className="text-[#a855f7]">›</span> Cashout Options
+                  </a>
+                </li>
               </ul>
             </div>
 
@@ -137,9 +186,17 @@ export default function Footer() {
                 <span className="w-1.5 h-1.5 rounded-full bg-[#00E57A]"></span> Support
               </h4>
               <ul className="space-y-3 text-[#8F95A3] text-xs font-medium">
-                <li><Link href="/faq" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-[#00E57A]">›</span> Help Center / FAQ</Link></li>
-                <li><Link href="/contact" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-[#00E57A]">›</span> Contact Us</Link></li>
-                <li><a href="https://discord.gg/binnycash" target="_blank" rel="noreferrer" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-[#00E57A]">›</span> Community Discord</a></li>
+                {/* Help/Support Navigation modified here */}
+                <li>
+                  <a href="/support" onClick={(e) => handleAuthNavigation(e, '/support')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+                    <span className="text-[#00E57A]">›</span> Help Center / FAQ
+                  </a>
+                </li>
+                <li>
+                  <a href="https://discord.gg/binnycash" target="_blank" rel="noreferrer" className="hover:text-white transition-colors flex items-center gap-2">
+                    <span className="text-[#00E57A]">›</span> Community Discord
+                  </a>
+                </li>
               </ul>
             </div>
 
@@ -165,7 +222,6 @@ export default function Footer() {
           </div>
           <div className="flex items-center gap-6">
             <span className="text-xs">Made with 💜 in India</span>
-            
           </div>
         </div>
 

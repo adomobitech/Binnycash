@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, PlayCircle, Star, CheckCircle2, Monitor, Smartphone, ShieldCheck, Sparkles } from "lucide-react";
 import { DeviceIcon } from '@/components/offers/OfferCard';
+import { useCurrency, formatPrice } from '@/hooks/useCurrency'; 
 
 const AndroidIcon = () => (
   <svg viewBox="0 0 24 24" className="w-6 h-6 fill-[#A4C639]">
@@ -23,18 +24,13 @@ const WindowsIcon = () => (
   </svg>
 );
 
-// 🔥 FIX: Backend ko "sid" ke liye NUMERIC userDetails.id chahiye (jaise sid=12), na ki
-// JWT payload wali Mongo "userId" (jo ek ObjectId string hoti hai, e.g. "6a5901...").
-// Login response ka shape hota hai: { data: { userDetails: { id: 12, ... } } }
-// Isliye pehle stored userDetails/user object me se numeric "id" dhundte hain, aur
-// JWT decode ko bilkul use nahi karte sid ke liye — warna galat sid chali jaayegi.
 function getUserId(): string {
+  // 🔥 HOOK REMOVED FROM HERE
   if (typeof window === 'undefined') return '';
 
   const isNumeric = (v: any) => v !== null && v !== undefined && /^\d+$/.test(String(v));
 
   try {
-    // 1. Poora login response object kahin stored ho sakta hai
     const wrapperKeys = ['loginResponse', 'authResponse', 'loginData'];
     for (const key of wrapperKeys) {
       const raw = localStorage.getItem(key);
@@ -46,30 +42,23 @@ function getUserId(): string {
       } catch {}
     }
 
-    // 2. userDetails / user object directly stored
     const objectKeys = ['userDetails', 'user', 'userData', 'profile', 'authUser'];
     for (const key of objectKeys) {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
       try {
         const parsed = JSON.parse(raw);
-        // numeric "id" ko priority do (yehi sid hai), _id/userId Mongo ObjectId ho sakti hai
         const candidates = [parsed?.id, parsed?.userDetails?.id, parsed?._id, parsed?.userId, parsed?.user_id];
         const numericMatch = candidates.find(isNumeric);
         if (numericMatch !== undefined) return String(numericMatch);
       } catch {}
     }
 
-    // 3. Direct plain keys, sirf tab jab numeric ho
     const directKeys = ['userId', 'user_id', 'uid', 'sid'];
     for (const key of directKeys) {
       const val = localStorage.getItem(key);
       if (isNumeric(val)) return String(val);
     }
-
-    // 🔥 NOTE: JWT token ka "userId" claim Mongo ObjectId hai, sid ke liye use NAHI karte —
-    // isse fallback me galat sid backend ko chali jaati thi. Agar upar kahin id nahi mili,
-    // toh explicitly '' return karo taaki UI "log in again" error dikhaye, silently galat id na bheje.
   } catch (err) {
     console.error('Could not resolve user id:', err);
   }
@@ -77,6 +66,9 @@ function getUserId(): string {
 }
 
 export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
+  // 🔥 HOOK SAFELY PLACED INSIDE COMPONENT
+  const currency = useCurrency();
+  
   const [details, setDetails] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -90,8 +82,6 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     if (typeof window !== 'undefined') {
       const ua = navigator.userAgent;
       const isIOSUA = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      // 🔥 FIX: Android UA me bhi "Linux" word hota hai, isliye Android/iOS check
-      // Linux se pehle karna zaroori hai, warna Android phone "Linux" dikhta tha
       if (/Android/i.test(ua)) setCurrentOS('Android');
       else if (isIOSUA) setCurrentOS('iOS');
       else if (ua.includes('Win')) setCurrentOS('Windows');
@@ -147,7 +137,6 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     setIsProcessingClick(true);
     setApiError(null);
     
-    // 🔥 1. DEVICE DETECTION (Synchronous to avoid popup blocks) 🔥
     const ua = navigator.userAgent;
     const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isAndroid = /Android/i.test(ua);
@@ -180,7 +169,6 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       setIsProcessingClick(false);
       return; 
     }
-    // 🔥 FIX: Android offer ko iOS se ya iOS offer ko Android se open karna bhi block karo
     else if (isAndroid && isOfferIos && !isOfferAndroid && !isUniversal) {
       setApiError('This offer is exclusively for iOS devices. Please open it on an iPhone/iPad.');
       setIsProcessingClick(false);
@@ -192,7 +180,6 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       return;
     }
 
-    // 🔥 FIX: backend "o" param me offer ki numeric "id" chahiye (jaise o=3590), _id nahi
     const targetId = offer.id ?? offer._id ?? offer.offer_id;
     const userId = getUserId();
 
@@ -202,11 +189,6 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       return;
     }
 
-    // 🔥 FIX (asli fix): Jab QR dikhana hai, backend ko current (galat) device se call hi
-    // nahi karte — warna wahi "device not supported" wala error aata hai. Seedha apna hi
-    // tracking API link bana ke QR me daal do (sid=user, o=offer). Jo bhi device isko scan
-    // karke kholega, request USI device se jaayegi aur backend wahan se sahi redirect karega.
-    // Isme kabhi bhi third-party offer link seedha expose/QR nahi hota.
     if (showQR) {
       const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
       setTargetDeviceName(generateQRFor);
@@ -215,14 +197,11 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       return;
     }
 
-    // 🔥 2. OPEN BLANK TAB IMMEDIATELY (BYPASS POPUP BLOCKER) — sirf non-QR (same-device) case me 🔥
     const newTab: Window | null = window.open('about:blank', '_blank');
 
     try {
       const token = localStorage.getItem('token') || '';
 
-      // 🔥 Ye endpoint GET hai, query params "sid" (user id) aur "o" (offer id) leta hai —
-      // yahan call karna sahi hai kyunki user isi (matching) device par hai.
       const res = await fetch(
         `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`,
         {
@@ -257,12 +236,10 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
         return;
       }
 
-      // Direct redirect (non-QR): user pehle se hi matching device par hai, yahan fallback theek hai.
       if (!finalRedirectUrl || finalRedirectUrl === '#') {
         finalRedirectUrl = offer?.click_url || offer?.link || offer?.url;
       }
 
-      // 🔥 3. ACTION (non-QR direct redirect) 🔥
       if (newTab) {
         newTab.location.href = finalRedirectUrl;
       } else {
@@ -292,6 +269,10 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
 
   const title = currentData?.offerName || currentData?.title || 'Offer Details';
   const rewardAmount = currentData?.userCredits ?? currentData?.reward ?? currentData?.payout ?? 0;
+  
+  // 🔥 DYNAMIC REWARD FORMATTING APPLIED HERE
+  const formattedReward = formatPrice(rewardAmount, currency);
+
   const networkName = currentData?.network || currentData?.provider || 'BinnyCash';
   const category = currentData?.categories || currentData?.category || 'All';
   const requirements = currentData?.offer_requirements || currentData?.requirements || "CPA offer";
@@ -384,7 +365,8 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                   </div>
 
                   <div className="text-center">
-                    <h1 className="text-3xl font-black text-white drop-shadow-md">$ {parseFloat(String(rewardAmount)).toFixed(2)}</h1>
+                    {/* 🔥 MODAL AMOUNT UPDATED */}
+                    <h1 className="text-3xl font-black text-white drop-shadow-md">{formattedReward}</h1>
                   </div>
 
                   <div className="grid grid-cols-4 divide-x divide-white/5 py-3 border-y border-white/5">
@@ -411,7 +393,6 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                     </div>
                   </div>
 
-                  {/* 🔥 ERROR ALERT BOX 🔥 */}
                   {apiError && (
                     <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-3 rounded-xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)]">
                       {apiError}
@@ -424,7 +405,8 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                   >
                     {isProcessingClick ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <>
                       <PlayCircle className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
-                      <span className="text-white font-black text-base">Play & Earn ${parseFloat(String(rewardAmount)).toFixed(2)}</span>
+                      {/* 🔥 BUTTON AMOUNT UPDATED */}
+                      <span className="text-white font-black text-base">Play & Earn {formattedReward}</span>
                     </>}
                   </button>
 
@@ -452,7 +434,8 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                                     <span className="text-white text-xs font-medium">{ev.event_name}</span>
                                   </div>
-                                  <span className="text-emerald-400 font-black text-xs">+${parseFloat(String(ev.event_payout || 0)).toFixed(2)}</span>
+                                  {/* 🔥 EVENT PAYOUT FORMATTED HERE */}
+                                  <span className="text-emerald-400 font-black text-xs">+{formatPrice(ev.event_payout || 0, currency)}</span>
                                 </div>
                               ))}
                             </div>

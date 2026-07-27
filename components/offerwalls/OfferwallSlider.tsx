@@ -5,7 +5,6 @@ import Link from 'next/link';
 import OfferwallCard from '@/components/offerwalls/OfferwallCard';
 import OfferwallModal from '@/components/offerwalls/OfferwallModal';
 import { Boxes } from "lucide-react";
-
 export default function OfferwallSlider({ offerwalls = [], isLoading = false }: any) {
   const sliderRef = useRef<HTMLDivElement>(null);
   const [showArrows, setShowArrows] = useState(false);

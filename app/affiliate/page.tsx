@@ -6,6 +6,7 @@ import {
   Copy, Users, ShieldAlert, Clock, Wallet, DollarSign,
   MessageCircle, AtSign, Send, CheckCircle2, Circle, AlertCircle, Search, ChevronDown
 } from 'lucide-react';
+import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
 // --- UTILITY: Get User ID securely ---
 function getUserId(): string {
@@ -43,6 +44,7 @@ function getUserId(): string {
 }
 
 export default function AffiliatePage() {
+  const currency = useCurrency();
   const [activeTab, setActiveTab] = useState<'tier' | 'affiliate' | 'history'>('tier');
   
   // API States
@@ -55,7 +57,7 @@ export default function AffiliatePage() {
   });
   
   const [referralLink, setReferralLink] = useState('Loading...');
-  const [walletBalance, setWalletBalance] = useState<string>('0.00'); // Added Wallet Balance State
+  const [walletBalance, setWalletBalance] = useState<string>('0.00'); 
   
   const [tierData, setTierData] = useState<any>({
     currentTier: 1,
@@ -77,7 +79,6 @@ export default function AffiliatePage() {
       }
 
       try {
-        // 1. Fetch Dashboard Stats
         const dashRes = await fetch(`https://apitest.binnycash.com/api/user/affiliate_dashboard?userId=${userId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -86,7 +87,6 @@ export default function AffiliatePage() {
           setDashboardData(dashJson.data);
         }
 
-        // 2. Fetch User Profile (for referral URL)
         const profileRes = await fetch(`https://apitest.binnycash.com/api/user/viewData?userId=${userId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -95,7 +95,6 @@ export default function AffiliatePage() {
           setReferralLink(profileJson.data.user.referralUrl);
         }
 
-        // 3. Fetch Tier Data
         const tierRes = await fetch(`https://apitest.binnycash.com/api/user/affiliateTierLevel?userId=${userId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -104,7 +103,6 @@ export default function AffiliatePage() {
           setTierData(tierJson.data);
         }
 
-        // 4. Fetch Actual Wallet Total Earnings
         const walletRes = await fetch('https://apitest.binnycash.com/api/user/wallet/total-earning', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -138,7 +136,6 @@ export default function AffiliatePage() {
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(166,108,255,0.35); border-radius: 10px; }
       `}</style>
 
-      {/* Ambient backdrop */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-40 -left-24 w-[520px] h-[520px] bg-[#A66CFF]/10 blur-[120px] rounded-full" />
         <div className="absolute top-1/3 -right-32 w-[420px] h-[420px] bg-[#FFC94A]/[0.05] blur-[130px] rounded-full" />
@@ -146,7 +143,6 @@ export default function AffiliatePage() {
 
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         
-        {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-white tracking-tight">Affiliate</h1>
@@ -157,10 +153,8 @@ export default function AffiliatePage() {
           </div>
         </div>
 
-        {/* TOP STATS GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           
-          {/* BALANCE CARD (Now linked to wallet/total-earning) */}
           <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-4 mb-4">
@@ -170,11 +164,11 @@ export default function AffiliatePage() {
                 <div>
                   <h3 className="text-[10px] font-bold text-[#8D89A8] tracking-widest uppercase">Available Balance</h3>
                   <div className="text-3xl font-black text-white mt-1 f-mono">
-                    ${parseFloat(walletBalance || '0').toFixed(2)}
+                    {formatPrice(Number(walletBalance) || 0, currency)}
                   </div>
                 </div>
               </div>
-              <p className="text-[11px] text-[#8D89A8] mb-6 font-medium">Ready to withdraw • Min $5</p>
+              <p className="text-[11px] text-[#8D89A8] mb-6 font-medium">Ready to withdraw • Min {formatPrice(5, currency)}</p>
             </div>
             
             <div className="space-y-4">
@@ -187,7 +181,6 @@ export default function AffiliatePage() {
             </div>
           </div>
 
-          {/* PERFORMANCE CARDS */}
           <div className="lg:col-span-2 bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl">
             <h3 className="text-xs font-bold text-[#8D89A8] mb-4">Affiliate performance</h3>
             
@@ -197,7 +190,7 @@ export default function AffiliatePage() {
                   <DollarSign className="w-5 h-5 text-[#A66CFF]" />
                 </div>
                 <div>
-                  <div className="text-lg font-black text-white f-mono">${parseFloat(dashboardData?.totalNetCommission || 0).toFixed(2)}</div>
+                  <div className="text-lg font-black text-white f-mono">{formatPrice(Number(dashboardData?.totalNetCommission) || 0, currency)}</div>
                   <div className="text-xs text-[#8D89A8]">Net Commission</div>
                 </div>
               </div>
@@ -217,7 +210,7 @@ export default function AffiliatePage() {
                   <ShieldAlert className="w-5 h-5 text-amber-500" />
                 </div>
                 <div>
-                  <div className="text-lg font-black text-white f-mono">${parseFloat(dashboardData?.totalProcessingAmount || 0).toFixed(2)}</div>
+                  <div className="text-lg font-black text-white f-mono">{formatPrice(Number(dashboardData?.totalProcessingAmount) || 0, currency)}</div>
                   <div className="text-xs text-[#8D89A8]">Processing Commissions</div>
                 </div>
               </div>
@@ -227,7 +220,7 @@ export default function AffiliatePage() {
                   <Clock className="w-5 h-5 text-red-500" />
                 </div>
                 <div>
-                  <div className="text-lg font-black text-white f-mono">${parseFloat(dashboardData?.totalReferReverse || 0).toFixed(2)}</div>
+                  <div className="text-lg font-black text-white f-mono">{formatPrice(Number(dashboardData?.totalReferReverse) || 0, currency)}</div>
                   <div className="text-xs text-[#8D89A8]">Reversal Commissions</div>
                 </div>
               </div>
@@ -235,7 +228,6 @@ export default function AffiliatePage() {
           </div>
         </div>
 
-        {/* REFERRAL LINK SECTION */}
         <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl mb-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <div>
@@ -244,30 +236,6 @@ export default function AffiliatePage() {
                 <h2 className="text-xl font-bold text-white">Refer & Earn</h2>
                 <span className="px-2 py-0.5 rounded-full bg-[#A66CFF]/20 text-[#A66CFF] text-[10px] font-bold border border-[#A66CFF]/30">New</span>
               </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <button className="w-9 h-9 rounded-full bg-[#1A1725] hover:bg-[#231F33] flex items-center justify-center border border-white/5 transition-colors group">
-                <MessageCircle className="w-4 h-4 text-[#3DE8A0] group-hover:scale-110 transition-transform" />
-              </button>
-              <button className="w-9 h-9 rounded-full bg-[#1A1725] hover:bg-[#231F33] flex items-center justify-center border border-white/5 transition-colors group">
-                {/* Facebook Inline SVG */}
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-[#3b5998] group-hover:scale-110 transition-transform">
-                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-                </svg>
-              </button>
-              <button className="w-9 h-9 rounded-full bg-[#1A1725] hover:bg-[#231F33] flex items-center justify-center border border-white/5 transition-colors group">
-                <AtSign className="w-4 h-4 text-[#FFC94A] group-hover:scale-110 transition-transform" />
-              </button>
-              <button className="w-9 h-9 rounded-full bg-[#1A1725] hover:bg-[#231F33] flex items-center justify-center border border-white/5 transition-colors group">
-                {/* Twitter/X Inline SVG */}
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-[#1DA1F2] group-hover:scale-110 transition-transform">
-                  <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
-                </svg>
-              </button>
-              <button className="w-9 h-9 rounded-full bg-[#1A1725] hover:bg-[#231F33] flex items-center justify-center border border-white/5 transition-colors group">
-                <Send className="w-4 h-4 text-[#0088cc] group-hover:scale-110 transition-transform" />
-              </button>
             </div>
           </div>
 
@@ -290,13 +258,9 @@ export default function AffiliatePage() {
                 {copied ? <CheckCircle2 className="w-5 h-5 text-white" /> : <Copy className="w-5 h-5 text-white" />}
               </button>
             </div>
-            <p className="text-[11px] text-[#8D89A8] mt-2 ml-1">
-              Share your link across social media, communities, or with close friends and start earning on every confirmed payout they make.
-            </p>
           </div>
         </div>
 
-        {/* TABS NAVIGATION */}
         <div className="flex items-center gap-6 border-b border-white/[0.06] mb-6">
           {[
             { id: 'tier', label: 'Tier' },
@@ -316,10 +280,7 @@ export default function AffiliatePage() {
           ))}
         </div>
 
-        {/* TABS CONTENT */}
         <div className="min-h-[300px]">
-          
-          {/* TIER TAB */}
           {activeTab === 'tier' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {(tierData?.tiers || []).map((tier: any, idx: number) => {
@@ -358,7 +319,7 @@ export default function AffiliatePage() {
                           <Circle className="w-4 h-4 text-white/20 shrink-0" />
                         )}
                         <span className="text-xs text-white">
-                          US${parseFloat(tier.referralAmount || 0).toFixed(2)} affiliate earnings
+                          {formatPrice(Number(tier.referralAmount) || 0, currency)} affiliate earnings
                         </span>
                       </div>
                     </div>
@@ -368,31 +329,8 @@ export default function AffiliatePage() {
             </div>
           )}
 
-          {/* AFFILIATE TAB */}
           {activeTab === 'affiliate' && (
             <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] overflow-hidden shadow-xl">
-              <div className="p-4 md:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/[0.06]">
-                <div className="flex items-center gap-2 text-xs text-[#8D89A8]">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <p>Users who signed up using your referral code are listed here. Earn a commission every time they complete an offer!</p>
-                </div>
-                
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <div className="relative w-full sm:w-48">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8D89A8]" />
-                    <input 
-                      type="text" 
-                      placeholder="Search..."
-                      className="w-full bg-[#1A1725] border border-white/10 rounded-lg pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-[#A66CFF]"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 bg-[#1A1725] border border-white/10 px-3 py-2 rounded-lg cursor-pointer">
-                    <span className="text-xs text-white">All</span>
-                    <ChevronDown className="w-3 h-3 text-[#A66CFF]" />
-                  </div>
-                </div>
-              </div>
-
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse min-w-[800px]">
                   <thead>
@@ -416,7 +354,6 @@ export default function AffiliatePage() {
             </div>
           )}
 
-          {/* CLAIM HISTORY TAB */}
           {activeTab === 'history' && (
             <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] overflow-hidden shadow-xl">
               <div className="overflow-x-auto custom-scrollbar">

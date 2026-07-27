@@ -3,13 +3,16 @@
 import React, { useState } from 'react';
 import OfferDetailsModal from '@/components/offers/OfferDetailsModal';
 import SurveyModal from '@/components/surveys/SurveyModal';
+import { useCurrency, formatPrice } from '@/hooks/useCurrency'; 
+
 interface OfferCardProps {
   offer: any;
   onClick?: () => void;
-  isSurveyCard?: boolean; // 🔥 YAHAN NAYA PROP ADD KIYA HAI 🔥
+  isSurveyCard?: boolean; 
 }
 
 export function getPlatformString(offer: any): string {
+  // 🔥 HOOK REMOVED FROM HERE (React rules)
   return [
     offer?.browsers,
     offer?.platform,
@@ -85,13 +88,18 @@ export const DeviceIcon = ({ offer }: { offer: any }) => {
 
 export default function OfferCard({ offer, onClick, isSurveyCard = false }: OfferCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // 🔥 CORRECT PLACEMENT: Hook hamesha component body me hota hai
+  const currency = useCurrency();
 
   if (!offer) return null;
 
   const title = offer.offerName || offer.title || offer.name || offer.offer_name || 'Offer Item';
   const sub = offer.categories || offer.sub || offer.category || 'All';
   const rewardVal = offer.userCredits ?? offer.reward ?? offer.payout ?? 0;
-  const reward = `$ ${Number(rewardVal).toFixed(2)}`;
+  
+  // 🔥 DYNAMIC REWARD FORMATTING
+  const formattedReward = formatPrice(rewardVal, currency);
   
   let rawImage = offer.image_url || offer.preview || offer.image || offer.img || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop';
   
@@ -104,7 +112,6 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
     setIsModalOpen(true);
   };
 
-  // 🔥 YAHAN STRICT CHECK HOGA: Agar isSurveyCard true h, tabhi SurveyModal khulega 🔥
   const isStrictlySurvey = isSurveyCard || offer?.offer_type === 'survey';
 
   return (
@@ -122,7 +129,8 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
             <p className="text-[10px] text-[#8F95A3] truncate mt-0.5">{sub}</p>
           </div>
           <div className="flex justify-between items-center pt-1 border-t border-white/5">
-            <span className="text-[13px] font-black text-[#8B5CF6]">{reward}</span>
+            {/* 🔥 PRICING RENDERED HERE */}
+            <span className="text-[13px] font-black text-[#8B5CF6]">{formattedReward}</span>
             <div className="p-1 rounded-md bg-white/5 flex items-center justify-center min-w-[24px] min-h-[24px]">
               <DeviceIcon offer={offer} />
             </div>
@@ -130,7 +138,6 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
         </div>
       </div>
 
-      {/* 🔥 AB YE KABHI MIX NAHI HOGA 🔥 */}
       {isStrictlySurvey ? (
         <SurveyModal survey={offer} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       ) : (
@@ -138,4 +145,4 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
       )}
     </>
   );
-}
+} 

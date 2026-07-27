@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from './AuthContext';
 import { 
   Bell, Rocket, Trophy, Wallet, ChevronDown, User, 
-  LogOut, MessageSquare, ShieldCheck, HelpCircle, Gift, BarChart3, Users, X, CheckCheck
+  LogOut, MessageSquare, ShieldCheck, HelpCircle, Gift, BarChart3, Users, X, CheckCheck, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
@@ -89,6 +89,12 @@ export default function Navbar() {
   
   const [userName, setUserName] = useState('Profile');
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  
+  const [trueUserId, setTrueUserId] = useState<string>('');
+
+  // Currency Switch States
+  const [currency, setCurrency] = useState('Usd');
+  const [isCurrencySwitching, setIsCurrencySwitching] = useState(false);
 
   // Inbox & Notification States
   const [isInboxOpen, setIsInboxOpen] = useState(false);
@@ -111,6 +117,12 @@ export default function Navbar() {
         const found = LANGUAGES.find(l => l.code === langCode);
         if (found) setSelectedLang(found);
       }
+    }
+    
+    // Set initial currency from localStorage on mount so UI doesn't lag
+    if (typeof window !== 'undefined') {
+      const savedCurrency = localStorage.getItem('currency');
+      if (savedCurrency) setCurrency(savedCurrency);
     }
   }, []);
 
@@ -169,6 +181,8 @@ export default function Navbar() {
       .then(data => {
          const user = data?.data?.user || data?.data;
          if (user) {
+            if (user.id) setTrueUserId(String(user.id));
+
             let display = user.userName || user.firstName;
             if (!display && user.email) {
               display = user.email.split('@')[0];
@@ -180,11 +194,65 @@ export default function Navbar() {
             if (rawPic) {
               setUserAvatar(resolveImage(rawPic));
             }
+            // 🔥 Setup Currency Globally on Load
+            if (user.currency) {
+              const apiCurrency = user.currency.toLowerCase() === 'coin' ? 'Coin' : 'Usd';
+              setCurrency(apiCurrency);
+              localStorage.setItem('currency', apiCurrency);
+              window.dispatchEvent(new CustomEvent('currencyChanged', { detail: apiCurrency }));
+            }
          }
       })
       .catch(err => console.error("Profile fetch error:", err));
     }
   }, [isLoggedIn]);
+
+  // 🔥 GLOBAL CURRENCY TOGGLE API LOGIC
+  const toggleCurrency = async () => {
+    if (isCurrencySwitching) return;
+    
+    const newCurrency = currency === 'Usd' ? 'Coin' : 'Usd';
+    setIsCurrencySwitching(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const currentUserId = trueUserId || getUserId() || localStorage.getItem('userId'); 
+      
+      if (!currentUserId) {
+        console.error("User ID is missing! Cannot update currency.");
+        setIsCurrencySwitching(false);
+        return;
+      }
+
+      const bodyParams = new URLSearchParams();
+      bodyParams.append('currency', newCurrency);
+      bodyParams.append('userId', currentUserId); 
+
+      const res = await fetch(`https://apitest.binnycash.com/api/user/updateCurrencyValue?userId=${currentUserId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/x-www-form-urlencoded' 
+        },
+        body: bodyParams
+      });
+
+      const json = await res.json();
+
+      if (res.ok || json.code === 200) {
+        // 🔥 UPDATE GLOBALLY ON SUCCESS
+        setCurrency(newCurrency);
+        localStorage.setItem('currency', newCurrency);
+        window.dispatchEvent(new CustomEvent('currencyChanged', { detail: newCurrency }));
+      } else {
+        console.error("Failed to update currency:", json.message);
+      }
+    } catch (error) {
+      console.error("Error updating currency:", error);
+    } finally {
+      setIsCurrencySwitching(false);
+    }
+  };
 
   const fetchInboxMessages = async () => {
     setIsInboxLoading(true);
@@ -208,11 +276,10 @@ export default function Navbar() {
     }
   };
 
-  // 🔥 FIXED: Changed to PUT and appended userId 🔥
   const handleMarkAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      const userId = getUserId();
+      const userId = trueUserId || getUserId();
       
       const res = await fetch(`https://apitest.binnycash.com/api/user/markAllRead?userId=${userId}`, {
         method: 'PUT',
@@ -220,7 +287,7 @@ export default function Navbar() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify({ userId }) // Sending in body as fallback
+        body: JSON.stringify({ userId })
       });
       if (res.ok) {
         setUnreadCount(0);
@@ -539,17 +606,49 @@ export default function Navbar() {
 
                   <AnimatePresence>
                     {isProfileOpen && (
-                      <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} transition={{ duration: 0.2 }} className="absolute right-0 mt-4 w-56 bg-[#1A1C24]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] py-2 z-50">
-                        <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
-                          <User className="w-4 h-4 text-[#8B5CF6]" /> Profile
+                      <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} transition={{ duration: 0.2 }} className="absolute right-0 mt-4 w-52 bg-[#1A1C24]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] py-3 z-50">
+                        <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-5 py-2.5 text-[15px] font-bold text-[#8F95A3] hover:text-white transition-colors">
+                          <User className="w-5 h-5" /> Profile
                         </Link>
-                        <Link href="/support" onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
-                          <HelpCircle className="w-4 h-4 text-orange-400" /> Help Center
+                        
+                        {/* 🔥 LINK CHANGED TO /account 🔥 */}
+                        <Link href="/account" onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-5 py-2.5 text-[15px] font-bold text-[#8F95A3] hover:text-white transition-colors">
+                          <ShieldCheck className="w-5 h-5" /> Account Status
                         </Link>
-                        <div className="my-2 border-t border-white/5"></div>
-                        <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer">
-                          <LogOut className="w-4 h-4" /> Logout
+                        
+                        <Link href="/support" onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-5 py-2.5 text-[15px] font-bold text-[#8F95A3] hover:text-white transition-colors">
+                          <HelpCircle className="w-5 h-5" /> Help
+                        </Link>
+
+                        <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="w-full flex items-center gap-3 px-5 py-2.5 text-[15px] font-bold text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
+                          <LogOut className="w-5 h-5" /> Logout
                         </button>
+
+                        <div className="my-2 mx-5 border-t-2 border-[#a855f7]"></div>
+
+                        <div className="w-full flex items-center justify-center gap-4 px-5 py-2">
+                          <span className="text-base font-black text-white tracking-wide">
+                            {currency.toUpperCase()}
+                          </span>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); toggleCurrency(); }}
+                            disabled={isCurrencySwitching}
+                            className="relative w-12 h-6 rounded-full border-2 border-[#a855f7] flex items-center p-0.5 cursor-pointer bg-transparent"
+                          >
+                            <motion.div 
+                              layout
+                              initial={false}
+                              animate={{
+                                x: currency === 'Coin' || currency === 'COIN' ? 24 : 0,
+                              }}
+                              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                              className="w-4 h-4 rounded-full bg-[#a855f7] flex items-center justify-center"
+                            >
+                              {isCurrencySwitching && <Loader2 className="w-3 h-3 text-white animate-spin" />}
+                            </motion.div>
+                          </button>
+                        </div>
+                        
                       </motion.div>
                     )}
                   </AnimatePresence>

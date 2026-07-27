@@ -2,6 +2,7 @@
 
 import React from 'react';
 
+
 interface OfferFiltersProps {
   selectedDevices: string[];
   onSelectDevice: (device: string) => void;

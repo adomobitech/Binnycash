@@ -4,7 +4,6 @@ import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import OfferCard from '@/components/offers/OfferCard';
 import { ListChecks } from "lucide-react";
-
 export default function SurveywallSlider({ surveywalls = [], isLoading = false }: any) {
   const sliderRef = useRef<HTMLDivElement>(null);
   const [showArrows, setShowArrows] = useState(false);

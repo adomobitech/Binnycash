@@ -3,16 +3,20 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useCurrency, formatPrice } from '@/hooks/useCurrency'; 
 
 export default function SurveyModal({ isOpen, onClose, survey }: any) {
+  const currency = useCurrency(); 
   const [isProcessing, setIsProcessing] = useState(false);
 
   if (!isOpen || !survey) return null;
 
-  // 🔥 TITLE FIX 🔥
+  // 🔥 TITLE & DYNAMIC REWARD FIX 🔥
   const title = survey?.offerName || survey?.title || survey?.name || survey?.offer_name || 'Featured Survey';
   const rewardVal = survey?.userCredits ?? survey?.reward ?? survey?.payout ?? 0;
-  const reward = `$${Number(rewardVal).toFixed(2)}`;
+  
+  // Yahan par ab formatPrice function use hoga taaki Coins/USD dono chale
+  const reward = formatPrice(rewardVal, currency);
 
   const handleStartSurvey = async () => {
     setIsProcessing(true);
@@ -82,9 +86,9 @@ export default function SurveyModal({ isOpen, onClose, survey }: any) {
             <div className="bg-[#1A1C24] border border-white/5 rounded-xl p-4 flex items-center justify-between">
               <div className="flex flex-col gap-0.5">
                 <span className="text-[#8F95A3] text-[12px] font-medium">Survey</span>
-                {/* 🔥 REAL TITLE WILL SHOW HERE 🔥 */}
                 <span className="text-white font-black text-base truncate max-w-[200px]">{title}</span>
               </div>
+              {/* 🔥 REWARD WILL BE DISPLAYED DYNAMICALLY 🔥 */}
               <div className="bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] font-black text-sm px-3 py-1.5 rounded-lg">
                 {reward}
               </div>

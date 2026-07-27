@@ -5,7 +5,6 @@ import Link from 'next/link';
 import OfferCard from '@/components/offers/OfferCard';
 import OfferFilters from '@/components/offers/OfferFilters'; 
 import { Sparkles } from "lucide-react";
-
 export function filterOffersByDevice(offers: any[], selectedDevices: string[]) {
   // Agar koi filter selected nahi hai, tabhi sab dikhao (View All / Default state)
   if (!selectedDevices || selectedDevices.length === 0) return offers;

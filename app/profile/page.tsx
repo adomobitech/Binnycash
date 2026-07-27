@@ -11,6 +11,9 @@ import {
   KeyRound, Coins, Sparkles, ScanLine, Check, Calendar, Building, ChevronDown, CreditCard
 } from 'lucide-react';
 
+// 🔥 HOOKS IMPORTED HERE 🔥
+import { useCurrency, formatPrice } from '@/hooks/useCurrency';
+
 // --- UTILITY: Get User ID securely ---
 function getUserId(): string {
   if (typeof window === 'undefined') return '';
@@ -46,7 +49,6 @@ function getUserId(): string {
   return '';
 }
 
-// 🔥 FIXED: Changed to /png to avoid backend SVG validation rejection 🔥
 const AVATAR_LIBRARY = [
   'https://api.dicebear.com/9.x/adventurer/png?seed=Nova&backgroundColor=a66cff,7c3aed,4c1d95',
   'https://api.dicebear.com/9.x/big-smile/png?seed=Blaze&backgroundColor=a66cff,7c3aed,4c1d95',
@@ -62,7 +64,8 @@ const AVATAR_LIBRARY = [
   'https://api.dicebear.com/9.x/big-smile/png?seed=Raven&backgroundColor=a66cff,7c3aed,4c1d95'
 ];
 
-function CountUp({ value, prefix = '', decimals = 0 }: { value: number; prefix?: string; decimals?: number }) {
+// 🔥 UPDATED: Added suffix to CountUp for Coins 🔥
+function CountUp({ value, prefix = '', suffix = '', decimals = 0 }: { value: number; prefix?: string; suffix?: string; decimals?: number }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
     let frame: number;
@@ -78,7 +81,7 @@ function CountUp({ value, prefix = '', decimals = 0 }: { value: number; prefix?:
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [value]);
-  return <>{prefix}{display.toFixed(decimals)}</>;
+  return <>{prefix}{display.toFixed(decimals)}{suffix}</>;
 }
 
 const HEX_CLIP = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
@@ -316,6 +319,7 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
             <div className={`border-2 border-dashed ${frontImage ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-[#8B5CF6]/30 bg-[#15192C]/50'} rounded-2xl p-5 flex flex-col items-center justify-center text-center transition-all`}>
               <div className="flex gap-4 mb-3">
                 {isMobileDevice && (
@@ -391,6 +395,7 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
                 </span>
               )}
             </div>
+
           </div>
 
           <div className="flex justify-center -mt-2">
@@ -416,8 +421,9 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
             <button 
               type="submit" 
               disabled={submitting}
-              className="py-3.5 rounded-2xl bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#EC4899] hover:opacity-95 text-white font-bold text-sm transition-all shadow-[0_4px_25px_rgba(139,92,246,0.4)] cursor-pointer flex items-center justify-center gap-2"
+              className="group py-3.5 rounded-2xl bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#EC4899] hover:opacity-95 text-white font-bold text-sm transition-all shadow-[0_4px_25px_rgba(139,92,246,0.4)] hover:shadow-[0_4px_30px_rgba(139,92,246,0.6)] cursor-pointer flex items-center justify-center gap-2 relative overflow-hidden"
             >
+              <div className="shine-hover" />
               {submitting ? (
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}>
                   <ShieldCheck className="w-4 h-4" />
@@ -436,6 +442,10 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
 
 export default function ProfilePage() {
   const router = useRouter();
+  
+  // 🔥 CURRENCY HOOK INITIALIZED 🔥
+  const currency = useCurrency();
+  const isCoin = currency === 'Coin' || currency === 'COIN';
 
   const [userData, setUserData] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
@@ -773,7 +783,8 @@ export default function ProfilePage() {
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-end">
                   <span className="text-xs font-bold text-white">Tier charge</span>
-                  <span className="f-mono text-[10px] text-[#8D89A8]">$0.10 / $1</span>
+                  {/* 🔥 Format Price Integration 🔥 */}
+                  <span className="f-mono text-[10px] text-[#8D89A8]">{formatPrice(0.1, currency)} / {formatPrice(1, currency)}</span>
                 </div>
                 <div className="w-full h-1.5 bg-[#1A1725] rounded-full overflow-hidden">
                   <motion.div
@@ -783,7 +794,8 @@ export default function ProfilePage() {
                     className="h-full rounded-full bg-gradient-to-r from-[#A66CFF] to-[#FFC94A]"
                   />
                 </div>
-                <span className="text-[9px] text-[#8D89A8] text-center mt-1">$0.90 to reach Silver</span>
+                {/* 🔥 Format Price Integration 🔥 */}
+                <span className="text-[9px] text-[#8D89A8] text-center mt-1">{formatPrice(0.9, currency)} to reach Silver</span>
               </div>
 
               <div 
@@ -812,10 +824,11 @@ export default function ProfilePage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
               {[
-                { icon: Wallet, color: '#A66CFF', value: parseFloat(stats?.totalEarning || 0), prefix: '$', decimals: 2, label: 'Total earnings' },
-                { icon: CheckCircle2, color: '#3DE8A0', value: Number(stats?.totalCompletedOffers || 0), prefix: '', decimals: 0, label: 'Completed offers' },
-                { icon: User, color: '#5EA8FF', value: Number(userData?.referrals || 0), prefix: '', decimals: 0, label: 'Users referred' },
-                { icon: Clock, color: '#FFC94A', value: parseFloat(stats?.last30DaysEarning || 0), prefix: '$', decimals: 2, label: 'Earnings last 30 days' },
+                // 🔥 Format Price values carefully wrapped for CountUp 🔥
+                { icon: Wallet, color: '#A66CFF', value: isCoin ? parseFloat(stats?.totalEarning || 0) * 1000 : parseFloat(stats?.totalEarning || 0), prefix: isCoin ? '' : '$', suffix: isCoin ? ' COINS' : '', decimals: isCoin ? 0 : 2, label: 'Total earnings' },
+                { icon: CheckCircle2, color: '#3DE8A0', value: Number(stats?.totalCompletedOffers || 0), prefix: '', suffix: '', decimals: 0, label: 'Completed offers' },
+                { icon: User, color: '#5EA8FF', value: Number(userData?.referrals || 0), prefix: '', suffix: '', decimals: 0, label: 'Users referred' },
+                { icon: Clock, color: '#FFC94A', value: isCoin ? parseFloat(stats?.last30DaysEarning || 0) * 1000 : parseFloat(stats?.last30DaysEarning || 0), prefix: isCoin ? '' : '$', suffix: isCoin ? ' COINS' : '', decimals: isCoin ? 0 : 2, label: 'Earnings last 30 days' },
               ].map((s, i) => (
                 <motion.div
                   key={s.label}
@@ -829,7 +842,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex flex-col">
                     <h4 className="f-display text-2xl font-bold text-white">
-                      <CountUp value={s.value} prefix={s.prefix} decimals={s.decimals} />
+                      <CountUp value={s.value} prefix={s.prefix} suffix={s.suffix} decimals={s.decimals} />
                     </h4>
                     <span className="text-xs text-[#8D89A8] font-medium">{s.label}</span>
                   </div>
@@ -959,7 +972,8 @@ export default function ProfilePage() {
                                   <span className="text-sm font-bold text-white truncate max-w-[200px]">{item.offer_name || item.name || 'Reversal Item'}</span>
                                 </div>
                               </td>
-                              <td className="px-6 py-4 text-sm f-mono font-bold text-[#FF5D73]">-${parseFloat(item.userCredits || item.amount || 0).toFixed(2)}</td>
+                              {/* 🔥 Format Price Added 🔥 */}
+                              <td className="px-6 py-4 text-sm f-mono font-bold text-[#FF5D73]">-{formatPrice(Number(item.userCredits || item.amount || 0), currency)}</td>
                               <td className="px-6 py-4">
                                 <span className="px-2 py-1 rounded bg-[#FF5D73]/10 border border-[#FF5D73]/20 text-[#FF5D73] text-[10px] font-bold uppercase flex items-center gap-1 w-fit">
                                   <AlertCircle className="w-3 h-3" /> {item.status || 'REVERSED'}
@@ -981,7 +995,8 @@ export default function ProfilePage() {
                               className="border-b border-white/[0.05] hover:bg-white/[0.03] transition-colors"
                             >
                               <td className="px-6 py-4 text-sm font-bold text-white">{item.name || 'Reward'}</td>
-                              <td className="px-6 py-4 text-sm f-mono font-bold text-[#3DE8A0]">+${parseFloat(item.amount || item.Balance || 0).toFixed(2)}</td>
+                              {/* 🔥 Format Price Added 🔥 */}
+                              <td className="px-6 py-4 text-sm f-mono font-bold text-[#3DE8A0]">+{formatPrice(Number(item.amount || item.Balance || 0), currency)}</td>
                               <td className="px-6 py-4">
                                 <span className="px-2 py-1 rounded bg-[#5EA8FF]/10 border border-[#5EA8FF]/20 text-[#5EA8FF] text-[10px] font-bold uppercase">{item.type || 'CREDIT'}</span>
                               </td>
@@ -1011,7 +1026,8 @@ export default function ProfilePage() {
                                 <span className="text-sm font-bold text-white truncate max-w-[200px]">{item.offer_name || item.surveyName || 'Item'}</span>
                               </div>
                             </td>
-                            <td className="px-6 py-4 text-sm f-mono font-bold text-[#3DE8A0]">+${parseFloat(item.userCredits || item.amount || 0).toFixed(2)}</td>
+                            {/* 🔥 Format Price Added 🔥 */}
+                            <td className="px-6 py-4 text-sm f-mono font-bold text-[#3DE8A0]">+{formatPrice(Number(item.userCredits || item.amount || 0), currency)}</td>
                             <td className="px-6 py-4">
                               <span className="px-2 py-1 rounded bg-[#3DE8A0]/10 border border-[#3DE8A0]/20 text-[#3DE8A0] text-[10px] font-bold uppercase flex items-center gap-1 w-fit">
                                 <CheckCircle2 className="w-3 h-3" /> {item.status || 'COMPLETE'}
@@ -1040,7 +1056,7 @@ export default function ProfilePage() {
         }}
       />
 
-      {/* --- SETTINGS MODAL --- */}
+      {/* --- SETTINGS MODAL (100% ORIGINAL LOGIC KE SATH) --- */}
       <AnimatePresence>
         {isSettingsOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050409]/90 backdrop-blur-sm p-4">

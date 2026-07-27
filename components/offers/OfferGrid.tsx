@@ -4,7 +4,6 @@ import React from 'react';
 import OfferCard from './OfferCard';
 import OfferFilters from './OfferFilters';
 import { filterOffersByDevice } from './OfferSlider';
-
 interface OfferGridProps {
   offers: any[];
   isLoading: boolean;
@@ -14,7 +13,6 @@ interface OfferGridProps {
 
 export default function OfferGrid({ offers, isLoading, selectedDevices, onSelectDevice }: OfferGridProps) {
   const filtered = filterOffersByDevice(offers, selectedDevices);
-
   return (
     <div className="w-full flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#14171F] p-4 rounded-2xl border border-white/5">

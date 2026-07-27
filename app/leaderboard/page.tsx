@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Bell, Loader2, Crown } from 'lucide-react';
+import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
 // --- UTILITY: Get User ID securely ---
 function getUserId(): string {
@@ -39,15 +40,13 @@ function getUserId(): string {
   return '';
 }
 
-// --- HELPER: Resolve Image Path ---
 const resolveImage = (imgSrc: string | null | undefined) => {
   if (!imgSrc || imgSrc.trim() === '') return null;
   if (imgSrc.startsWith('http')) return imgSrc;
   return imgSrc.startsWith('/') ? `https://apitest.binnycash.com${imgSrc}` : `https://apitest.binnycash.com/${imgSrc}`;
 };
 
-// --- ANIMATION HELPER: count-up number (purely visual, wraps already-computed values) ---
-function AnimatedNumber({ value, prefix = '', decimals = 0, className = '' }: { value: number; prefix?: string; decimals?: number; className?: string }) {
+function AnimatedNumber({ value, prefix = '', suffix = '', decimals = 0, className = '' }: { value: number; prefix?: string; suffix?: string; decimals?: number; className?: string }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
     const target = Number(value) || 0;
@@ -63,12 +62,10 @@ function AnimatedNumber({ value, prefix = '', decimals = 0, className = '' }: { 
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
-  return <span className={className}>{prefix}{display.toFixed(decimals)}</span>;
+  return <span className={className}>{prefix}{display.toFixed(decimals)}{suffix}</span>;
 }
 
-// --- AMBIENT: floating glow particles (decorative only) ---
 const Particles = () => (
   <>
     {Array.from({ length: 10 }).map((_, i) => (
@@ -90,7 +87,6 @@ const Particles = () => (
   </>
 );
 
-// --- CUSTOM MEDAL SVG COMPONENT ---
 const Medal = ({ place }: { place: 1 | 2 | 3 }) => {
   const colors = {
     1: { main: '#FFC94A', dark: '#B48A2D', glow: 'rgba(255,201,74,0.5)', text: '1st' },
@@ -118,12 +114,18 @@ const Medal = ({ place }: { place: 1 | 2 | 3 }) => {
 };
 
 export default function LeaderboardPage() {
+  const currency = useCurrency();
+  const isCoin = currency === 'Coin' || currency === 'COIN';
+  const multiplier = isCoin ? 1000 : 1;
+  const prefix = isCoin ? '' : '$';
+  const suffix = isCoin ? ' COINS' : '';
+  const decimals = isCoin ? 0 : 2;
+
   const [contestType, setContestType] = useState<'DAILY' | 'MONTHLY'>('DAILY');
   const [contestData, setContestData] = useState<any>(null);
   const [myProfilePic, setMyProfilePic] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch actual profile data just in case Leaderboard API misses the image
   useEffect(() => {
     const fetchMyProfile = async () => {
       const token = localStorage.getItem('token');
@@ -170,24 +172,19 @@ export default function LeaderboardPage() {
     fetchLeaderboard();
   }, [contestType]);
 
-  // Extract Data
   const usersList = contestData?.winners || contestData?.topUsers || [];
   const currentUser = contestData?.currentUserRank;
 
-  // Extract Podium
   const top1 = usersList.find((u: any) => u.rank === 1);
   const top2 = usersList.find((u: any) => u.rank === 2);
   const top3 = usersList.find((u: any) => u.rank === 3);
 
-  // Remaining List (Rank 4+)
   const remainingUsers = usersList.filter((u: any) => u.rank > 3);
 
-  // Status Logic
   const userEarnings = contestData?.userEligibility?.contestEarnings || currentUser?.totalReward || 0;
   const userRank = currentUser?.rank;
   const isEnded = contestData?.contest?.status === 'ENDED';
 
-  // Smart Image Resolver
   const getUserImage = (u: any) => {
     if (!u) return null;
     const currentId = getUserId();
@@ -197,18 +194,16 @@ export default function LeaderboardPage() {
     return resolveImage(u.image);
   };
 
-  // Get dynamic prize pool for missing ranks
   const getPrizeForRank = (rank: number) => {
     if (!contestData?.contest?.prizes) return 0;
     const prizeObj = contestData.contest.prizes.find((p: any) => rank >= p.startRank && rank <= p.endRank);
     return prizeObj ? prizeObj.Cash : 0;
   };
 
-  // 🔥 Smooth Scroll Function 🔥
   const scrollToLeaderboard = () => {
     const listElement = document.getElementById('leaderboard-list');
     if (listElement) {
-      const yOffset = -80; // Navbar offset adjust karne ke liye
+      const yOffset = -80; 
       const y = listElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
@@ -233,7 +228,6 @@ export default function LeaderboardPage() {
         .glow-pulse-violet { animation: glowPulseViolet 2.4s ease-in-out infinite; }
       `}</style>
 
-      {/* Ambient backgrounds */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <motion.div
           className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[#A66CFF]/5 blur-[120px] rounded-full"
@@ -245,10 +239,8 @@ export default function LeaderboardPage() {
 
       <main className="max-w-[1000px] mx-auto px-4 sm:px-6 py-8 relative z-10">
 
-        {/* TABS */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center mb-6">
           <div className="relative bg-[#120F1A] border border-white/10 p-1 rounded-full grid grid-cols-2 w-[220px]">
-            {/* Pill stays mounted always — slides instead of unmount/remount, so it can never flicker away */}
             <motion.div
               className="absolute inset-y-1 left-1 rounded-full bg-[#A66CFF] shadow-[0_0_15px_rgba(166,108,255,0.4)]"
               style={{ width: 'calc(50% - 4px)' }}
@@ -292,7 +284,6 @@ export default function LeaderboardPage() {
           ) : (
             <motion.div key="content" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
 
-              {/* CONTEST HEADER CARD */}
               {contestData?.contest && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -334,7 +325,6 @@ export default function LeaderboardPage() {
                 </motion.div>
               )}
 
-              {/* PODIUM SECTION */}
               <div className="flex justify-center items-end gap-2 sm:gap-6 mb-12 px-2">
 
                 {/* 2ND PLACE */}
@@ -370,11 +360,11 @@ export default function LeaderboardPage() {
                     <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center mb-2">
                       <Trophy className="w-3 h-3 text-[#E2E8F0]" />
                     </div>
-                    <span className="text-[9px] font-bold text-[#8D89A8] uppercase tracking-wider mb-0.5">
-                      Earn $<AnimatedNumber value={parseFloat(top2?.totalReward || top2?.earnings || 0)} decimals={2} />
+                    <span className="text-[9px] font-bold text-[#8D89A8] uppercase tracking-wider mb-0.5 whitespace-nowrap">
+                      Earn <AnimatedNumber value={parseFloat(top2?.totalReward || top2?.earnings || 0) * multiplier} decimals={decimals} prefix={prefix} suffix={suffix} />
                     </span>
-                    <span className="text-xl font-black text-white">
-                      $<AnimatedNumber value={Number(top2?.prize || getPrizeForRank(2))} />
+                    <span className="text-xl font-black text-white whitespace-nowrap">
+                      <AnimatedNumber value={Number(top2?.prize || getPrizeForRank(2)) * multiplier} prefix={prefix} decimals={decimals} suffix={suffix}/>
                     </span>
                     <span className="text-[10px] text-[#8D89A8]">Prize</span>
                   </motion.div>
@@ -418,11 +408,11 @@ export default function LeaderboardPage() {
                     <div className="w-8 h-8 rounded-md bg-[#FFC94A]/10 flex items-center justify-center mb-2 border border-[#FFC94A]/20">
                       <Trophy className="w-4 h-4 text-[#FFC94A]" />
                     </div>
-                    <span className="text-[10px] font-bold text-[#8D89A8] uppercase tracking-wider mb-0.5">
-                      Earn $<AnimatedNumber value={parseFloat(top1?.totalReward || top1?.earnings || 0)} decimals={2} />
+                    <span className="text-[10px] font-bold text-[#8D89A8] uppercase tracking-wider mb-0.5 whitespace-nowrap">
+                      Earn <AnimatedNumber value={parseFloat(top1?.totalReward || top1?.earnings || 0) * multiplier} decimals={decimals} prefix={prefix} suffix={suffix} />
                     </span>
-                    <span className="text-3xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
-                      $<AnimatedNumber value={Number(top1?.prize || getPrizeForRank(1))} />
+                    <span className="text-3xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] whitespace-nowrap">
+                      <AnimatedNumber value={Number(top1?.prize || getPrizeForRank(1)) * multiplier} prefix={prefix} decimals={decimals} suffix={suffix} />
                     </span>
                     <span className="text-xs text-[#8D89A8] mt-1">Prize</span>
                   </motion.div>
@@ -461,11 +451,11 @@ export default function LeaderboardPage() {
                     <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center mb-2">
                       <Trophy className="w-3 h-3 text-[#CD7F32]" />
                     </div>
-                    <span className="text-[9px] font-bold text-[#8D89A8] uppercase tracking-wider mb-0.5">
-                      Earn $<AnimatedNumber value={parseFloat(top3?.totalReward || top3?.earnings || 0)} decimals={2} />
+                    <span className="text-[9px] font-bold text-[#8D89A8] uppercase tracking-wider mb-0.5 whitespace-nowrap">
+                      Earn <AnimatedNumber value={parseFloat(top3?.totalReward || top3?.earnings || 0) * multiplier} decimals={decimals} prefix={prefix} suffix={suffix} />
                     </span>
-                    <span className="text-xl font-black text-white">
-                      $<AnimatedNumber value={Number(top3?.prize || getPrizeForRank(3))} />
+                    <span className="text-xl font-black text-white whitespace-nowrap">
+                      <AnimatedNumber value={Number(top3?.prize || getPrizeForRank(3)) * multiplier} prefix={prefix} decimals={decimals} suffix={suffix} />
                     </span>
                     <span className="text-[10px] text-[#8D89A8]">Prize</span>
                   </motion.div>
@@ -473,9 +463,7 @@ export default function LeaderboardPage() {
 
               </div>
 
-              {/* 🔥 Target ID for Scrolling Added Here 🔥 */}
               <div id="leaderboard-list">
-                {/* USER STATUS BANNER */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -486,11 +474,10 @@ export default function LeaderboardPage() {
                     <Bell className="w-4 h-4 text-[#A66CFF] shrink-0" />
                   </motion.div>
                   <span className="text-sm font-bold text-white/90">
-                    You earned today $<AnimatedNumber value={parseFloat(userEarnings)} decimals={2} className="inline" />, {userRank ? `your rank is #${userRank} 🚀` : "you are not ranked yet 🚀"}
+                    You earned today <AnimatedNumber value={parseFloat(userEarnings) * multiplier} prefix={prefix} suffix={suffix} decimals={decimals} className="inline" />, {userRank ? `your rank is #${userRank} 🚀` : "you are not ranked yet 🚀"}
                   </span>
                 </motion.div>
 
-                {/* LIST HEADER */}
                 <div className="flex items-center justify-between px-6 py-3 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider border-b border-white/[0.06] mb-2">
                   <div className="flex items-center gap-6 w-1/2">
                     <span className="w-8 text-center">Rank</span>
@@ -502,7 +489,6 @@ export default function LeaderboardPage() {
                   </div>
                 </div>
 
-                {/* LIST ROWS (Ranks 4+) */}
                 <div className="flex flex-col gap-2">
                   {remainingUsers.length === 0 ? (
                     <div className="text-center py-10 text-[#8D89A8] bg-[#120F1A] rounded-2xl border border-white/5">
@@ -511,8 +497,6 @@ export default function LeaderboardPage() {
                   ) : (
                     remainingUsers.map((u: any, idx: number) => {
                       const avatar = getUserImage(u);
-                      const earnings = parseFloat(u.totalReward || u.earnings || 0).toFixed(2);
-
                       return (
                         <motion.div
                           key={u._id || idx}
@@ -537,8 +521,12 @@ export default function LeaderboardPage() {
                           </div>
 
                           <div className="flex items-center justify-end gap-8 w-1/2">
-                            <span className="w-20 text-right text-sm font-bold text-[#E879F9]">${earnings}</span>
-                            <span className="w-16 text-right text-sm font-black text-white">${u.prize || 0}</span>
+                            <span className="w-20 text-right text-sm font-bold text-[#E879F9]">
+                              {formatPrice(parseFloat(u.totalReward || u.earnings || 0), currency)}
+                            </span>
+                            <span className="w-16 text-right text-sm font-black text-white">
+                              {formatPrice(parseFloat(u.prize || 0), currency)}
+                            </span>
                           </div>
                         </motion.div>
                       );

@@ -4,12 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
-// Newly designed components
 import LiveTicker from '@/components/dashboard/LiveTicker';
 import DashboardHero from '@/components/dashboard/DashboardHero';
 import CategoryTabs from '@/components/dashboard/CategoryTabs';
-
-// Existing Sliders
 import OfferSlider from '@/components/offers/OfferSlider';
 import SurveySlider from '@/components/surveys/SurveySlider';
 import OfferwallSlider from '@/components/offerwalls/OfferwallSlider';
@@ -17,6 +14,9 @@ import SurveywallSlider from '@/components/surveywalls/SurveywallSlider';
 
 export default function DashboardPage() {
   const router = useRouter();
+  
+  // 🔥 FIX: Prevent Hydration errors on Next.js by waiting to mount
+  const [isMounted, setIsMounted] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   const [liveFeeds, setLiveFeeds] = useState<any[]>([]);
@@ -36,23 +36,24 @@ export default function DashboardPage() {
   const [isLoadingSurveywalls, setIsLoadingSurveywalls] = useState(true);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      if (!token) { setIsAuthenticated(false); router.push('/'); } 
-      else { setIsAuthenticated(true); }
-    };
-    checkAuth();
+    setIsMounted(true);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsAuthenticated(false);
+      router.push('/');
+    } else {
+      setIsAuthenticated(true);
+    }
   }, [router]);
 
   const handleSelectDevice = (device: string) => {
     setSelectedDevices(prev => prev.includes(device) ? prev.filter(d => d !== device) : [...prev, device]);
   };
 
-  // 🔥 FIXED: Robust JSON parsing for Inbox/LiveFeeds API
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchLiveFeeds = async () => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+      const token = localStorage.getItem('token') || '';
       try {
         const res = await fetch(`https://apitest.binnycash.com/api/user/inbox/inbox`, {
           method: 'GET',
@@ -85,7 +86,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchAllOffers = async () => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+      const token = localStorage.getItem('token') || '';
       try {
         const res = await fetch(`https://apitest.binnycash.com/api/user/offerlist?page=1`, {
           method: 'GET',
@@ -101,7 +102,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchAllSurveys = async () => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+      const token = localStorage.getItem('token') || '';
       try {
         const res = await fetch(`https://apitest.binnycash.com/api/user/surveyList`, {
           method: 'GET',
@@ -117,7 +118,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchOfferwalls = async () => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+      const token = localStorage.getItem('token') || '';
       try {
         const res = await fetch(`https://apitest.binnycash.com/api/user/user_offerwall_list`, {
           method: 'GET',
@@ -141,7 +142,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchSurveywalls = async () => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+      const token = localStorage.getItem('token') || '';
       try {
         const res = await fetch(`https://apitest.binnycash.com/api/user/user_surveywall_list`, {
           method: 'GET',
@@ -162,7 +163,10 @@ export default function DashboardPage() {
     fetchSurveywalls();
   }, [isAuthenticated]);
 
-  if (!isAuthenticated) return null;
+  // Handle Hydration cleanly
+  if (!isMounted || !isAuthenticated) {
+    return <div className="min-h-screen bg-[#0B0D19]" />;
+  }
 
   return (
     <div className="flex flex-col bg-[#0B0D19] min-h-screen text-white relative">
@@ -173,8 +177,6 @@ export default function DashboardPage() {
       )}
 
       <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-        
-        {/* 🔥 NEW FULL-WIDTH HERO (Stats removed) 🔥 */}
         <div className="w-full mb-10">
           <DashboardHero />
         </div>
@@ -187,7 +189,6 @@ export default function DashboardPage() {
           transition={{ duration: 0.6 }}
           className="flex flex-col gap-12"
         >
-          {/* 🔥 id added here for scroll targeting 🔥 */}
           <div id="featured-offers">
             <OfferSlider offers={offers} isLoading={isLoadingOffers} selectedDevices={selectedDevices} onSelectDevice={handleSelectDevice} />
           </div>

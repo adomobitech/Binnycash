@@ -9,6 +9,8 @@ import {
   Landmark, CircleDollarSign, User, Calendar, 
   MapPin, Home, Building, Hash, UploadCloud, FileText, X, ChevronDown, CheckCircle2, AlertCircle, Camera
 } from 'lucide-react';
+// 🔥 Hook Imported Safely 🔥
+import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
 // --- CUSTOM SVG ICONS ---
 const UPIIcon = () => (
@@ -472,6 +474,9 @@ function VerificationAlertModal({ isOpen, onClose, onVerifyNow }: { isOpen: bool
 }
 
 export default function CashoutPage() {
+  // 🔥 Added Currency Hook Here 🔥
+  const currency = useCurrency();
+
   const [activeTab, setActiveTab] = useState('cash');
   const [totalEarning, setTotalEarning] = useState('0.00');
   const [pendingAmount, setPendingAmount] = useState('0.00');
@@ -802,9 +807,11 @@ export default function CashoutPage() {
               </motion.div>
               <div className="flex flex-col">
                 <h3 className="text-white font-bold text-sm">Available Balance</h3>
-                <p className="text-[#8F95A3] text-xs mt-0.5">Minimum withdrawal $5</p>
+                {/* 🔥 Format Price Added Here 🔥 */}
+                <p className="text-[#8F95A3] text-xs mt-0.5">Minimum withdrawal {formatPrice(5, currency)}</p>
                 <span className="text-3xl font-black mt-3 tracking-tight bg-gradient-to-r from-[#8B5CF6] via-[#C4B5FD] to-[#8B5CF6] bg-clip-text text-transparent text-shimmer-anim">
-                  {loading ? '...' : `$${totalEarning}`}
+                  {/* 🔥 Format Price Added Here 🔥 */}
+                  {loading ? '...' : formatPrice(Number(totalEarning), currency)}
                 </span>
               </div>
             </div>
@@ -827,7 +834,8 @@ export default function CashoutPage() {
                 <h3 className="text-white font-bold text-sm">Pending Process</h3>
                 <p className="text-[#8F95A3] text-xs mt-0.5">Awaiting Completion</p>
                 <span className="text-3xl font-black text-amber-500 mt-3 tracking-tight">
-                  {loading ? '...' : `$${pendingAmount}`}
+                  {/* 🔥 Format Price Added Here 🔥 */}
+                  {loading ? '...' : formatPrice(Number(pendingAmount), currency)}
                 </span>
               </div>
             </div>
@@ -1002,7 +1010,8 @@ export default function CashoutPage() {
                       </p>
                     </div>
                     <div className="shrink-0 text-right relative z-10">
-                      <span className="text-lg font-black text-white tracking-tight">${w.amount}</span>
+                      {/* 🔥 Format Price Added Here 🔥 */}
+                      <span className="text-lg font-black text-white tracking-tight">{formatPrice(Number(w.amount), currency)}</span>
                       <p className="text-[#8F95A3] text-[10px] mt-0.5">{w.earningStatus}</p>
                     </div>
                   </motion.div>

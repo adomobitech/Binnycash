@@ -3,7 +3,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Star } from 'lucide-react';
-
 export default function OfferwallCard({ offerwall, onClick }: { offerwall: any, onClick?: (ow: any) => void }) {
   const name = offerwall.title || offerwall.offerwall_name || offerwall.name || 'Offerwall';
   

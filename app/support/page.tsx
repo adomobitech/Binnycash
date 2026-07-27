@@ -81,12 +81,23 @@ export default function SupportPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [submitDone, setSubmitDone] = useState(false);
 
+  // --- NEW: Custom Dropdown States & Mapping ---
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const CATEGORY_OPTIONS = [
+    { value: 'WITHDRAWAL', label: 'Withdrawal / Payout Issue' },
+    { value: 'OFFER_NOT_CREDITED', label: 'Offer Not Credited' },
+    { value: 'ACCOUNT', label: 'Account Management' },
+    { value: 'KYC', label: 'KYC Verification' },
+    { value: 'REFERRAL', label: 'Referral & Affiliates' },
+    { value: 'BUG', label: 'Report a Bug' },
+    { value: 'OTHER', label: 'Other Issue' },
+  ];
+
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const [tickets, setTickets] = useState<any[]>([]);
   const [isTicketsLoading, setIsTicketsLoading] = useState(false);
   
-  // State to hold verified ID from backend
   const [trueUserId, setTrueUserId] = useState<string>('');
 
   const [selectedTicketId, setSelectedTicketId] = useState<any>(null);
@@ -153,9 +164,14 @@ export default function SupportPage() {
     }
   }, [activeTab, trueUserId]);
 
-  // 🔥 FIXED: Safe Parsing to handle 504 HTML Responses 🔥
   const handleTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validate if category is selected since it's a custom dropdown now
+    if (!category) {
+      setSuccessMsg('Error: Please select a category');
+      return;
+    }
+    
     setIsSubmitting(true);
     setSuccessMsg('');
 
@@ -165,7 +181,7 @@ export default function SupportPage() {
     try {
       const data = new FormData();
       data.append('ticketSubject', ticketSubject);
-      data.append('category', category);
+      data.append('category', category); // Ye wahi enum jayega jo backend ko chahiye
       data.append('contactEmail', contactEmail);
       data.append('message', message);
       data.append('userId', userId); 
@@ -180,7 +196,6 @@ export default function SupportPage() {
         body: data
       });
 
-      // Safe JSON parsing to prevent crash if server returns 504 HTML
       let json: any = {};
       const text = await res.text();
       try {
@@ -433,21 +448,57 @@ export default function SupportPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-[#8D89A8] mb-2">Category <span className="text-[#FF5D73]">*</span></label>
-                    <select
-                      required
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="w-full bg-[#1A1725] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A66CFF]"
+                  {/* CUSTOM DROPDOWN IMPLEMENTATION */}
+                  <div className="relative">
+                    <label className="block text-xs font-bold text-[#8D89A8] mb-2">
+                      Category <span className="text-[#FF5D73]">*</span>
+                    </label>
+                    
+                    <div 
+                      onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                      className={`w-full bg-[#1A1725] border rounded-xl px-4 py-3 text-sm cursor-pointer flex justify-between items-center transition-all ${
+                        isCategoryOpen ? 'border-[#A66CFF] shadow-[0_0_15px_rgba(166,108,255,0.15)]' : 'border-white/10 hover:border-white/30'
+                      }`}
                     >
-                      <option value="">Select category</option>
-                      <option value="Offer / Reward Issue">Offer / Reward Issue</option>
-                      <option value="Payout / Withdrawal">Payout / Withdrawal</option>
-                      <option value="Account & KYC">Account & KYC</option>
-                      <option value="Affiliate / Referral">Affiliate / Referral</option>
-                      <option value="Other">Other</option>
-                    </select>
+                      <span className={category ? "text-white font-medium" : "text-[#8D89A8]"}>
+                        {category ? CATEGORY_OPTIONS.find(c => c.value === category)?.label : "Select category"}
+                      </span>
+                      <motion.div animate={{ rotate: isCategoryOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                        <ChevronDown className="w-4 h-4 text-[#8D89A8]" />
+                      </motion.div>
+                    </div>
+
+                    <AnimatePresence>
+                      {isCategoryOpen && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -10, scaleY: 0.95 }} 
+                          animate={{ opacity: 1, y: 0, scaleY: 1 }} 
+                          exit={{ opacity: 0, y: -10, scaleY: 0.95 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className="absolute z-50 w-full mt-2 bg-[#1A1725] border border-white/10 rounded-xl shadow-2xl overflow-hidden origin-top"
+                        >
+                          <div className="max-h-60 overflow-y-auto custom-scrollbar p-1.5">
+                            {CATEGORY_OPTIONS.map((cat) => (
+                              <div 
+                                key={cat.value}
+                                onClick={() => {
+                                  setCategory(cat.value);
+                                  setIsCategoryOpen(false);
+                                }}
+                                className={`px-3 py-2.5 text-sm rounded-lg cursor-pointer transition-all flex items-center gap-2 ${
+                                  category === cat.value 
+                                    ? 'bg-[#A66CFF]/20 text-white font-bold' 
+                                    : 'text-[#8D89A8] hover:bg-white/5 hover:text-white'
+                                }`}
+                              >
+                                {category === cat.value && <div className="w-1.5 h-1.5 rounded-full bg-[#A66CFF]" />}
+                                <span className={category === cat.value ? 'ml-0' : 'ml-3'}>{cat.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
 
@@ -790,48 +841,46 @@ export default function SupportPage() {
                   <div className="space-y-3">
                     <h4 className="text-sm font-bold text-[#8D89A8]">Conversation Thread</h4>
                     
-                    {/* Initial User Message */}
-                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="bg-[#1A1725] p-4 rounded-2xl border border-[#A66CFF]/30 text-xs leading-relaxed space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-[#A66CFF]">You (User)</span>
-                        <span className="text-[10px] text-[#8D89A8]">{ticketDetail?.createdAt ? new Date(ticketDetail.createdAt).toLocaleString() : ''}</span>
-                      </div>
-                      <p className="text-white/90 font-medium">
-                        {ticketDetail?.message || ticketDetail?.description || ticketDetail?.ticketSubject || 'No message description available.'}
-                      </p>
-                    </motion.div>
-
-                    {/* All Replies */}
-                    {(() => {
-                      const allReplies = ticketDetail?.replies || ticketDetail?.reply || ticketDetail?.chats || [];
-                      if (allReplies.length > 0) {
-                        return allReplies.map((rep: any, idx: number) => {
-                          const isUser = rep.sender === 'user' || rep.senderType === 'user' || rep.isAdmin === false;
-                          const replyText = rep.message || rep.replyMessage || rep.text || '';
-                          const replyTime = rep.createdAt || rep.date;
-                          return (
-                            <motion.div 
-                              key={idx} 
-                              initial={{ opacity: 0, x: isUser ? -10 : 10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: idx * 0.06 }}
-                              className={`p-4 rounded-2xl border text-xs leading-relaxed space-y-1 ${isUser ? 'bg-[#1A1725] border-white/10 ml-6' : 'bg-[#161322] border-amber-500/30 mr-6'}`}
-                            >
-                              <div className="flex justify-between items-center">
-                                <span className={`font-bold ${isUser ? 'text-[#3DE8A0]' : 'text-amber-400'}`}>
-                                  {isUser ? 'You (Reply)' : 'Admin / Support'}
-                                </span>
-                                <span className="text-[10px] text-[#8D89A8]">{replyTime ? new Date(replyTime).toLocaleString() : ''}</span>
-                              </div>
-                              <p className="text-white/90">{replyText}</p>
-                            </motion.div>
-                          );
-                        });
-                      }
-                      return (
-                        <p className="text-xs text-[#8D89A8] italic text-center py-2">No replies yet. Support will respond soon.</p>
-                      );
-                    })()}
+                    {/* CHAT UI MAPPED THROUGH JSON STRUCTURE */}
+                    <div className="space-y-4 max-h-[40vh] overflow-y-auto custom-scrollbar p-2">
+                      {(() => {
+                        const allMessages = ticketDetail?.messages || [];
+                        if (allMessages.length > 0) {
+                          return allMessages.map((msg: any, idx: number) => {
+                            const isUser = msg.senderType === 'USER';
+                            return (
+                              <motion.div 
+                                key={msg._id || idx} 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.05 }}
+                                className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                              >
+                                <div className={`max-w-[85%] sm:max-w-[75%] p-3.5 rounded-2xl text-xs leading-relaxed space-y-1.5 shadow-sm ${
+                                  isUser 
+                                    ? 'bg-[#A66CFF]/15 border border-[#A66CFF]/30 rounded-br-sm' 
+                                    : 'bg-[#1A1725] border border-white/10 rounded-bl-sm'
+                                }`}>
+                                  <div className="flex justify-between items-center gap-4">
+                                    <span className={`font-bold ${isUser ? 'text-[#A66CFF]' : 'text-[#3DE8A0]'}`}>
+                                      {msg.user_name || (isUser ? 'You' : 'Admin')}
+                                    </span>
+                                    <span className="text-[9px] text-[#8D89A8]">
+                                      {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                                    </span>
+                                  </div>
+                                  <p className="text-white/90 text-sm">{msg.message}</p>
+                                  {msg.image && (
+                                    <img src={msg.image} alt="Attachment" className="mt-2 rounded-lg max-w-full h-auto border border-white/10" />
+                                  )}
+                                </div>
+                              </motion.div>
+                            );
+                          });
+                        }
+                        return <p className="text-xs text-[#8D89A8] italic text-center py-4">No messages yet.</p>;
+                      })()}
+                    </div>
                   </div>
 
                   {/* Reply Form */}
@@ -875,7 +924,6 @@ export default function SupportPage() {
           </div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }
