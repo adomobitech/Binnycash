@@ -85,13 +85,15 @@ export default function SupportPage() {
 
   const [tickets, setTickets] = useState<any[]>([]);
   const [isTicketsLoading, setIsTicketsLoading] = useState(false);
+  
+  // State to hold verified ID from backend
+  const [trueUserId, setTrueUserId] = useState<string>('');
 
   const [selectedTicketId, setSelectedTicketId] = useState<any>(null);
   const [ticketDetail, setTicketDetail] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
 
-  // Custom Delete Modal State
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [ticketToDelete, setTicketToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -100,9 +102,32 @@ export default function SupportPage() {
   const [replyImage, setReplyImage] = useState<File | null>(null);
   const [isReplying, setIsReplying] = useState(false);
 
+  // FETCH TRUE USER ID FROM TOKEN
+  useEffect(() => {
+    const fetchAccurateId = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const res = await fetch('https://apitest.binnycash.com/api/user/viewData', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const text = await res.text();
+        const json = text ? JSON.parse(text) : {};
+        const validId = json?.data?.user?.id || json?.data?.id || json?.data?.user?.userId;
+        if (validId) {
+          setTrueUserId(String(validId));
+          localStorage.setItem('userId', String(validId));
+        }
+      } catch (e) {
+        console.error("Failed to sync true user ID");
+      }
+    };
+    fetchAccurateId();
+  }, []);
+
   const fetchTickets = async () => {
     const token = localStorage.getItem('token') || '';
-    const userId = getUserId();
+    const userId = trueUserId || getUserId();
     if (!userId) return;
 
     setIsTicketsLoading(true);
@@ -110,7 +135,8 @@ export default function SupportPage() {
       const res = await fetch(`https://apitest.binnycash.com/api/user/ticketList?userId=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const json = await res.json();
+      const text = await res.text();
+      const json = text ? JSON.parse(text) : {};
       if (json.code === 200 && json.data) {
         setTickets(Array.isArray(json.data) ? json.data : []);
       }
@@ -125,16 +151,16 @@ export default function SupportPage() {
     if (activeTab === 'myTickets') {
       fetchTickets();
     }
-  }, [activeTab]);
+  }, [activeTab, trueUserId]);
 
-  // 🔥 FIXED TICKET SUBMISSION LOGIC 🔥
+  // 🔥 FIXED: Safe Parsing to handle 504 HTML Responses 🔥
   const handleTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSuccessMsg('');
 
     const token = localStorage.getItem('token') || '';
-    const userId = getUserId(); // Extract User ID
+    const userId = trueUserId || getUserId();
     
     try {
       const data = new FormData();
@@ -142,20 +168,30 @@ export default function SupportPage() {
       data.append('category', category);
       data.append('contactEmail', contactEmail);
       data.append('message', message);
-      data.append('userId', userId); // Append User ID to body
+      data.append('userId', userId); 
 
       if (imageFile) {
         data.append('image', imageFile);
       }
 
-      // Appended userId to URL query as well to ensure backend routes catch it
       const res = await fetch(`https://apitest.binnycash.com/api/user/createTicket?userId=${userId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: data
       });
 
-      const json = await res.json();
+      // Safe JSON parsing to prevent crash if server returns 504 HTML
+      let json: any = {};
+      const text = await res.text();
+      try {
+        json = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        console.error("Non-JSON response received:", text);
+        if (res.status === 504) {
+          throw new Error("504 Gateway Timeout: Server is currently overloaded.");
+        }
+        throw new Error(`Server returned ${res.status} ${res.statusText}`);
+      }
       
       if (res.ok || json.code === 200 || json.responseCode === 0) {
         setSuccessMsg('Support ticket submitted successfully!');
@@ -168,10 +204,9 @@ export default function SupportPage() {
         setTimeout(() => {
           setActiveTab('myTickets');
           setSubmitDone(false);
-          fetchTickets(); // Refresh the list
+          fetchTickets(); 
         }, 1200);
       } else {
-        // Smart Error Extraction for validation arrays/objects
         let errMsg = json.message || json.error || 'Failed to submit ticket.';
         if (Array.isArray(errMsg)) errMsg = errMsg.join(', ');
         else if (typeof errMsg === 'object') errMsg = JSON.stringify(errMsg);
@@ -195,7 +230,8 @@ export default function SupportPage() {
       const res = await fetch(`https://apitest.binnycash.com/api/user/userViewTicket?ticketId=${ticketId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const json = await res.json();
+      const text = await res.text();
+      const json = text ? JSON.parse(text) : {};
       if (json.code === 200 || json.data) {
         setTicketDetail(json.data);
       }
@@ -252,7 +288,9 @@ export default function SupportPage() {
         body: data
       });
 
-      const json = await res.json();
+      const text = await res.text();
+      const json = text ? JSON.parse(text) : {};
+      
       if (res.ok || json.code === 200 || json.responseCode === 0) {
         setReplyMessage('');
         setReplyImage(null);
