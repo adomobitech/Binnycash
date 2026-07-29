@@ -251,8 +251,12 @@ export default function Navbar() {
       });
       const data = await res.json();
       
-      const notificationsList = data?.data?.notifications || data?.notifications || [];
-      setInboxMessages(Array.isArray(notificationsList) ? notificationsList : []);
+      let notificationsList = data?.data?.notifications || data?.notifications || [];
+      if (!Array.isArray(notificationsList)) notificationsList = [];
+
+      // 🔥 FIX: NO DEDUPLICATION - Show ALL backend data exactly as it comes 🔥
+      setInboxMessages(notificationsList);
+      
       if (data?.data?.unreadCount !== undefined) {
         setUnreadCount(data.data.unreadCount);
       }
@@ -285,15 +289,18 @@ export default function Navbar() {
     }
   };
 
+  // API will only hit when isInboxOpen is true
   useEffect(() => { 
     if (isInboxOpen) fetchInboxMessages(); 
   }, [isInboxOpen]);
 
+  // Handle outside clicks to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
         setIsLangModalOpen(false);
+        setIsInboxOpen(false); 
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -390,94 +397,10 @@ export default function Navbar() {
               <p className="text-[#8F95A3] text-sm mb-6">You will be logged out of your session.</p>
               <div className="flex gap-3">
                 <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold transition-colors">Cancel</button>
-                <button onClick={handleLogoutConfirm} className="flex-1 py-3 rounded-xl bg-[#8B5CF6] hover:bg-[#7c3aed] text-white font-bold shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-colors">Yes, Logout</button>
+                <button onClick={handleLogoutConfirm} className="flex-1 py-3 rounded-xl bg-[#FF5D73] hover:bg-[#ff405b] text-white font-bold shadow-[0_0_15px_rgba(255,93,115,0.3)] transition-colors">Yes, Logout</button>
               </div>
             </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* RIGHT-SIDE SLIDING NOTIFICATIONS DRAWER */}
-      <AnimatePresence>
-        {isInboxOpen && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
-              onClick={() => setIsInboxOpen(false)}
-              className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm" 
-            />
-            
-            <motion.div 
-              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} 
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 h-full w-full max-w-md bg-[#0E1015] border-l border-white/10 z-[160] flex flex-col shadow-[-10px_0_40px_rgba(0,0,0,0.8)]"
-            >
-              <div className="p-6 border-b border-white/10 flex items-center justify-between bg-[#12151C]">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6]">
-                    <Bell className="w-5 h-5 animate-bounce" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-black text-lg">Notifications</h3>
-                    <p className="text-xs text-[#8F95A3]">System updates & alerts</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={handleMarkAllAsRead} 
-                    className="text-[11px] font-bold text-[#8B5CF6] bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 border border-[#8B5CF6]/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1"
-                  >
-                    <CheckCheck className="w-3.5 h-3.5" /> Mark read
-                  </button>
-                  <button 
-                    onClick={() => setIsInboxOpen(false)} 
-                    className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all cursor-pointer border border-white/5"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6 overflow-y-auto flex-1 space-y-3 custom-scrollbar">
-                {isInboxLoading ? (
-                  <div className="flex flex-col items-center justify-center h-48 gap-3">
-                    <div className="w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-xs text-[#8F95A3] font-medium">Loading notifications...</span>
-                  </div>
-                ) : inboxMessages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-48 text-center text-[#8F95A3]">
-                    <Bell className="w-10 h-10 mb-2 opacity-30" />
-                    <p className="text-sm font-medium">No notifications yet.</p>
-                  </div>
-                ) : (
-                  inboxMessages.map((item, idx) => {
-                    const title = item.title || 'Notification';
-                    const message = item.message || '';
-                    const amount = item.amount ? `+$${item.amount}` : '';
-                    const timeAgo = new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                    return (
-                      <div key={item._id || idx} className={`bg-[#12151C] border rounded-2xl p-4 flex flex-col gap-2 transition-all ${item.isRead ? 'border-white/5 opacity-75' : 'border-[#8B5CF6]/40 bg-[#161922]'}`}>
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-white text-sm font-black">{title}</h4>
-                          <span className="text-[10px] text-[#8F95A3]">{timeAgo}</span>
-                        </div>
-                        <p className="text-[#8F95A3] text-xs leading-relaxed">{message}</p>
-                        
-                        {(amount || item.method) && (
-                          <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-1">
-                            <span className="text-[10px] uppercase tracking-wider font-bold text-[#8B5CF6] bg-[#8B5CF6]/10 px-2 py-0.5 rounded-md">{item.method || 'SYSTEM'}</span>
-                            {amount && <span className="text-xs font-black text-[#00E57A]">{amount}</span>}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </motion.div>
-          </>
         )}
       </AnimatePresence>
 
@@ -574,16 +497,88 @@ export default function Navbar() {
                   </span>
                 </div>
 
-                {/* 2. NOTIFICATION (Bell) */}
-                <button 
-                  onClick={() => setIsInboxOpen(true)}
-                  className="relative w-10 h-10 rounded-xl bg-[#1A1C24] hover:bg-[#252836] flex items-center justify-center transition-colors cursor-pointer border border-white/5"
-                >
-                  <Bell className="w-[18px] h-[18px] text-[#8F95A3] fill-current" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-[#00E57A] rounded-full shadow-[0_0_10px_rgba(0,229,122,1)] animate-pulse"></span>
-                  )}
-                </button>
+                {/* 2. NOTIFICATION (Bell) & 🔥 POPUP UI MATCHING SCREENSHOT 🔥 */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setIsInboxOpen(!isInboxOpen)}
+                    className={`relative w-10 h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer border ${isInboxOpen ? 'bg-[#252836] border-white/10' : 'bg-[#1A1C24] hover:bg-[#252836] border-white/5'}`}
+                  >
+                    <Bell className="w-[18px] h-[18px] text-[#8F95A3] fill-current" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-2 right-2 w-2 h-2 bg-[#00E57A] rounded-full shadow-[0_0_10px_rgba(0,229,122,1)] animate-pulse"></span>
+                    )}
+                  </button>
+
+                  <AnimatePresence>
+                    {isInboxOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                        animate={{ opacity: 1, y: 0, scale: 1 }} 
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }} 
+                        transition={{ duration: 0.2 }} 
+                        className="absolute right-0 mt-3 w-[320px] sm:w-[380px] bg-[#0E1015] border border-white/10 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden flex flex-col"
+                      >
+                        {/* Header matching the screenshot */}
+                        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+                          <h3 className="text-white font-bold text-[17px]">Notifications</h3>
+                          <div className="flex items-center gap-4">
+                             {/* 🔥 Mark all read text button 🔥 */}
+                             {inboxMessages.length > 0 && (
+                               <button 
+                                 onClick={handleMarkAllAsRead}
+                                 className="text-[#8F95A3] hover:text-white text-[12px] font-medium transition-colors cursor-pointer"
+                               >
+                                 Mark all read
+                               </button>
+                             )}
+                             <button 
+                               onClick={() => setIsInboxOpen(false)} 
+                               className="text-[#8F95A3] hover:text-white transition-colors cursor-pointer"
+                             >
+                               <X className="w-5 h-5" />
+                             </button>
+                          </div>
+                        </div>
+
+                        {/* List / Empty State */}
+                        <div className="p-4 max-h-[380px] overflow-y-auto custom-scrollbar">
+                          {isInboxLoading ? (
+                            <div className="flex flex-col items-center justify-center py-10 gap-3">
+                              <Loader2 className="w-6 h-6 text-white/50 animate-spin" />
+                            </div>
+                          ) : inboxMessages.length === 0 ? (
+                            /* Dark Box Empty State matching screenshot */
+                            <div className="bg-[#12141A] border border-white/5 rounded-2xl py-12 flex items-center justify-center">
+                              <span className="text-[#8F95A3] text-sm font-medium">No new notifications</span>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {inboxMessages.map((item, idx) => {
+                                const title = item.title || 'Notification';
+                                const message = item.message || '';
+                                const timeAgo = new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                                return (
+                                  <div key={item._id || idx} className="bg-[#151517] border border-white/5 rounded-xl p-4 flex flex-col gap-2">
+                                    <div className="flex justify-between items-start">
+                                      <h4 className="text-white text-[15px] font-bold">{title}</h4>
+                                      <span className="text-[#8F95A3] text-[11px] whitespace-nowrap ml-2 mt-0.5">{timeAgo}</span>
+                                    </div>
+                                    <p className="text-[#8F95A3] text-[13px] leading-relaxed pr-2">{message}</p>
+                                    
+                                    <div className="mt-1">
+                                      <span className="text-[#A66CFF] text-[11px] font-bold uppercase tracking-wider">{item.method || 'SYSTEM'}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 {/* 3. CHAT (Green Dot) */}
                 <button 
@@ -657,7 +652,7 @@ export default function Navbar() {
                           <div className="h-px bg-gradient-to-r from-[#8B5CF6]/40 via-[#8B5CF6]/40 to-transparent flex-1" />
                         </div>
 
-                        {/* 🔥 CUSTOM CURRENCY SWITCHER (ABOVE LOGOUT) 🔥 */}
+                        {/* CUSTOM CURRENCY SWITCHER */}
                         <div className="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-2xl p-3.5 mb-1 transition-all hover:bg-white/[0.04]">
                           <span className="text-[14px] font-black text-white tracking-wide pl-2">
                             {currency.toUpperCase()}
@@ -679,7 +674,7 @@ export default function Navbar() {
                           </button>
                         </div>
 
-                        {/* Logout Item (Red Theme) */}
+                        {/* Logout Item */}
                         <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="relative w-full group flex items-center justify-between bg-[#FF5D73]/5 hover:bg-[#FF5D73]/10 border border-[#FF5D73]/20 hover:border-[#FF5D73]/40 rounded-2xl p-3.5 transition-all text-left">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-[#FF5D73]/20 group-hover:border-[#FF5D73]/50 transition-colors shadow-inner">
