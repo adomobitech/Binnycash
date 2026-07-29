@@ -88,6 +88,7 @@ export default function AffiliatePage() {
     totalNetCommission: 0
   });
   
+  const [availableBalance, setAvailableBalance] = useState<string>('0.00');
   const [referralLink, setReferralLink] = useState('Loading...');
   
   const [tierData, setTierData] = useState<any>({
@@ -96,8 +97,8 @@ export default function AffiliatePage() {
     tiers: []
   });
 
-  // 🔥 NEW STATE FOR CLAIM HISTORY 🔥
   const [claimHistory, setClaimHistory] = useState<any[]>([]);
+  const [affiliateUsers, setAffiliateUsers] = useState<any[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -122,6 +123,15 @@ export default function AffiliatePage() {
           setDashboardData(dashJson.data);
         }
 
+        // Fetch Available Balance (Refer Earning Balance)
+        const balanceRes = await fetch(`https://apitest.binnycash.com/api/user/wallet/refer-earning-balance`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const balanceJson = await balanceRes.json();
+        if (balanceJson.code === 200 && balanceJson.data !== undefined) {
+          setAvailableBalance(balanceJson.data);
+        }
+
         // Fetch Referral URL
         const profileRes = await fetch(`https://apitest.binnycash.com/api/user/viewData?userId=${userId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -140,13 +150,22 @@ export default function AffiliatePage() {
           setTierData(tierJson.data);
         }
 
-        // 🔥 FETCH CLAIM EARNING HISTORY 🔥
+        // Fetch Claim Earning History
         const historyRes = await fetch(`https://apitest.binnycash.com/api/user/wallet/claim-earning-history`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const historyJson = await historyRes.json();
         if (historyJson.code === 200 && Array.isArray(historyJson.data)) {
           setClaimHistory(historyJson.data);
+        }
+
+        // Fetch Affiliate Referred Users List
+        const affiliateListRes = await fetch(`https://apitest.binnycash.com/api/user/UserReferList?userId=${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const affiliateListJson = await affiliateListRes.json();
+        if (affiliateListJson.code === 200 && affiliateListJson.data?.users) {
+          setAffiliateUsers(affiliateListJson.data.users);
         }
 
       } catch (error) {
@@ -165,7 +184,6 @@ export default function AffiliatePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Helper functions for Level Icons & Colors
   const getLevelIcon = (level: number) => {
     if (level <= 3) return <ShieldCheck className="w-5 h-5" />;
     if (level <= 6) return <Medal className="w-5 h-5" />;
@@ -216,7 +234,7 @@ export default function AffiliatePage() {
                 <div>
                   <h3 className="text-[10px] font-bold text-[#8D89A8] tracking-widest uppercase">Available Balance</h3>
                   <div className="text-3xl font-black text-white mt-1 f-mono">
-                    {formatPrice(Number(dashboardData?.totalNetCommission) || 0, currency)}
+                    {formatPrice(Number(availableBalance) || 0, currency)}
                   </div>
                 </div>
               </div>
@@ -243,7 +261,7 @@ export default function AffiliatePage() {
                 </div>
                 <div>
                   <div className="text-lg font-black text-white f-mono">{formatPrice(Number(dashboardData?.totalReferEarning) || 0, currency)}</div>
-                  <div className="text-xs text-[#8D89A8]">Total Earned</div>
+                  <div className="text-xs text-[#8D89A8]">Total Earned Commission</div>
                 </div>
               </div>
 
@@ -335,7 +353,7 @@ export default function AffiliatePage() {
 
         <div className="flex items-center gap-6 border-b border-white/[0.06] mb-6">
           {[
-            { id: 'tier', label: 'Tier' },
+            { id: 'tier', label: 'Level' },
             { id: 'affiliate', label: 'Affiliate' },
             { id: 'history', label: 'Claim history' },
           ].map((tab) => (
@@ -407,7 +425,7 @@ export default function AffiliatePage() {
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse min-w-[800px]">
                   <thead>
-                    <tr className="bg-white/[0.02]">
+                    <tr className="bg-white/[0.02] border-b border-white/[0.06]">
                       <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider">User</th>
                       <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider">Earn</th>
                       <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider">Pending</th>
@@ -416,18 +434,58 @@ export default function AffiliatePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td colSpan={5} className="px-6 py-16 text-center">
-                        <span className="text-sm font-medium text-[#8D89A8]">No referrals found.</span>
-                      </td>
-                    </tr>
+                    {affiliateUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-16 text-center">
+                          <span className="text-sm font-medium text-[#8D89A8]">No referrals found.</span>
+                        </td>
+                      </tr>
+                    ) : (
+                      affiliateUsers.map((user, idx) => {
+                        let avatar = user.profileImage;
+                        const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName || 'U')}&background=A855F7&color=fff`;
+                        
+                        if (avatar) {
+                          if (!avatar.startsWith('http')) {
+                            avatar = `https://apitest.binnycash.com${avatar.startsWith('/') ? '' : '/'}${avatar}`;
+                          }
+                          // 🔥 HOTFIX: Fix typo in API response if it says binycash instead of binnycash
+                          avatar = avatar.replace('binycash.com', 'binnycash.com'); 
+                        } else {
+                          avatar = fallbackAvatar;
+                        }
+
+                        return (
+                          <tr key={idx} className="border-b border-white/[0.06] hover:bg-white/[0.02] transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                {/* 🔥 IMAGE BROKEN FIX: Added onError fallback and adjusted size to match UI screenshot 🔥 */}
+                                <img 
+                                  src={avatar} 
+                                  alt="User" 
+                                  onError={(e) => { e.currentTarget.src = fallbackAvatar; }}
+                                  className="w-10 h-10 rounded-full bg-white/5 object-cover shrink-0 border border-white/10" 
+                                />
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-bold text-white">{user.userName || 'Unknown'}</span>
+                                  <span className="text-[10px] text-[#8D89A8]">Joined {new Date(user.joiningDate).toLocaleDateString()}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-xs font-bold text-white">{formatPrice(Number(user.totalEarning || 0), currency)}</td>
+                            <td className="px-6 py-4 text-xs font-bold text-amber-500">{formatPrice(Number(user.processingCommission || 0), currency)}</td>
+                            <td className="px-6 py-4 text-xs font-bold text-red-400">{formatPrice(Number(user.reverseCommission || 0), currency)}</td>
+                            <td className="px-6 py-4 text-xs font-bold text-[#00E57A]">{formatPrice(Number(user.netCommission || 0), currency)}</td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
 
-          {/* 🔥 CLAIM HISTORY TAB WITH DYNAMIC API DATA 🔥 */}
           {activeTab === 'history' && (
             <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] overflow-hidden shadow-xl">
               <div className="overflow-x-auto custom-scrollbar">

@@ -8,10 +8,10 @@ import {
   Phone, Hash, Camera, UploadCloud, Copy, Globe,
   Trash2, Image as ImageIcon, CheckCircle2, ChevronRight,
   AlertCircle, X, ShieldAlert, ShieldCheck, Wallet, Clock, Loader2,
-  KeyRound, Coins, Sparkles, ScanLine, Check, Calendar, Building, ChevronDown, CreditCard
+  KeyRound, Coins, Sparkles, ScanLine, Check, Calendar, Building, ChevronDown, CreditCard,
+  Target, Users, ArrowUp
 } from 'lucide-react';
 
-// 🔥 HOOKS IMPORTED HERE 🔥
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
 // --- UTILITY: Get User ID securely ---
@@ -64,7 +64,6 @@ const AVATAR_LIBRARY = [
   'https://api.dicebear.com/9.x/big-smile/png?seed=Raven&backgroundColor=a66cff,7c3aed,4c1d95'
 ];
 
-// 🔥 UPDATED: Added suffix to CountUp for Coins 🔥
 function CountUp({ value, prefix = '', suffix = '', decimals = 0 }: { value: number; prefix?: string; suffix?: string; decimals?: number }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
@@ -83,9 +82,6 @@ function CountUp({ value, prefix = '', suffix = '', decimals = 0 }: { value: num
   }, [value]);
   return <>{prefix}{display.toFixed(decimals)}{suffix}</>;
 }
-
-const HEX_CLIP = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
-const NOTCH_CLIP = 'polygon(0% 0%, calc(100% - 28px) 0%, 100% 28px, 100% 100%, 0% 100%)';
 
 // --- KYC SUBMISSION MODAL ---
 function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
@@ -154,9 +150,7 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
 
       const res = await fetch('https://apitest.binnycash.com/api/user/kyc/submit', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
         body: data
       });
 
@@ -443,12 +437,12 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
 export default function ProfilePage() {
   const router = useRouter();
   
-  // 🔥 CURRENCY HOOK INITIALIZED 🔥
   const currency = useCurrency();
   const isCoin = currency === 'Coin' || currency === 'COIN';
 
   const [userData, setUserData] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
+  const [affiliateStats, setAffiliateStats] = useState<any>(null); // Added Affiliate Stats State
   const [isLoading, setIsLoading] = useState(true);
 
   const [imgError, setImgError] = useState(false);
@@ -508,7 +502,7 @@ export default function ProfilePage() {
         education: user?.education || '',
         city: user?.city || '',
         address: user?.address || '',
-        mobileNumber: user?.mobileNumber || user?.mobileCode ? `${user.mobileCode}${user.mobileNumber}` : '',
+        mobileNumber: user?.mobileNumber || user?.mobileCode ? `${user?.mobileCode || ''}${user?.mobileNumber || ''}` : '',
         zipCode: user?.zipCode || '',
       });
 
@@ -517,6 +511,15 @@ export default function ProfilePage() {
       });
       const statsJson = await resStats.json();
       setStats(statsJson?.data);
+
+      // 🔥 Fetch Affiliate Dashboard Stats for Referrals Count 🔥
+      const resAffiliate = await fetch(`https://apitest.binnycash.com/api/user/affiliate_dashboard?userId=${userId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const affiliateJson = await resAffiliate.json();
+      if (affiliateJson.code === 200 && affiliateJson.data) {
+        setAffiliateStats(affiliateJson.data);
+      }
 
     } catch (err) {
       console.error("Failed to load profile", err);
@@ -670,8 +673,9 @@ export default function ProfilePage() {
   const rawProfilePic = userData?.image || userData?.profilePic;
   const displayImage = resolveImage(rawProfilePic);
 
-  const joinDate = userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recently';
-  const kycStatus = userData?.documents?.status || 'Unverified';
+  const joinDate = userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently';
+  
+  const kycStatus = userData?.documents?.status || userData?.kycStatus || 'Unverified';
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -679,6 +683,81 @@ export default function ProfilePage() {
       year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
   };
+
+  // 🔥 0%, 33%, 66%, 100% REAL LOGIC 🔥
+  // Basic Details require ALL fields from Settings to be filled
+  const isBasicDetailsFilled = Boolean(
+    userData?.firstName && 
+    userData?.lastName && 
+    userData?.email && 
+    userData?.mobileNumber && 
+    userData?.city && 
+    userData?.address && 
+    userData?.zipCode
+  );
+
+  const kycS = String(kycStatus).toUpperCase();
+  const isKycVerified = kycS === 'VERIFIED' || kycS === 'APPROVED';
+  const isKycSubmitted = kycS === 'PENDING' || kycS === 'PROCESSING' || kycS === 'IN PROGRESS';
+
+  let kycProgressPercent = 0;
+  if (isKycVerified) kycProgressPercent = 100;
+  else if (isKycSubmitted) kycProgressPercent = 66;
+  else if (isBasicDetailsFilled) kycProgressPercent = 33;
+
+  const getKycSteps = () => {
+    const step1 = isBasicDetailsFilled
+      ? { label: 'Basic Details', status: 'Completed', color: 'text-[#00E57A]', iconColor: 'bg-[#00E57A]/10 text-[#00E57A]', icon: CheckCircle2 }
+      : { label: 'Basic Details', status: 'Pending', color: 'text-[#8F95A3]', iconColor: 'bg-white/5 text-[#8F95A3]', icon: ShieldAlert };
+
+    let step2, step3;
+    if (isKycVerified) {
+      step2 = { label: 'Identity Verification', status: 'Completed', color: 'text-[#00E57A]', iconColor: 'bg-[#00E57A]/10 text-[#00E57A]', icon: CheckCircle2 };
+      step3 = { label: 'Address Verification', status: 'Completed', color: 'text-[#00E57A]', iconColor: 'bg-[#00E57A]/10 text-[#00E57A]', icon: CheckCircle2 };
+    } else if (isKycSubmitted) {
+      step2 = { label: 'Identity Verification', status: 'In Progress', color: 'text-[#FFC94A]', iconColor: 'bg-[#FFC94A]/10 text-[#FFC94A]', icon: Clock };
+      step3 = { label: 'Address Verification', status: 'In Progress', color: 'text-[#FFC94A]', iconColor: 'bg-[#FFC94A]/10 text-[#FFC94A]', icon: Clock };
+    } else {
+      step2 = { label: 'Identity Verification', status: 'Pending', color: 'text-[#8F95A3]', iconColor: 'bg-white/5 text-[#8F95A3]', icon: ShieldAlert };
+      step3 = { label: 'Address Verification', status: 'Pending', color: 'text-[#8F95A3]', iconColor: 'bg-white/5 text-[#8F95A3]', icon: ShieldAlert };
+    }
+
+    return [step1, step2, step3];
+  };
+
+  const kycSteps = getKycSteps();
+
+  // 🔥 Verify Button Dynamic Props Logic (Matching Reference Source) 🔥
+  const getKycButtonProps = () => {
+    if (isKycVerified) {
+      return {
+        text: 'Verified',
+        disabled: true,
+        className: 'px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed shadow-inner'
+      };
+    }
+    if (isKycSubmitted) {
+      return {
+        text: 'Verification Pending',
+        disabled: true,
+        className: 'px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed shadow-inner'
+      };
+    }
+    if (kycS === 'REJECTED') {
+      return {
+        text: 'Rejected - Re-verify',
+        disabled: false,
+        className: 'px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-400 font-bold text-xs transition-all cursor-pointer shadow-md'
+      };
+    }
+    return {
+      text: 'Verify Now',
+      disabled: false,
+      className: 'px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold text-xs transition-all shadow-[0_4px_15px_rgba(139,92,246,0.3)] hover:shadow-[0_4px_20px_rgba(139,92,246,0.5)] cursor-pointer'
+    };
+  };
+
+  const btnProps = getKycButtonProps();
 
   return (
     <div className="min-h-screen bg-[#08070D] text-[#F5F3FF] selection:bg-[#A66CFF]/30 relative overflow-x-hidden">
@@ -690,16 +769,7 @@ export default function ProfilePage() {
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(166,108,255,0.35); border-radius: 10px; }
-        @keyframes drift { 0%, 100% { transform: translate(0,0); } 50% { transform: translate(14px,-10px); } }
-        .animate-drift { animation: drift 8s ease-in-out infinite; }
       `}</style>
-
-      {/* Ambient backdrop */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-24 w-[520px] h-[520px] bg-[#A66CFF]/10 blur-[120px] rounded-full animate-drift" />
-        <div className="absolute top-1/3 -right-32 w-[420px] h-[420px] bg-[#FFC94A]/[0.06] blur-[130px] rounded-full" />
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
-      </div>
 
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 relative z-10 f-body">
 
@@ -710,15 +780,10 @@ export default function ProfilePage() {
         )}
 
         {/* HEADER */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <span className="f-mono text-[10px] font-bold tracking-[0.3em] text-[#A66CFF] uppercase">Account · Vault</span>
-            <h1 className="f-display text-3xl md:text-4xl font-bold text-white tracking-tight mt-1">My Profile</h1>
-            <p className="text-[#8D89A8] text-sm mt-1 font-medium">Manage your identity, wallet and earning history.</p>
-          </div>
+        <div className="flex justify-end items-center gap-4 mb-6">
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-2 bg-[#14121F] hover:bg-[#1A1725] border border-white/10 pl-4 pr-5 py-2.5 rounded-full text-sm font-bold transition-all hover:scale-105 shadow-lg shadow-black/30 cursor-pointer"
+            className="flex items-center gap-2 bg-[#14121F] hover:bg-[#1A1725] border border-white/10 pl-4 pr-5 py-2.5 rounded-full text-sm font-bold transition-all hover:scale-105 shadow-lg cursor-pointer"
           >
             <span className="w-6 h-6 rounded-full bg-[#A66CFF]/15 flex items-center justify-center">
               <KeyRound className="w-3.5 h-3.5 text-[#A66CFF]" />
@@ -727,132 +792,202 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* TOP WIDGETS */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-
-          {/* IDENTITY CARD */}
-          <div
-            className="lg:col-span-1 bg-[#120F1A] border border-white/[0.06] p-6 shadow-xl shadow-black/40 flex flex-col gap-6 relative overflow-hidden"
-            style={{ clipPath: NOTCH_CLIP, borderRadius: 24 }}
-          >
-            <div className="absolute top-0 right-0 w-40 h-40 bg-[#A66CFF]/10 blur-[60px] pointer-events-none" />
-            <div className="absolute top-0 right-0 w-7 h-7 bg-[#08070D] border-b border-l border-white/[0.06]" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }} />
-
-            <div className="flex justify-between items-start relative z-10">
-              <div className="flex gap-4 items-center">
-                <div className="relative shrink-0">
-                  <div className="absolute -inset-2 rounded-full border border-solid border-[#A66CFF]/20" />
-                  <div className="w-16 h-16 bg-[#1A1725] p-[3px] shadow-inner" style={{ clipPath: HEX_CLIP }}>
-                    {displayImage && !imgError ? (
-                      <img 
-                        src={displayImage} 
-                        alt="Profile" 
-                        onError={() => setImgError(true)}
-                        className="w-full h-full object-cover" 
-                        style={{ clipPath: HEX_CLIP }} 
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] flex items-center justify-center text-white text-xl font-black uppercase" style={{ clipPath: HEX_CLIP }}>
-                        {name.charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setIsAvatarModalOpen(true)}
-                    className="absolute -bottom-1.5 -right-1.5 w-6 h-6 bg-[#A66CFF] hover:bg-[#8B5CF6] rounded-full border-2 border-[#120F1A] flex items-center justify-center shadow-md cursor-pointer transition-colors"
-                  >
-                    <Camera className="w-3 h-3 text-white" />
-                  </button>
-                </div>
-                <div className="flex flex-col">
-                  <h2 className="f-display text-lg font-bold text-white">{name}</h2>
-                  <span className="text-[#8D89A8] text-[11px] font-medium">Joined {joinDate}</span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-[11px] text-[#8D89A8]">Binny ID</span>
-                    <span className="f-mono text-[11px] font-bold text-white">{userData?.id || userData?.userId || 'N/A'}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="px-2.5 py-1 rounded-full border border-[#FFC94A]/30 bg-[#FFC94A]/10 flex items-center gap-1.5 shrink-0">
-                <Coins className="w-3.5 h-3.5 text-[#FFC94A]" />
-                <span className="text-[10px] f-mono font-bold text-[#FFC94A] uppercase">Bronze</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/[0.06] relative z-10">
-              <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-end">
-                  <span className="text-xs font-bold text-white">Tier charge</span>
-                  {/* 🔥 Format Price Integration 🔥 */}
-                  <span className="f-mono text-[10px] text-[#8D89A8]">{formatPrice(0.1, currency)} / {formatPrice(1, currency)}</span>
-                </div>
-                <div className="w-full h-1.5 bg-[#1A1725] rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: '10%' }}
-                    transition={{ duration: 1, ease: 'easeOut' }}
-                    className="h-full rounded-full bg-gradient-to-r from-[#A66CFF] to-[#FFC94A]"
-                  />
-                </div>
-                {/* 🔥 Format Price Integration 🔥 */}
-                <span className="text-[9px] text-[#8D89A8] text-center mt-1">{formatPrice(0.9, currency)} to reach Silver</span>
-              </div>
-
-              <div 
-                onClick={() => {
-                  if (kycStatus !== 'Verified') setIsKycOpen(true);
-                }}
-                className="bg-[#1A1725] border border-white/[0.06] rounded-xl flex flex-col items-center justify-center py-2 cursor-pointer hover:bg-white/5 transition-colors"
-              >
-                <span className="text-[10px] text-[#8D89A8] font-medium mb-1">Document status</span>
-                <span className={`text-xs font-black ${kycStatus === 'Verified' ? 'text-[#3DE8A0]' : 'text-[#FFC94A]'}`}>
-                  {kycStatus}
-                </span>
-                {kycStatus !== 'Verified' && <span className="text-[9px] text-[#8D89A8] mt-0.5">Click to verify</span>}
-              </div>
-            </div>
+        {/* HERO BANNER */}
+        <div className="relative w-full rounded-3xl overflow-hidden bg-gradient-to-br from-[#4c1d95] via-[#2e1065] to-[#0f061f] p-6 md:p-10 flex flex-col md:flex-row items-center justify-between shadow-2xl mb-8 border border-white/10">
+          
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/3 w-[600px] h-[600px] pointer-events-none opacity-20 flex items-center justify-center">
+             <div className="w-[300px] h-[300px] rounded-full border border-white absolute"></div>
+             <div className="w-[450px] h-[450px] rounded-full border border-white absolute"></div>
+             <div className="w-[600px] h-[600px] rounded-full border border-white absolute"></div>
           </div>
 
-          {/* STATS */}
-          <div className="lg:col-span-2 bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl shadow-black/40 flex flex-col gap-4 relative overflow-hidden">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-sm font-bold text-[#8D89A8]">Wallet overview</h3>
-              <div className="px-3 py-1 rounded-full border border-white/10 bg-white/5 text-[10px] f-mono font-bold text-white tracking-wider uppercase flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#3DE8A0] animate-pulse" /> Live
-              </div>
-            </div>
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 z-10 w-full">
+             <div className="relative shrink-0">
+               <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#8b5cf6] shadow-xl border-4 border-[#4c1d95] overflow-hidden flex items-center justify-center">
+                 {displayImage && !imgError ? (
+                    <img 
+                      src={displayImage} 
+                      alt="Profile" 
+                      onError={() => setImgError(true)}
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <span className="text-white text-5xl font-bold uppercase">{name.charAt(0)}</span>
+                  )}
+               </div>
+               <button 
+                  onClick={() => setIsAvatarModalOpen(true)}
+                  className="absolute bottom-1 right-1 w-9 h-9 bg-black/40 backdrop-blur-md hover:bg-black/60 rounded-full border border-white/20 flex items-center justify-center transition-colors cursor-pointer"
+               >
+                 <Camera className="w-4 h-4 text-white" />
+               </button>
+             </div>
+             
+             <div className="flex flex-col text-center sm:text-left mt-4 sm:mt-6">
+                <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">{name}</h1>
+                <p className="text-white/70 text-sm font-medium">Joined {joinDate}</p>
+                <p className="text-white/50 text-xs mt-1.5">Your earnings. Your milestones. Your future.</p>
+             </div>
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
-              {[
-                // 🔥 Format Price values carefully wrapped for CountUp 🔥
-                { icon: Wallet, color: '#A66CFF', value: isCoin ? parseFloat(stats?.totalEarning || 0) * 1000 : parseFloat(stats?.totalEarning || 0), prefix: isCoin ? '' : '$', suffix: isCoin ? ' COINS' : '', decimals: isCoin ? 0 : 2, label: 'Total earnings' },
-                { icon: CheckCircle2, color: '#3DE8A0', value: Number(stats?.totalCompletedOffers || 0), prefix: '', suffix: '', decimals: 0, label: 'Completed offers' },
-                { icon: User, color: '#5EA8FF', value: Number(userData?.referrals || 0), prefix: '', suffix: '', decimals: 0, label: 'Users referred' },
-                { icon: Clock, color: '#FFC94A', value: isCoin ? parseFloat(stats?.last30DaysEarning || 0) * 1000 : parseFloat(stats?.last30DaysEarning || 0), prefix: isCoin ? '' : '$', suffix: isCoin ? ' COINS' : '', decimals: isCoin ? 0 : 2, label: 'Earnings last 30 days' },
-              ].map((s, i) => (
-                <motion.div
-                  key={s.label}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.06, duration: 0.4 }}
-                  className="bg-[#1A1725] border border-white/[0.06] rounded-[18px] p-5 flex items-center gap-4"
-                >
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border" style={{ backgroundColor: `${s.color}1A`, borderColor: `${s.color}33` }}>
-                    <s.icon className="w-5 h-5" style={{ color: s.color }} />
-                  </div>
-                  <div className="flex flex-col">
-                    <h4 className="f-display text-2xl font-bold text-white">
-                      <CountUp value={s.value} prefix={s.prefix} suffix={s.suffix} decimals={s.decimals} />
-                    </h4>
-                    <span className="text-xs text-[#8D89A8] font-medium">{s.label}</span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+          <div className="bg-[#120F1A]/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 min-w-[280px] z-10 mt-8 md:mt-0 shadow-xl shrink-0">
+              <p className="text-white/60 text-xs font-medium mb-2">Total Earnings</p>
+              <h2 className="text-3xl font-black text-white f-mono mb-1">{formatPrice(Number(stats?.totalEarning || 0), currency)}</h2>
           </div>
         </div>
 
-        {/* BOTTOM TABS & TABLE */}
+        {/* MAIN 2-COLUMN GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+
+           {/* KYC Verification Column */}
+           <div className="lg:col-span-5 bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl relative overflow-hidden flex flex-col h-fit">
+              <div className="flex justify-between items-center mb-8">
+                 <h3 className="text-base font-bold text-white">KYC Panel</h3>
+                 
+                 {/* 🔥 Premium Dynamic Status Verify Button 🔥 */}
+                 <button 
+                  disabled={btnProps.disabled}
+                  onClick={() => {
+                    if (btnProps.disabled) return;
+                    if (!isBasicDetailsFilled) {
+                       setMessage({ text: 'Please fill out your Basic Details in Settings first.', type: 'error' });
+                       setIsSettingsOpen(true);
+                    } else {
+                       setIsKycOpen(true);
+                    }
+                  }}
+                  className={btnProps.className}
+                 >
+                   {btnProps.text}
+                 </button>
+              </div>
+
+              <div className="flex flex-col gap-6 mb-6">
+                {kycSteps.map((step, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${step.iconColor}`}>
+                        <step.icon className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-white/90">{step.label}</span>
+                        <span className={`text-xs font-medium mt-0.5 ${step.color}`}>{step.status}</span>
+                      </div>
+                    </div>
+                    
+                    {/* 🔥 Fill Now Button specific for Basic Details 🔥 */}
+                    {step.label === 'Basic Details' && step.status === 'Pending' && (
+                      <button
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="px-3 py-1.5 bg-[#A66CFF]/10 text-[#A66CFF] hover:bg-[#A66CFF]/20 border border-[#A66CFF]/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Fill Now
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-4 mt-2 border-t border-white/5">
+                <p className="text-xs text-white/60 font-medium mb-3">Your KYC is {kycProgressPercent}% complete</p>
+                <div className="w-full h-2 bg-[#1A1725] rounded-full overflow-hidden flex items-center">
+                   <motion.div 
+                     initial={{ width: 0 }} 
+                     animate={{ width: `${kycProgressPercent}%` }} 
+                     transition={{ duration: 1 }}
+                     className={`h-full rounded-full ${kycProgressPercent === 100 ? 'bg-[#00E57A]' : kycProgressPercent === 66 ? 'bg-[#FFC94A]' : 'bg-[#A66CFF]'}`}
+                   />
+                </div>
+                <div className="flex justify-end mt-2">
+                  <span className="text-xs font-bold text-white">{kycProgressPercent}%</span>
+                </div>
+              </div>
+           </div>
+
+           {/* Account Overview Column */}
+           <div className="lg:col-span-7 flex flex-col gap-6">
+              
+              <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl">
+                <h3 className="text-base font-bold text-white mb-6">Account Overview</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   
+                   {/* Total Offers Card */}
+                   <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
+                     <div className="w-12 h-12 rounded-xl bg-[#A66CFF]/10 flex items-center justify-center border border-[#A66CFF]/20 shrink-0">
+                       <Target className="w-6 h-6 text-[#A66CFF]" />
+                     </div>
+                     <div className="flex flex-col w-full">
+                       <span className="text-xs text-[#8D89A8] font-medium mb-1">Total Offers</span>
+                       <span className="text-xl font-bold text-white f-mono mb-1">
+                         <CountUp value={Number(stats?.totalCompletedOffers || offersData.length || 0)} />
+                       </span>
+                       <span className="text-[10px] text-white/40">Completed</span>
+                     </div>
+                   </div>
+
+                   {/* Total Earnings Card */}
+                   <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
+                     <div className="w-12 h-12 rounded-xl bg-[#00E57A]/10 flex items-center justify-center border border-[#00E57A]/20 shrink-0">
+                       <Wallet className="w-6 h-6 text-[#00E57A]" />
+                     </div>
+                     <div className="flex flex-col w-full">
+                       <span className="text-xs text-[#8D89A8] font-medium mb-1">Total Earnings</span>
+                       <span className="text-xl font-bold text-white f-mono mb-1">{formatPrice(Number(stats?.totalEarning || 0), currency)}</span>
+                       <span className="text-[10px] text-white/40">Lifetime</span>
+                     </div>
+                   </div>
+
+                   {/* Referral Users Card (Restored with Affiliate API Data) */}
+                   <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-5 flex items-center gap-4 sm:col-span-2">
+                     <div className="w-12 h-12 rounded-xl bg-[#5EA8FF]/10 flex items-center justify-center border border-[#5EA8FF]/20 shrink-0">
+                       <Users className="w-6 h-6 text-[#5EA8FF]" />
+                     </div>
+                     <div className="flex flex-col w-full">
+                       <span className="text-xs text-[#8D89A8] font-medium mb-1">Referral Users</span>
+                       <span className="text-xl font-bold text-white f-mono mb-1">
+                         {affiliateStats?.totalReferUsers || userData?.referrals || 0}
+                       </span>
+                       <span className="text-[10px] text-white/40">Lifetime</span>
+                     </div>
+                   </div>
+                </div>
+              </div>
+
+              {/* Personal Details Card */}
+              <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl">
+                 <h3 className="text-base font-bold text-white mb-4">Personal Details</h3>
+                 <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4">
+                   <div className="flex flex-col">
+                     <span className="text-xs text-[#8D89A8] mb-1">Full Name</span>
+                     <span className="text-sm text-white font-medium">{userData?.firstName || ''} {userData?.lastName || ''}</span>
+                   </div>
+                   <div className="flex flex-col">
+                     <span className="text-xs text-[#8D89A8] mb-1">Phone Number</span>
+                     <span className="text-sm text-white font-medium">
+                       {userData?.mobileCode ? `${userData.mobileCode} ${userData.mobileNumber}` : (userData?.mobileNumber || 'Not provided')}
+                     </span>
+                   </div>
+                   <div className="flex flex-col">
+                     <span className="text-xs text-[#8D89A8] mb-1">Education</span>
+                     <span className="text-sm text-white font-medium">{userData?.education || 'Not provided'}</span>
+                   </div>
+                   <div className="flex flex-col">
+                     <span className="text-xs text-[#8D89A8] mb-1">City / Zip</span>
+                     <span className="text-sm text-white font-medium">
+                       {userData?.city || 'N/A'} {userData?.zipCode ? `- ${userData.zipCode}` : ''}
+                     </span>
+                   </div>
+                   <div className="flex flex-col sm:col-span-2">
+                     <span className="text-xs text-[#8D89A8] mb-1">Full Address</span>
+                     <span className="text-sm text-white font-medium truncate">{userData?.address || 'Not provided'}</span>
+                   </div>
+                 </div>
+              </div>
+
+           </div>
+        </div>
+
+        {/* BOTTOM TABS & TABLE (Original functionality intact) */}
         <div className="flex flex-col">
           <div className="relative inline-flex items-center bg-[#120F1A] border border-white/[0.06] rounded-full p-1 mb-5 w-fit">
             {(['earning', 'reversal'] as const).map((t) => (
@@ -972,7 +1107,6 @@ export default function ProfilePage() {
                                   <span className="text-sm font-bold text-white truncate max-w-[200px]">{item.offer_name || item.name || 'Reversal Item'}</span>
                                 </div>
                               </td>
-                              {/* 🔥 Format Price Added 🔥 */}
                               <td className="px-6 py-4 text-sm f-mono font-bold text-[#FF5D73]">-{formatPrice(Number(item.userCredits || item.amount || 0), currency)}</td>
                               <td className="px-6 py-4">
                                 <span className="px-2 py-1 rounded bg-[#FF5D73]/10 border border-[#FF5D73]/20 text-[#FF5D73] text-[10px] font-bold uppercase flex items-center gap-1 w-fit">
@@ -995,7 +1129,6 @@ export default function ProfilePage() {
                               className="border-b border-white/[0.05] hover:bg-white/[0.03] transition-colors"
                             >
                               <td className="px-6 py-4 text-sm font-bold text-white">{item.name || 'Reward'}</td>
-                              {/* 🔥 Format Price Added 🔥 */}
                               <td className="px-6 py-4 text-sm f-mono font-bold text-[#3DE8A0]">+{formatPrice(Number(item.amount || item.Balance || 0), currency)}</td>
                               <td className="px-6 py-4">
                                 <span className="px-2 py-1 rounded bg-[#5EA8FF]/10 border border-[#5EA8FF]/20 text-[#5EA8FF] text-[10px] font-bold uppercase">{item.type || 'CREDIT'}</span>
@@ -1026,7 +1159,6 @@ export default function ProfilePage() {
                                 <span className="text-sm font-bold text-white truncate max-w-[200px]">{item.offer_name || item.surveyName || 'Item'}</span>
                               </div>
                             </td>
-                            {/* 🔥 Format Price Added 🔥 */}
                             <td className="px-6 py-4 text-sm f-mono font-bold text-[#3DE8A0]">+{formatPrice(Number(item.userCredits || item.amount || 0), currency)}</td>
                             <td className="px-6 py-4">
                               <span className="px-2 py-1 rounded bg-[#3DE8A0]/10 border border-[#3DE8A0]/20 text-[#3DE8A0] text-[10px] font-bold uppercase flex items-center gap-1 w-fit">
@@ -1047,16 +1179,7 @@ export default function ProfilePage() {
         </div>
       </main>
 
-      {/* --- KYC MODAL RENDER --- */}
-      <KycModal 
-        isOpen={isKycOpen} 
-        onClose={() => setIsKycOpen(false)} 
-        onSuccess={() => {
-          fetchProfileData();
-        }}
-      />
-
-      {/* --- SETTINGS MODAL (100% ORIGINAL LOGIC KE SATH) --- */}
+      {/* --- SETTINGS MODAL REDESIGNED --- */}
       <AnimatePresence>
         {isSettingsOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050409]/90 backdrop-blur-sm p-4">
@@ -1065,135 +1188,179 @@ export default function ProfilePage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 12 }}
               transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-              className="relative w-full max-w-[600px] bg-[#120F1A] border border-white/10 p-6 sm:p-8 text-white shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar"
-              style={{ clipPath: NOTCH_CLIP, borderRadius: 28 }}
+              className="relative w-full max-w-[700px] bg-[#0E111E] border border-white/10 text-white shadow-2xl rounded-3xl max-h-[90vh] overflow-y-auto custom-scrollbar"
             >
-              <button
-                onClick={() => setIsSettingsOpen(false)}
-                className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/70 hover:text-white transition-all cursor-pointer z-10"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              {/* Cover Banner */}
+              <div className="h-32 bg-gradient-to-r from-[#A66CFF]/30 to-[#FFC94A]/10 relative w-full overflow-hidden">
+                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                 <button
+                    onClick={() => setIsSettingsOpen(false)}
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white transition-all cursor-pointer z-10"
+                  >
+                    <X className="w-4 h-4" />
+                 </button>
+              </div>
 
-              <span className="f-mono text-[10px] font-bold tracking-[0.3em] text-[#A66CFF] uppercase">Access panel</span>
+              {/* Modal Body */}
+              <div className="px-6 sm:px-10 pb-10 relative -mt-12">
+                  
+                  {/* Avatar & Header Info */}
+                  <div className="flex items-end gap-5 mb-8">
+                    <div className="relative shrink-0 z-10">
+                      <div className="w-24 h-24 rounded-full border-4 border-[#0E111E] bg-[#1A1725] overflow-hidden">
+                        {displayImage && !imgError ? (
+                          <img 
+                            src={displayImage} 
+                            alt="Profile" 
+                            onError={() => setImgError(true)}
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] flex items-center justify-center text-white text-3xl font-black uppercase">
+                            {name.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => { setIsSettingsOpen(false); setIsAvatarModalOpen(true); }}
+                        className="absolute bottom-0 right-0 w-8 h-8 bg-[#A66CFF] hover:bg-[#8B5CF6] rounded-full border-2 border-[#0E111E] flex items-center justify-center cursor-pointer shadow-md transition-transform hover:scale-110"
+                      >
+                        <ImageIcon className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
 
-              <div className="flex items-center gap-5 my-6">
-                <div className="relative shrink-0">
-                  <div className="w-20 h-20 bg-[#1A1725] p-1" style={{ clipPath: HEX_CLIP }}>
-                    {displayImage && !imgError ? (
-                      <img 
-                        src={displayImage} 
-                        alt="Profile" 
-                        onError={() => setImgError(true)}
-                        className="w-full h-full object-cover" 
-                        style={{ clipPath: HEX_CLIP }} 
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] flex items-center justify-center text-white text-2xl font-black uppercase" style={{ clipPath: HEX_CLIP }}>
-                        {name.charAt(0)}
+                    <div className="flex flex-col pb-1">
+                      <h2 className="text-2xl font-bold text-white tracking-tight">{name}</h2>
+                      <span className="text-sm text-[#8D89A8] font-medium mt-0.5">Joined {joinDate}</span>
+                    </div>
+                  </div>
+
+                  {/* Read-only Account Info Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                      <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-4 flex justify-between items-center group hover:border-white/10 transition-all">
+                         <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[#A66CFF]/10 flex items-center justify-center shrink-0">
+                               <ShieldAlert className="w-5 h-5 text-[#A66CFF]" />
+                            </div>
+                            <div className="flex flex-col">
+                               <span className="text-[11px] text-[#8D89A8] font-medium uppercase tracking-wider">Account ID</span>
+                               <span className="f-mono text-sm font-bold text-white mt-0.5">{userData?.id || 'N/A'}</span>
+                            </div>
+                         </div>
+                         <button onClick={() => copyToClipboard(userData?.id || '')} className="text-[#8D89A8] hover:text-white cursor-pointer transition-colors p-2">
+                           <Copy className="w-4 h-4" />
+                         </button>
+                      </div>
+
+                      <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-4 flex items-center gap-3 group hover:border-white/10 transition-all">
+                         <div className="w-10 h-10 rounded-full bg-[#3DE8A0]/10 flex items-center justify-center shrink-0">
+                            <Mail className="w-5 h-5 text-[#3DE8A0]" />
+                         </div>
+                         <div className="flex flex-col overflow-hidden">
+                            <span className="text-[11px] text-[#8D89A8] font-medium uppercase tracking-wider flex items-center gap-1.5">
+                              Registered Email <div className="w-1.5 h-1.5 rounded-full bg-[#3DE8A0]" />
+                            </span>
+                            <span className="f-mono text-sm font-bold text-white mt-0.5 truncate">{userData?.email || 'N/A'}</span>
+                         </div>
+                      </div>
+                  </div>
+
+                  <h3 className="text-lg font-bold text-white mb-5">Personal Details</h3>
+                  <form onSubmit={handleUpdateProfile} className="flex flex-col gap-4">
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[
+                        { key: 'firstName', label: 'First Name', type: 'text', icon: User, placeholder: 'Enter first name' },
+                        { key: 'lastName', label: 'Last Name', type: 'text', icon: User, placeholder: 'Enter last name' },
+                        { key: 'mobileNumber', label: 'Phone Number', type: 'tel', icon: Phone, placeholder: 'Enter mobile' },
+                        { key: 'education', label: 'Education', type: 'text', icon: BookOpen, placeholder: 'Highest degree' },
+                      ].map((f) => (
+                        <div key={f.key} className="flex flex-col gap-1.5">
+                           <label className="text-xs font-bold text-[#8D89A8] ml-1">{f.label}</label>
+                           <div className="relative flex items-center">
+                             <f.icon className="absolute left-3.5 w-4 h-4 text-[#8D89A8]" />
+                             <input
+                                type={f.type}
+                                required
+                                placeholder={f.placeholder}
+                                value={(formData as any)[f.key]}
+                                onChange={e => setFormData({ ...formData, [f.key]: e.target.value })}
+                                className="w-full bg-[#1A1725] border border-white/5 focus:border-[#A66CFF]/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-medium focus:outline-none transition-colors"
+                             />
+                           </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+                       <div className="flex flex-col gap-1.5 sm:col-span-2">
+                           <label className="text-xs font-bold text-[#8D89A8] ml-1">Full Address</label>
+                           <div className="relative flex items-center">
+                             <Home className="absolute left-3.5 w-4 h-4 text-[#8D89A8]" />
+                             <input
+                                type="text"
+                                required
+                                placeholder="Enter street address"
+                                value={formData.address}
+                                onChange={e => setFormData({ ...formData, address: e.target.value })}
+                                className="w-full bg-[#1A1725] border border-white/5 focus:border-[#A66CFF]/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-medium focus:outline-none transition-colors"
+                             />
+                           </div>
+                       </div>
+                       <div className="flex flex-col gap-1.5">
+                           <label className="text-xs font-bold text-[#8D89A8] ml-1">Zip Code</label>
+                           <div className="relative flex items-center">
+                             <Hash className="absolute left-3.5 w-4 h-4 text-[#8D89A8]" />
+                             <input
+                                type="text"
+                                required
+                                placeholder="Postal code"
+                                value={formData.zipCode}
+                                onChange={e => setFormData({ ...formData, zipCode: e.target.value })}
+                                className="w-full bg-[#1A1725] border border-white/5 focus:border-[#A66CFF]/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-medium focus:outline-none transition-colors"
+                             />
+                           </div>
+                       </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 mt-2">
+                       <label className="text-xs font-bold text-[#8D89A8] ml-1">City</label>
+                       <div className="relative flex items-center">
+                         <MapPin className="absolute left-3.5 w-4 h-4 text-[#8D89A8]" />
+                         <input
+                            type="text"
+                            required
+                            placeholder="Enter your city"
+                            value={formData.city}
+                            onChange={e => setFormData({ ...formData, city: e.target.value })}
+                            className="w-full bg-[#1A1725] border border-white/5 focus:border-[#A66CFF]/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-medium focus:outline-none transition-colors"
+                         />
+                       </div>
+                    </div>
+
+                    {message && (
+                      <div className={`p-4 rounded-xl text-sm font-bold text-center mt-4 border ${message.type === 'success' ? 'bg-[#3DE8A0]/10 text-[#3DE8A0] border-[#3DE8A0]/20' : 'bg-[#FF5D73]/10 text-[#FF5D73] border-[#FF5D73]/20'}`}>
+                        {message.text}
                       </div>
                     )}
+
+                    <button
+                      type="submit"
+                      disabled={isSaving}
+                      className="w-full py-4 mt-6 rounded-xl bg-gradient-to-r from-[#A66CFF] to-[#7C3AED] text-white font-bold text-sm shadow-[0_4px_20px_rgba(166,108,255,0.3)] hover:shadow-[0_4px_30px_rgba(166,108,255,0.5)] transition-shadow flex justify-center items-center gap-2 cursor-pointer"
+                    >
+                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                      {isSaving ? 'Saving Changes...' : 'Save Profile Changes'}
+                    </button>
+                  </form>
+                  
+                  {/* 🔥 Delete Account Option Restored 🔥 */}
+                  <div className="mt-8 pt-4 border-t border-[#FF5D73]/20 text-center">
+                    <button className="text-sm font-bold text-[#FF5D73] hover:text-[#FF5D73]/80 transition-colors cursor-pointer">
+                      Delete account
+                    </button>
                   </div>
-                  <button
-                    onClick={() => { setIsSettingsOpen(false); setIsAvatarModalOpen(true); }}
-                    className="absolute bottom-0 right-0 w-7 h-7 bg-white rounded-full border-2 border-[#120F1A] flex items-center justify-center cursor-pointer hover:scale-110 shadow-md transition-transform"
-                  >
-                    <ImageIcon className="w-3.5 h-3.5 text-[#120F1A]" />
-                  </button>
-                </div>
-                <div className="flex flex-col">
-                  <h2 className="f-display text-2xl font-bold text-white">{name}</h2>
-                  <span className="text-sm text-[#8D89A8] font-medium">Joined {joinDate}</span>
-                </div>
-              </div>
 
-              <h3 className="text-sm font-bold text-white mb-3">Account information</h3>
-              <div className="flex flex-col mb-8 border-t border-white/[0.06]">
-                <div className="flex items-center justify-between py-4 border-b border-white/[0.06]">
-                  <div className="flex items-center gap-3">
-                    <ShieldAlert className="w-4 h-4 text-[#A66CFF]" />
-                    <div className="flex flex-col">
-                      <span className="text-xs text-[#8D89A8] font-medium">Coinlooty ID</span>
-                      <span className="f-mono text-sm font-bold text-white">{userData?.id || 'N/A'}</span>
-                    </div>
-                  </div>
-                  <button onClick={() => copyToClipboard(userData?.id || '')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-white transition-colors border border-white/5 cursor-pointer">
-                    <Copy className="w-3.5 h-3.5" /> Copy
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-3 py-4 border-b border-white/[0.06]">
-                  <Mail className="w-4 h-4 text-[#A66CFF]" />
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-[#8D89A8] font-medium">Email</span>
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#3DE8A0]" />
-                    </div>
-                    <span className="f-mono text-sm font-bold text-white">{userData?.email || 'N/A'}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between py-4">
-                  <div className="flex items-center gap-3">
-                    <Globe className="w-4 h-4 text-[#A66CFF]" />
-                    <div className="flex flex-col">
-                      <span className="text-xs text-[#8D89A8] font-medium">Language</span>
-                      <span className="text-sm font-bold text-white">English</span>
-                    </div>
-                  </div>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-white transition-colors border border-white/5 cursor-pointer">
-                    Change
-                  </button>
-                </div>
-              </div>
-
-              <div className="border-t border-white/[0.06] pt-6">
-                <h3 className="text-sm font-bold text-white mb-4">Edit profile details</h3>
-                <form onSubmit={handleUpdateProfile} className="flex flex-col">
-                  {[
-                    { key: 'firstName', label: 'First name', type: 'text', icon: User },
-                    { key: 'lastName', label: 'Last name', type: 'text', icon: User },
-                    { key: 'email', label: 'Email', type: 'email', icon: Mail },
-                    { key: 'mobileNumber', label: 'Mobile number', type: 'tel', icon: Phone },
-                    { key: 'education', label: 'Education', type: 'text', icon: BookOpen },
-                    { key: 'address', label: 'Address', type: 'text', icon: Home },
-                    { key: 'city', label: 'City', type: 'text', icon: MapPin },
-                    { key: 'zipCode', label: 'Zip code', type: 'text', icon: Hash },
-                  ].map((f) => (
-                    <div key={f.key} className="flex items-center gap-3 py-3 border-b border-white/[0.06] group focus-within:border-[#A66CFF]/50 transition-colors">
-                      <f.icon className="w-4 h-4 text-[#8D89A8] group-focus-within:text-[#A66CFF] transition-colors shrink-0" />
-                      <label className="text-xs font-bold text-[#8D89A8] w-32 shrink-0">{f.label}</label>
-                      <input
-                        type={f.type}
-                        required
-                        value={(formData as any)[f.key]}
-                        onChange={e => setFormData({ ...formData, [f.key]: e.target.value })}
-                        className="w-full bg-transparent text-sm text-white font-medium focus:outline-none placeholder:text-[#8D89A8]/50"
-                      />
-                    </div>
-                  ))}
-
-                  {message && (
-                    <div className={`p-3 rounded-xl text-sm font-bold text-center mt-4 ${message.type === 'success' ? 'bg-[#3DE8A0]/10 text-[#3DE8A0]' : 'bg-[#FF5D73]/10 text-[#FF5D73]'}`}>
-                      {message.text}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="w-full py-3.5 mt-6 rounded-xl bg-gradient-to-r from-[#A66CFF] to-[#7C3AED] text-white font-bold text-sm shadow-md hover:shadow-[0_0_20px_rgba(166,108,255,0.4)] transition-shadow flex justify-center items-center gap-2 cursor-pointer"
-                  >
-                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    {isSaving ? 'Saving...' : 'Save changes'}
-                  </button>
-                </form>
-              </div>
-
-              <div className="mt-8 pt-4 border-t border-[#FF5D73]/20 text-center">
-                <button className="text-sm font-bold text-[#FF5D73] hover:text-[#FF5D73]/80 transition-colors cursor-pointer">
-                  Delete account
-                </button>
               </div>
 
             </motion.div>
@@ -1210,8 +1377,7 @@ export default function ProfilePage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-              className="relative w-full max-w-[560px] bg-[#120F1A] border border-white/10 p-6 sm:p-8 text-white shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
-              style={{ clipPath: NOTCH_CLIP, borderRadius: 28 }}
+              className="relative w-full max-w-[560px] bg-[#120F1A] border border-white/10 rounded-3xl p-6 sm:p-8 text-white shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
             >
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#A66CFF] to-transparent" />
               <button

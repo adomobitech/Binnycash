@@ -73,7 +73,25 @@ export default function DashboardPage() {
         else if (Array.isArray(resData?.inbox)) feeds = resData.inbox;
         else if (Array.isArray(resData?.data)) feeds = resData.data;
         
-        setLiveFeeds(feeds);
+        // 🔥 FIX: Remove duplicate users so one user shows only once 🔥
+        const uniqueFeeds: any[] = [];
+        const seenUsers = new Set();
+
+        for (const feed of feeds) {
+          // Identify user by username or userId
+          const identifier = feed.userName || feed.user_name || feed.userId || feed.user_id || feed._id;
+          
+          if (identifier) {
+            if (!seenUsers.has(identifier)) {
+              seenUsers.add(identifier);
+              uniqueFeeds.push(feed);
+            }
+          } else {
+            uniqueFeeds.push(feed); // fallback if no ID exists
+          }
+        }
+        
+        setLiveFeeds(uniqueFeeds);
       } catch (err) { 
         console.error("Error fetching live feeds:", err); 
       } finally { 

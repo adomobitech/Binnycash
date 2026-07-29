@@ -5,6 +5,7 @@ import HeroWallet from './HeroWallet';
 import { Sparkles, ArrowRight } from 'lucide-react';
 
 export default function DashboardHero() {
+  
   const scrollToOffers = () => {
     const section = document.getElementById('featured-offers');
     if (section) {
@@ -15,7 +16,6 @@ export default function DashboardHero() {
   };
 
   return (
-    // Box UI removed: Background color, borders, shadow, and radius are removed for seamless blending
     <div className="w-full relative flex flex-col pb-8">
       
       {/* Subtle Background Glow blended with the main screen */}
@@ -46,7 +46,7 @@ export default function DashboardHero() {
             Complete premium offers, take top-tier surveys, and climb the leaderboard to maximize your crypto and cash rewards.
           </p>
           
-          {/* Button & Avatars Container */}
+          {/* Button Container (Happy Earners Removed) */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pt-4">
             
             {/* Call to Action Button */}
@@ -57,25 +57,6 @@ export default function DashboardHero() {
               Start Earning 
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
             </button>
-
-            {/* Happy Earners Stack */}
-            <div className="flex items-center gap-4">
-              <div className="flex -space-x-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="w-10 h-10 rounded-full border-2 border-[#0B0D19] bg-[#1A1C24] overflow-hidden shadow-sm">
-                    <img 
-                      src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${i + 15}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
-                      alt="Earner" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[#00E57A] font-black text-sm tracking-wide">10K+</span>
-                <span className="text-[#8F95A3] text-xs font-semibold">Happy Earners</span>
-              </div>
-            </div>
 
           </div>
         </motion.div>
@@ -94,4 +75,4 @@ export default function DashboardHero() {
       </div>
     </div>
   );
-}
+} 
