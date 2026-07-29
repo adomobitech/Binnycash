@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-// 🔥 Sidebar import hata diya 🔥
 import OfferCard from '@/components/offers/OfferCard';
 import { ListChecks, List, Star, Zap, ChevronDown, ChevronLeft, Search } from "lucide-react";
 
@@ -30,6 +29,7 @@ export default function AllSurveywallsPage() {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
 
       try {
+        // Replacing placeholder API endpoint, adjust if needed
         const res = await fetch(`https://apitest.binnycash.com/api/user/surveywall_list_placeholder`, {
           method: 'GET',
           headers: {
@@ -109,7 +109,7 @@ export default function AllSurveywallsPage() {
             <div className="pl-14">
               <p className="text-[13px] md:text-sm text-[#8F95A3] font-medium mb-1">Explore premium surveywalls to boost your earnings.</p>
               <p className="text-[13px] md:text-sm text-[#8F95A3] font-medium">
-                Total Available: <span className="text-emerald-400 font-bold">{surveywalls.length} Surveywalls</span>
+                Total Available: <span className="text-emerald-400 font-bold">{processedItems.length} Surveywalls</span>
               </p>
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function AllSurveywallsPage() {
           </div>
 
           {/* CUSTOM DROPDOWN */}
-          <div className="relative shrink-0 w-full sm:w-[220px] z-10" ref={dropdownRef}>
+          <div className="relative shrink-0 w-full sm:w-[220px] z-20" ref={dropdownRef}>
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
               className="w-full flex items-center justify-between gap-2 bg-[#111319] border border-white/5 rounded-[14px] px-4 py-3.5 text-[13px] font-medium text-white hover:bg-[#1A1C24] transition-colors shadow-sm"
@@ -144,7 +144,7 @@ export default function AllSurveywallsPage() {
             </button>
             
             {isDropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-full bg-[#111319] border border-white/5 rounded-xl shadow-xl overflow-hidden z-50">
+              <div className="absolute right-0 top-full mt-2 w-full bg-[#111319] border border-white/5 rounded-xl shadow-xl overflow-hidden z-[100]">
                 <button onClick={() => {setFilterType('All'); setIsDropdownOpen(false)}} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors">
                    <List className="w-4 h-4" /> All
                 </button>
@@ -159,7 +159,7 @@ export default function AllSurveywallsPage() {
           </div>
         </div>
 
-        {/* 🔥 GRID CONTENT 🔥 */}
+        {/* 🔥 GRID CONTENT (No Pagination) 🔥 */}
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
@@ -167,7 +167,7 @@ export default function AllSurveywallsPage() {
             ))}
           </div>
         ) : processedItems.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4 lg:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4 lg:gap-5 pb-8">
             {processedItems.map((item, index) => {
               const fixedItem = {
                 ...item,

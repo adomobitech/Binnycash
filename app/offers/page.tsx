@@ -45,9 +45,6 @@ export default function AllOffersPage() {
   const [isNetOpen, setIsNetOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 24; 
-
   const catRef = useRef<HTMLDivElement>(null);
   const netRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
@@ -146,8 +143,6 @@ export default function AllOffersPage() {
     fetchAllOffers();
   }, []);
 
-  useEffect(() => { setCurrentPage(1); }, [searchQuery, selectedDevices, sortBy, selectedCategory, selectedNetwork]);
-
   const handleSelectDevice = (device: string) => {
     setSelectedDevices((prev) => {
       if (prev.includes(device)) return prev.filter((d) => d !== device);
@@ -211,9 +206,6 @@ export default function AllOffersPage() {
     processedOffers.sort((a, b) => parseFloat(a.userCredits ?? a.reward ?? a.payout ?? 0) - parseFloat(b.userCredits ?? b.reward ?? b.payout ?? 0));
   }
 
-  const totalPages = Math.ceil(processedOffers.length / itemsPerPage);
-  const paginatedOffers = processedOffers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
   const getSortIcon = () => {
     if (sortBy === 'High Reward') return <ArrowUp className="w-4 h-4" />;
     if (sortBy === 'Low Reward') return <ArrowDown className="w-4 h-4" />;
@@ -249,7 +241,7 @@ export default function AllOffersPage() {
             <div className="pl-14">
               <p className="text-[13px] md:text-sm text-[#8F95A3] font-medium mb-1">Explore a diverse collection of offers from verified networks.</p>
               <p className="text-[13px] md:text-sm text-[#8F95A3] font-medium">
-                Total Available: <span className="text-[#8B5CF6] font-bold">{offers.length} Offers</span>
+                Total Available: <span className="text-[#8B5CF6] font-bold">{processedOffers.length} Offers</span>
               </p>
             </div>
           </div>
@@ -371,31 +363,12 @@ export default function AllOffersPage() {
               <div key={i} className="h-44 bg-[#111319] border border-white/5 animate-pulse rounded-2xl"></div>
             ))}
           </div>
-        ) : paginatedOffers.length > 0 ? (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4 lg:gap-5">
-              {paginatedOffers.map((offer, index) => (
-                <OfferCard key={offer._id || offer.id || index} offer={offer} />
-              ))}
-            </div>
-
-            {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10 bg-[#111319] p-4 px-6 rounded-2xl border border-white/5">
-                <p className="text-[#8F95A3] text-[13px] font-medium">
-                  Showing <span className="text-white font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-white font-bold">{Math.min(currentPage * itemsPerPage, processedOffers.length)}</span> of <span className="text-white font-bold">{processedOffers.length}</span>
-                </p>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 rounded-xl bg-[#1A1C24] border border-white/5 text-white disabled:opacity-30 hover:bg-white/5 transition-all text-sm font-bold">Prev</button>
-                  <div className="flex items-center gap-1 px-2 hidden sm:flex">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
-                      <button key={pageNum} onClick={() => setCurrentPage(pageNum)} className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-all ${currentPage === pageNum ? 'bg-[#8B5CF6] text-white shadow-[0_0_10px_rgba(139,92,246,0.3)]' : 'text-[#8F95A3] hover:text-white hover:bg-[#1A1C24]'}`}>{pageNum}</button>
-                    ))}
-                  </div>
-                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-4 py-2 rounded-xl bg-[#1A1C24] border border-white/5 text-white disabled:opacity-30 hover:bg-white/5 transition-all text-sm font-bold">Next</button>
-                </div>
-              </div>
-            )}
-          </>
+        ) : processedOffers.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4 lg:gap-5">
+            {processedOffers.map((offer, index) => (
+              <OfferCard key={offer._id || offer.id || index} offer={offer} />
+            ))}
+          </div>
         ) : (
           <div className="text-center py-24 bg-[#111319] border border-white/5 rounded-2xl flex flex-col items-center justify-center mt-4">
             <Settings2 className="w-12 h-12 text-[#8F95A3] mb-4 opacity-50" />

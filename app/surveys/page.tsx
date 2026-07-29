@@ -14,9 +14,6 @@ export default function AllSurveysPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 24; 
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -69,8 +66,6 @@ export default function AllSurveysPage() {
     fetchAllSurveys();
   }, []);
 
-  useEffect(() => { setCurrentPage(1); }, [searchQuery, filterType]);
-
   let processedSurveys = [...surveys];
 
   if (searchQuery.trim()) {
@@ -89,9 +84,6 @@ export default function AllSurveysPage() {
   } else if (filterType === 'Short Survey') {
     processedSurveys.sort((a, b) => parseFloat(a.userCredits ?? a.reward ?? 0) - parseFloat(b.userCredits ?? b.reward ?? 0));
   }
-
-  const totalPages = Math.ceil(processedSurveys.length / itemsPerPage);
-  const paginatedSurveys = processedSurveys.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const getFilterIcon = (type: string) => {
     switch (type) {
@@ -128,7 +120,7 @@ export default function AllSurveysPage() {
             <div className="pl-14">
               <p className="text-[13px] md:text-sm text-[#8F95A3] font-medium mb-1">Explore a diverse collection of surveys from verified providers.</p>
               <p className="text-[13px] md:text-sm text-[#8F95A3] font-medium">
-                Total Available: <span className="text-amber-400 font-bold">{surveys.length} Surveys</span>
+                Total Available: <span className="text-amber-400 font-bold">{processedSurveys.length} Surveys</span>
               </p>
             </div>
           </div>
@@ -181,38 +173,19 @@ export default function AllSurveysPage() {
           </div>
         </div>
 
-        {/* GRID CONTENT */}
+        {/* GRID CONTENT (No Pagination) */}
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
               <div key={i} className="h-44 bg-[#111319] border border-white/5 animate-pulse rounded-2xl"></div>
             ))}
           </div>
-        ) : paginatedSurveys.length > 0 ? (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4 lg:gap-5">
-              {paginatedSurveys.map((survey, index) => (
-                <OfferCard key={survey._id || survey.id || index} offer={survey} isSurveyCard={true} />
-              ))}
-            </div>
-
-            {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10 bg-[#111319] p-4 px-6 rounded-2xl border border-white/5">
-                <p className="text-[#8F95A3] text-[13px] font-medium">
-                  Showing <span className="text-white font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-white font-bold">{Math.min(currentPage * itemsPerPage, processedSurveys.length)}</span> of <span className="text-white font-bold">{processedSurveys.length}</span>
-                </p>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 rounded-xl bg-[#1A1C24] border border-white/5 text-white disabled:opacity-30 hover:bg-white/5 transition-all text-sm font-bold">Prev</button>
-                  <div className="flex items-center gap-1 px-2 hidden sm:flex">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
-                      <button key={pageNum} onClick={() => setCurrentPage(pageNum)} className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-all ${currentPage === pageNum ? 'bg-amber-500 text-white shadow-[0_0_10px_rgba(245,158,11,0.3)]' : 'text-[#8F95A3] hover:text-white hover:bg-[#1A1C24]'}`}>{pageNum}</button>
-                    ))}
-                  </div>
-                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-4 py-2 rounded-xl bg-[#1A1C24] border border-white/5 text-white disabled:opacity-30 hover:bg-white/5 transition-all text-sm font-bold">Next</button>
-                </div>
-              </div>
-            )}
-          </>
+        ) : processedSurveys.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4 lg:gap-5 pb-8">
+            {processedSurveys.map((survey, index) => (
+              <OfferCard key={survey._id || survey.id || index} offer={survey} isSurveyCard={true} />
+            ))}
+          </div>
         ) : (
           <div className="text-center py-24 bg-[#111319] border border-white/5 rounded-2xl flex flex-col items-center justify-center mt-4">
             <Search className="w-12 h-12 text-[#8F95A3] mb-4 opacity-50"/>

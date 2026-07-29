@@ -6,7 +6,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from './AuthContext';
 import { 
   Bell, Rocket, Trophy, Wallet, ChevronDown, User, 
-  LogOut, MessageSquare, ShieldCheck, HelpCircle, Gift, BarChart3, Users, X, CheckCheck, Loader2
+  LogOut, MessageSquare, HelpCircle, Gift, 
+  BarChart3, Users, X, CheckCheck, Loader2, Globe, ChevronRight
 } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
@@ -55,13 +56,24 @@ function getUserId(): string {
 }
 
 const LANGUAGES = [
-  { code: 'en', name: 'English', tag: 'us', flag: '🇺🇸' },
-  { code: 'hi', name: 'Hindi', tag: 'in', flag: '🇮🇳' },
-  { code: 'bn', name: 'Bengali', tag: 'bd', flag: '🇧🇩' },
-  { code: 'es', name: 'Spanish', tag: 'es', flag: '🇪🇸' },
-  { code: 'fr', name: 'French', tag: 'fr', flag: '🇫🇷' },
-  { code: 'de', name: 'German', tag: 'de', flag: '🇩🇪' },
-  { code: 'ar', name: 'Arabic', tag: 'sa', flag: '🇸🇦' }
+  { code: 'en', name: 'English', tag: 'us' },
+  { code: 'hi', name: 'Hindi', tag: 'in' },
+  { code: 'es', name: 'Spanish', tag: 'es' },
+  { code: 'fr', name: 'French', tag: 'fr' },
+  { code: 'de', name: 'German', tag: 'de' },
+  { code: 'pt', name: 'Portuguese', tag: 'pt' },
+  { code: 'ru', name: 'Russian', tag: 'ru' },
+  { code: 'zh-CN', name: 'Chinese', tag: 'cn' },
+  { code: 'ja', name: 'Japanese', tag: 'jp' },
+  { code: 'ko', name: 'Korean', tag: 'kr' },
+  { code: 'it', name: 'Italian', tag: 'it' },
+  { code: 'tr', name: 'Turkish', tag: 'tr' },
+  { code: 'vi', name: 'Vietnamese', tag: 'vn' },
+  { code: 'th', name: 'Thai', tag: 'th' },
+  { code: 'id', name: 'Indonesian', tag: 'id' },
+  { code: 'ar', name: 'Arabic', tag: 'sa' },
+  { code: 'bn', name: 'Bengali', tag: 'bd' },
+  { code: 'ur', name: 'Urdu', tag: 'pk' }
 ];
 
 const MAIN_LINKS = [
@@ -92,22 +104,20 @@ export default function Navbar() {
   
   const [trueUserId, setTrueUserId] = useState<string>('');
 
-  // Currency Switch States
   const [currency, setCurrency] = useState('Usd');
   const [isCurrencySwitching, setIsCurrencySwitching] = useState(false);
 
-  // Inbox & Notification States
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [inboxMessages, setInboxMessages] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isInboxLoading, setIsInboxLoading] = useState(false);
 
-  // Chat Drawer State
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
 
   const navRef = useRef<HTMLElement>(null);
 
+  // Translation & Currency Initial Load
   useEffect(() => {
     const cookies = document.cookie.split(';');
     for (let cookie of cookies) {
@@ -119,10 +129,16 @@ export default function Navbar() {
       }
     }
     
-    // Set initial currency from localStorage on mount so UI doesn't lag
     if (typeof window !== 'undefined') {
       const savedCurrency = localStorage.getItem('currency');
-      if (savedCurrency) setCurrency(savedCurrency);
+      if (savedCurrency === 'Coin' || savedCurrency === 'COIN') {
+         setCurrency('Coin');
+         window.dispatchEvent(new CustomEvent('currencyChanged', { detail: 'Coin' }));
+      } else {
+         setCurrency('Usd');
+         localStorage.setItem('currency', 'Usd');
+         window.dispatchEvent(new CustomEvent('currencyChanged', { detail: 'Usd' }));
+      }
     }
   }, []);
 
@@ -138,19 +154,6 @@ export default function Navbar() {
           .then(res => res.json())
           .then(data => { if (data && data.data !== undefined) setBalance(data.data); })
           .catch(err => console.error("Wallet fetch error:", err));
-
-        fetch('https://apitest.binnycash.com/api/user/notificationList', {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-          .then(res => res.json())
-          .then(data => {
-            if (data?.data?.unreadCount !== undefined) {
-              setUnreadCount(data.data.unreadCount);
-            }
-          })
-          .catch(err => console.error("Notification count error:", err));
-
       } else {
         setIsLoggedIn(false);
       }
@@ -182,32 +185,20 @@ export default function Navbar() {
          const user = data?.data?.user || data?.data;
          if (user) {
             if (user.id) setTrueUserId(String(user.id));
-
             let display = user.userName || user.firstName;
             if (!display && user.email) {
               display = user.email.split('@')[0];
             }
-            if (display) {
-              setUserName(display);
-            }
+            if (display) setUserName(display);
+            
             const rawPic = user.image || user.profilePic;
-            if (rawPic) {
-              setUserAvatar(resolveImage(rawPic));
-            }
-            // 🔥 Setup Currency Globally on Load
-            if (user.currency) {
-              const apiCurrency = user.currency.toLowerCase() === 'coin' ? 'Coin' : 'Usd';
-              setCurrency(apiCurrency);
-              localStorage.setItem('currency', apiCurrency);
-              window.dispatchEvent(new CustomEvent('currencyChanged', { detail: apiCurrency }));
-            }
+            if (rawPic) setUserAvatar(resolveImage(rawPic));
          }
       })
       .catch(err => console.error("Profile fetch error:", err));
     }
   }, [isLoggedIn]);
 
-  // 🔥 GLOBAL CURRENCY TOGGLE API LOGIC
   const toggleCurrency = async () => {
     if (isCurrencySwitching) return;
     
@@ -219,7 +210,6 @@ export default function Navbar() {
       const currentUserId = trueUserId || getUserId() || localStorage.getItem('userId'); 
       
       if (!currentUserId) {
-        console.error("User ID is missing! Cannot update currency.");
         setIsCurrencySwitching(false);
         return;
       }
@@ -240,12 +230,9 @@ export default function Navbar() {
       const json = await res.json();
 
       if (res.ok || json.code === 200) {
-        // 🔥 UPDATE GLOBALLY ON SUCCESS
         setCurrency(newCurrency);
         localStorage.setItem('currency', newCurrency);
         window.dispatchEvent(new CustomEvent('currencyChanged', { detail: newCurrency }));
-      } else {
-        console.error("Failed to update currency:", json.message);
       }
     } catch (error) {
       console.error("Error updating currency:", error);
@@ -380,6 +367,8 @@ export default function Navbar() {
     }
   };
 
+  const isCoin = currency === 'Coin' || currency === 'COIN';
+
   return (
     <>
       <AnimatePresence>
@@ -413,17 +402,13 @@ export default function Navbar() {
         {isInboxOpen && (
           <>
             <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
               onClick={() => setIsInboxOpen(false)}
               className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm" 
             />
             
             <motion.div 
-              initial={{ x: '100%' }} 
-              animate={{ x: 0 }} 
-              exit={{ x: '100%' }} 
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} 
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="fixed right-0 top-0 h-full w-full max-w-md bg-[#0E1015] border-l border-white/10 z-[160] flex flex-col shadow-[-10px_0_40px_rgba(0,0,0,0.8)]"
             >
@@ -533,121 +518,180 @@ export default function Navbar() {
             <div id="google_translate_element" style={{ display: 'none' }}></div>
             
             <div className="relative">
-              <button onClick={() => setIsLangModalOpen(!isLangModalOpen)} className="flex items-center gap-1.5 md:gap-2 bg-white/5 border border-white/10 hover:bg-white/10 transition-all px-2.5 md:px-3 py-2 rounded-xl text-white text-xs font-bold backdrop-blur-md cursor-pointer">
-                <span className={`fi fi-${selectedLang.tag} w-4 h-3 rounded-[2px] shadow-sm`}></span>
-                <span className="hidden sm:inline uppercase">{selectedLang.code}</span>
-                <ChevronDown className="w-3 h-3 text-[#8F95A3]" />
+              <button 
+                onClick={() => setIsLangModalOpen(!isLangModalOpen)} 
+                className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 px-3 py-2 md:py-2.5 rounded-xl transition-all cursor-pointer shadow-sm group"
+              >
+                <Globe className="w-4 h-4 text-[#8B5CF6] group-hover:animate-spin-slow" />
+                <span className="hidden sm:inline text-white text-xs font-bold uppercase tracking-wider">{selectedLang.code.split('-')[0]}</span>
+                <ChevronDown className={`w-3 h-3 text-[#8F95A3] transition-transform ${isLangModalOpen ? 'rotate-180' : ''}`} />
               </button>
 
               <AnimatePresence>
                 {isLangModalOpen && (
-                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} transition={{ duration: 0.2 }} className="absolute right-0 mt-3 w-48 bg-[#1A1C24]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl py-2 z-50">
-                    {LANGUAGES.map((lang) => (
-                      <button key={lang.code} onClick={() => handleLanguageChange(lang)} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-[#8F95A3] hover:text-white hover:bg-white/5 transition-colors text-left cursor-pointer">
-                        <span className={`fi fi-${lang.tag} w-5 h-3.5 rounded-[2px] shadow-sm`}></span>
-                        <span>{lang.name}</span>
-                      </button>
-                    ))}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                    animate={{ opacity: 1, y: 0, scale: 1 }} 
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }} 
+                    transition={{ duration: 0.2 }} 
+                    className="absolute right-0 mt-3 w-[300px] md:w-[340px] bg-[#12151C]/95 backdrop-blur-xl border border-[#8B5CF6]/20 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.5)] py-2 z-50 overflow-hidden"
+                  >
+                    <div className="px-4 py-2 border-b border-white/5 mb-2 flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-[#8B5CF6]" />
+                      <span className="text-white text-xs font-bold uppercase tracking-wider">Select Region</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 px-2 max-h-[300px] overflow-y-auto custom-scrollbar pb-2">
+                      {LANGUAGES.map((lang) => (
+                        <button 
+                          key={lang.code} 
+                          onClick={() => handleLanguageChange(lang)} 
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                            selectedLang.code === lang.code 
+                              ? 'bg-[#8B5CF6]/15 text-[#A855F7] border border-[#8B5CF6]/30' 
+                              : 'text-[#8F95A3] hover:text-white hover:bg-white/5 border border-transparent'
+                          }`}
+                        >
+                          <span className={`fi fi-${lang.tag} w-4 h-3 rounded-[2px] shadow-sm`}></span>
+                          <span className="truncate">{lang.name}</span>
+                        </button>
+                      ))}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
             {isLoggedIn ? (
-              <div className="flex items-center gap-2 md:gap-4">
+              <div className="flex items-center gap-2 md:gap-3">
                 
-                <button 
-                  onClick={() => {
-                    setIsChatOpen(true);
-                    setUnreadChatCount(0);
-                  }}
-                  className="relative w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors group cursor-pointer"
-                >
-                  <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-[#8F95A3] group-hover:text-white transition-colors" />
-                  {unreadChatCount > 0 && (
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-[#00E57A] rounded-full shadow-[0_0_10px_rgba(0,229,122,1)] animate-pulse"></span>
-                  )}
-                </button>
+                {/* 1. BALANCE */}
+                <div className="hidden lg:flex items-center justify-center gap-1.5 bg-[#2B164D] px-3.5 py-2 rounded-xl border border-[#A855F7]/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+                  <span className="text-[#A855F7] font-black text-[17px] leading-none">
+                    {isCoin ? 'C' : '$'}
+                  </span>
+                  <span className="text-white font-black text-[17px] leading-none tracking-tight">
+                    {isCoin ? Number(balance) * 1000 : balance}
+                  </span>
+                </div>
 
+                {/* 2. NOTIFICATION (Bell) */}
                 <button 
                   onClick={() => setIsInboxOpen(true)}
-                  className="relative w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors group cursor-pointer"
+                  className="relative w-10 h-10 rounded-xl bg-[#1A1C24] hover:bg-[#252836] flex items-center justify-center transition-colors cursor-pointer border border-white/5"
                 >
-                  <motion.div animate={{ rotate: [0, -15, 15, -15, 15, 0] }} transition={{ repeat: Infinity, repeatDelay: 3, duration: 0.5 }}>
-                    <Bell className="w-4 h-4 md:w-5 md:h-5 text-[#8F95A3] group-hover:text-white transition-colors" />
-                  </motion.div>
+                  <Bell className="w-[18px] h-[18px] text-[#8F95A3] fill-current" />
                   {unreadCount > 0 && (
                     <span className="absolute top-2 right-2 w-2 h-2 bg-[#00E57A] rounded-full shadow-[0_0_10px_rgba(0,229,122,1)] animate-pulse"></span>
                   )}
                 </button>
 
-                <div className="hidden lg:flex items-center gap-3 bg-gradient-to-r from-white/5 to-white/10 border border-white/10 px-4 py-2 rounded-xl backdrop-blur-md shadow-inner">
-                  <Wallet className="w-4 h-4 text-[#8B5CF6]" />
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-[#8F95A3] font-bold uppercase leading-tight">Balance</span>
-                    <span className="text-sm font-black text-white leading-tight">${balance}</span>
-                  </div>
-                </div>
+                {/* 3. CHAT (Green Dot) */}
+                <button 
+                  onClick={() => { setIsChatOpen(true); setUnreadChatCount(0); }}
+                  className="relative w-10 h-10 rounded-xl bg-[#1A1C24] hover:bg-[#252836] flex items-center justify-center transition-colors cursor-pointer border border-white/5"
+                >
+                  <MessageSquare className="w-[18px] h-[18px] text-[#8F95A3] fill-current" />
+                  <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[#00E57A] border-2 border-[#0E1015] rounded-full shadow-[0_0_8px_rgba(0,229,122,0.8)]"></span>
+                </button>
 
+                {/* 4. PROFILE (Premium UI Dropdown) */}
                 <div className="relative">
-                  <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-gradient-to-br from-[#8B5CF6] to-[#7c3aed] p-1 pr-2 md:pr-3 rounded-full hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all cursor-pointer">
+                  <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2.5 bg-[#1A1C24] hover:bg-[#252836] pl-1.5 pr-3 py-1.5 rounded-xl transition-all cursor-pointer border border-white/5">
                     {userAvatar ? (
-                      <img src={userAvatar} alt="Profile" className="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover border-2 border-[#8B5CF6] shadow-sm" />
+                      <img src={userAvatar} alt="Profile" className="w-8 h-8 rounded-full object-cover shadow-sm" />
                     ) : (
-                      <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs md:text-sm font-black shadow-sm uppercase">
+                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white text-sm font-black shadow-sm uppercase">
                         {userName.charAt(0)}
                       </div>
                     )}
-                    <span className="text-white text-xs font-bold max-w-[90px] truncate hidden md:block">
+                    <span className="text-[#8F95A3] text-sm font-bold max-w-[100px] truncate hidden md:block">
                       {userName}
                     </span>
-                    <ChevronDown className="w-3 h-3 text-white/70" />
+                    <ChevronDown className="w-4 h-4 text-[#A855F7] font-bold" strokeWidth={3} />
                   </button>
 
                   <AnimatePresence>
                     {isProfileOpen && (
-                      <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} transition={{ duration: 0.2 }} className="absolute right-0 mt-4 w-52 bg-[#1A1C24]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] py-3 z-50">
-                        <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-5 py-2.5 text-[15px] font-bold text-[#8F95A3] hover:text-white transition-colors">
-                          <User className="w-5 h-5" /> Profile
-                        </Link>
-                        
-                        {/* 🔥 LINK CHANGED TO /account 🔥 */}
-                        <Link href="/account" onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-5 py-2.5 text-[15px] font-bold text-[#8F95A3] hover:text-white transition-colors">
-                          <ShieldCheck className="w-5 h-5" /> Account Status
-                        </Link>
-                        
-                        <Link href="/support" onClick={() => setIsProfileOpen(false)} className="w-full flex items-center gap-3 px-5 py-2.5 text-[15px] font-bold text-[#8F95A3] hover:text-white transition-colors">
-                          <HelpCircle className="w-5 h-5" /> Help
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                        animate={{ opacity: 1, y: 0, scale: 1 }} 
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }} 
+                        transition={{ duration: 0.2 }} 
+                        className="absolute right-0 mt-4 w-[280px] bg-[#0E1015]/95 backdrop-blur-xl border border-white/10 rounded-[24px] shadow-[0_15px_50px_rgba(139,92,246,0.15)] p-3 z-50 flex flex-col gap-2"
+                      >
+                        {/* Triangle Pointer */}
+                        <div className="absolute -top-2 right-6 w-4 h-4 bg-[#0E1015] border-t border-l border-white/10 rotate-45" />
+
+                        {/* Profile Item */}
+                        <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
+                              <User className="w-4 h-4 text-[#8F95A3] group-hover:text-[#A855F7] transition-colors" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-white text-[13px] font-bold">Profile</span>
+                              <span className="text-[#8F95A3] text-[10px]">Manage your account</span>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
                         </Link>
 
-                        <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="w-full flex items-center gap-3 px-5 py-2.5 text-[15px] font-bold text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
-                          <LogOut className="w-5 h-5" /> Logout
-                        </button>
+                        {/* Help Item */}
+                        <Link href="/support" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
+                              <HelpCircle className="w-4 h-4 text-[#8F95A3] group-hover:text-[#A855F7] transition-colors" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-white text-[13px] font-bold">Help</span>
+                              <span className="text-[#8F95A3] text-[10px]">Get help & support</span>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
+                        </Link>
 
-                        <div className="my-2 mx-5 border-t-2 border-[#a855f7]"></div>
+                        {/* Custom Separator Line with Diamond */}
+                        <div className="flex items-center justify-center py-1.5">
+                          <div className="h-px bg-gradient-to-r from-transparent via-[#8B5CF6]/40 to-transparent flex-1" />
+                          <div className="w-1.5 h-1.5 rotate-45 bg-[#8B5CF6] mx-3 shadow-[0_0_8px_#8B5CF6]" />
+                          <div className="h-px bg-gradient-to-r from-[#8B5CF6]/40 via-[#8B5CF6]/40 to-transparent flex-1" />
+                        </div>
 
-                        <div className="w-full flex items-center justify-center gap-4 px-5 py-2">
-                          <span className="text-base font-black text-white tracking-wide">
+                        {/* 🔥 CUSTOM CURRENCY SWITCHER (ABOVE LOGOUT) 🔥 */}
+                        <div className="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-2xl p-3.5 mb-1 transition-all hover:bg-white/[0.04]">
+                          <span className="text-[14px] font-black text-white tracking-wide pl-2">
                             {currency.toUpperCase()}
                           </span>
                           <button 
                             onClick={(e) => { e.stopPropagation(); toggleCurrency(); }}
                             disabled={isCurrencySwitching}
-                            className="relative w-12 h-6 rounded-full border-2 border-[#a855f7] flex items-center p-0.5 cursor-pointer bg-transparent"
+                            className={`relative w-12 h-6 rounded-full border-2 transition-colors duration-300 ease-in-out flex items-center p-0.5 cursor-pointer bg-transparent ${isCoin ? 'border-[#8B5CF6]' : 'border-[#8B5CF6]/50'}`}
                           >
                             <motion.div 
                               layout
                               initial={false}
-                              animate={{
-                                x: currency === 'Coin' || currency === 'COIN' ? 24 : 0,
-                              }}
+                              animate={{ x: isCoin ? 24 : 0 }}
                               transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                              className="w-4 h-4 rounded-full bg-[#a855f7] flex items-center justify-center"
+                              className={`w-4 h-4 rounded-full flex items-center justify-center shadow-sm ${isCoin ? 'bg-[#8B5CF6]' : 'bg-[#8B5CF6]/50'}`}
                             >
                               {isCurrencySwitching && <Loader2 className="w-3 h-3 text-white animate-spin" />}
                             </motion.div>
                           </button>
                         </div>
+
+                        {/* Logout Item (Red Theme) */}
+                        <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="relative w-full group flex items-center justify-between bg-[#FF5D73]/5 hover:bg-[#FF5D73]/10 border border-[#FF5D73]/20 hover:border-[#FF5D73]/40 rounded-2xl p-3.5 transition-all text-left">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-[#FF5D73]/20 group-hover:border-[#FF5D73]/50 transition-colors shadow-inner">
+                              <LogOut className="w-4 h-4 text-[#FF5D73]" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[#FF5D73] text-[13px] font-bold">Logout</span>
+                              <span className="text-[#8F95A3] text-[10px]">Sign out from your account</span>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-[#FF5D73] opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                        </button>
                         
                       </motion.div>
                     )}

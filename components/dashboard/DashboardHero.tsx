@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import HeroWallet from './HeroWallet'; 
-import { Sparkles, Wallet, ShieldCheck, Star, Trophy, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight } from 'lucide-react';
 
 export default function DashboardHero() {
   const scrollToOffers = () => {
@@ -15,89 +15,82 @@ export default function DashboardHero() {
   };
 
   return (
-    <div className="w-full bg-[#111319] border border-white/5 rounded-[32px] overflow-hidden relative shadow-2xl flex flex-col">
-      <div className="absolute top-0 left-0 w-full h-[70%] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-[#8B5CF6]/10 via-[#111319] to-transparent pointer-events-none" />
+    // Box UI removed: Background color, borders, shadow, and radius are removed for seamless blending
+    <div className="w-full relative flex flex-col pb-8">
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center p-8 md:p-12 relative z-10">
+      {/* Subtle Background Glow blended with the main screen */}
+      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-[#00E57A]/10 to-transparent pointer-events-none -z-10" />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center py-8 md:py-12 relative z-10">
+        
+        {/* Left Content Area */}
         <motion.div 
           initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}
           className="flex flex-col gap-6 justify-center"
         >
-          <div className="flex items-center gap-2 text-[#8B5CF6] font-bold tracking-widest uppercase text-[10px] border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 w-fit px-3 py-1.5 rounded-full">
-            <Sparkles className="w-3 h-3" /> WELCOME BACK
+          {/* Welcome Back Badge */}
+          <div className="flex items-center gap-2 text-[#00E57A] font-bold tracking-widest uppercase text-[10px] border border-[#00E57A]/30 bg-[#00E57A]/5 w-fit px-4 py-2 rounded-full">
+            <Sparkles className="w-3.5 h-3.5" /> WELCOME BACK
           </div>
           
-          <h1 className="text-4xl md:text-5xl lg:text-[56px] font-black text-white leading-[1.15] tracking-tight">
+          {/* Main Heading */}
+          <h1 className="text-4xl md:text-5xl lg:text-[64px] font-black text-white leading-[1.1] tracking-tight">
             Earn More, <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00E57A] to-[#00b359]">Cash Out More!</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00E57A] to-[#00b359] relative inline-block">
+              Cash Out More!
+            </span>
           </h1>
           
-          <p className="text-[#8F95A3] text-sm md:text-[15px] max-w-md font-medium leading-relaxed">
-            Complete premium offers, take top-tier surveys, and climb the leaderboard to maximize your crypto and cash rewards today.
+          {/* Subtitle */}
+          <p className="text-[#8F95A3] text-sm md:text-base max-w-lg font-medium leading-relaxed">
+            Complete premium offers, take top-tier surveys, and climb the leaderboard to maximize your crypto and cash rewards.
           </p>
           
-          <div className="flex flex-wrap items-center gap-4 pt-2">
+          {/* Button & Avatars Container */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pt-4">
+            
+            {/* Call to Action Button */}
             <button 
               onClick={scrollToOffers}
-              className="px-8 py-4 bg-gradient-to-r from-[#8B5CF6] to-[#7c3aed] text-white font-bold rounded-xl shadow-[0_0_20px_rgba(139,92,246,0.4)] hover:shadow-[0_0_30px_rgba(139,92,246,0.6)] transition-all hover:scale-105 flex items-center gap-2 group"
+              className="px-8 py-4 bg-gradient-to-r from-[#00E57A] to-[#00b359] text-black font-black rounded-full shadow-[0_0_20px_rgba(0,229,122,0.4)] hover:shadow-[0_0_30px_rgba(0,229,122,0.6)] transition-all hover:scale-105 flex items-center gap-2 group cursor-pointer"
             >
               Start Earning 
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
             </button>
+
+            {/* Happy Earners Stack */}
+            <div className="flex items-center gap-4">
+              <div className="flex -space-x-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="w-10 h-10 rounded-full border-2 border-[#0B0D19] bg-[#1A1C24] overflow-hidden shadow-sm">
+                    <img 
+                      src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${i + 15}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
+                      alt="Earner" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[#00E57A] font-black text-sm tracking-wide">10K+</span>
+                <span className="text-[#8F95A3] text-xs font-semibold">Happy Earners</span>
+              </div>
+            </div>
+
           </div>
         </motion.div>
 
+        {/* Right Content Area - Hero Wallet 3D Graphic */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }} 
           animate={{ opacity: 1, scale: 1 }} 
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex justify-center items-center h-full min-h-[250px] relative"
+          className="flex justify-center items-center h-full min-h-[300px] relative"
         >
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#8B5CF6]/30 blur-[80px] rounded-full pointer-events-none" />
+          {/* Deep Purple Glow behind the wallet */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-[#8B5CF6]/20 blur-[100px] rounded-full pointer-events-none" />
           <HeroWallet />
         </motion.div>
-      </div>
-
-      <div className="relative z-10 border-t border-white/5 bg-[#14171F]/60 px-6 py-8 md:px-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        <div className="flex items-center gap-4 group">
-          <div className="w-12 h-12 rounded-full bg-[#00E57A]/10 border border-[#00E57A]/20 flex items-center justify-center shrink-0 group-hover:bg-[#00E57A]/20 transition-colors">
-            <Wallet className="w-5 h-5 text-[#00E57A]" />
-          </div>
-          <div className="flex flex-col">
-            <h4 className="text-white text-sm font-bold mb-0.5">Fast Payouts</h4>
-            <p className="text-[#8F95A3] text-xs font-medium">Withdraw instantly to your wallet.</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 group">
-          <div className="w-12 h-12 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 flex items-center justify-center shrink-0 group-hover:bg-[#8B5CF6]/20 transition-colors">
-            <ShieldCheck className="w-5 h-5 text-[#8B5CF6]" />
-          </div>
-          <div className="flex flex-col">
-            <h4 className="text-white text-sm font-bold mb-0.5">100% Secure</h4>
-            <p className="text-[#8F95A3] text-xs font-medium">Your data and earnings are always protected.</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 group">
-          <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 transition-colors">
-            <Star className="w-5 h-5 text-amber-500" />
-          </div>
-          <div className="flex flex-col">
-            <h4 className="text-white text-sm font-bold mb-0.5">Top Offers Daily</h4>
-            <p className="text-[#8F95A3] text-xs font-medium">High-paying offers updated every day.</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 group">
-          <div className="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 transition-colors">
-            <Trophy className="w-5 h-5 text-blue-500" />
-          </div>
-          <div className="flex flex-col">
-            <h4 className="text-white text-sm font-bold mb-0.5">Climb & Earn</h4>
-            <p className="text-[#8F95A3] text-xs font-medium">Compete, rank up, earn bigger rewards.</p>
-          </div>
-        </div>
       </div>
     </div>
   );

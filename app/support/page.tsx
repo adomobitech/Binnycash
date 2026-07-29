@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
 import { 
   HelpCircle, MessageSquare, Mail, ShieldCheck, Clock, 
   Send, UploadCloud, ChevronDown, CheckCircle2, AlertCircle, Search, FileText, X, Trash2, Eye, PlusCircle,
@@ -69,7 +70,8 @@ const FAQS_DATA = [
   }
 ];
 
-export default function SupportPage() {
+function SupportPageContent() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'ticket' | 'faqs' | 'myTickets'>('ticket');
   
   const [ticketSubject, setTicketSubject] = useState('');
@@ -81,11 +83,10 @@ export default function SupportPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [submitDone, setSubmitDone] = useState(false);
 
-  // --- NEW: Custom Dropdown States & Mapping ---
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const CATEGORY_OPTIONS = [
     { value: 'WITHDRAWAL', label: 'Withdrawal / Payout Issue' },
-    { value: 'OFFER_NOT_CREDITED', label: 'Offer Not Credited' },
+    { value: 'OFFER_NOT_CREDITED', label: 'Offer & Surveys' },
     { value: 'ACCOUNT', label: 'Account Management' },
     { value: 'KYC', label: 'KYC Verification' },
     { value: 'REFERRAL', label: 'Referral & Affiliates' },
@@ -94,10 +95,8 @@ export default function SupportPage() {
   ];
 
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-
   const [tickets, setTickets] = useState<any[]>([]);
   const [isTicketsLoading, setIsTicketsLoading] = useState(false);
-  
   const [trueUserId, setTrueUserId] = useState<string>('');
 
   const [selectedTicketId, setSelectedTicketId] = useState<any>(null);
@@ -112,6 +111,28 @@ export default function SupportPage() {
   const [replyMessage, setReplyMessage] = useState('');
   const [replyImage, setReplyImage] = useState<File | null>(null);
   const [isReplying, setIsReplying] = useState(false);
+
+  // 🔥 URL PARAMS AUTOFILL LOGIC 🔥
+  useEffect(() => {
+    if (searchParams) {
+      const urlCategory = searchParams.get('category');
+      const urlDescription = searchParams.get('description');
+
+      if (urlCategory) {
+        // Map "Offer and Surveys" directly to the exact backend enum value
+        if (urlCategory.toLowerCase().includes('offer')) {
+          setCategory('OFFER_NOT_CREDITED');
+        } else {
+          const match = CATEGORY_OPTIONS.find(c => c.label.toLowerCase() === urlCategory.toLowerCase());
+          if (match) setCategory(match.value);
+        }
+      }
+
+      if (urlDescription) {
+        setMessage(urlDescription);
+      }
+    }
+  }, [searchParams]);
 
   // FETCH TRUE USER ID FROM TOKEN
   useEffect(() => {
@@ -166,7 +187,6 @@ export default function SupportPage() {
 
   const handleTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Validate if category is selected since it's a custom dropdown now
     if (!category) {
       setSuccessMsg('Error: Please select a category');
       return;
@@ -181,7 +201,7 @@ export default function SupportPage() {
     try {
       const data = new FormData();
       data.append('ticketSubject', ticketSubject);
-      data.append('category', category); // Ye wahi enum jayega jo backend ko chahiye
+      data.append('category', category); 
       data.append('contactEmail', contactEmail);
       data.append('message', message);
       data.append('userId', userId); 
@@ -350,7 +370,6 @@ export default function SupportPage() {
 
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 relative z-10">
 
-        {/* HEADER SECTION */}
         <motion.div 
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -419,7 +438,6 @@ export default function SupportPage() {
         </motion.div>
 
         <AnimatePresence mode="wait">
-        {/* TAB 1: RAISE TICKET */}
         {activeTab === 'ticket' && (
           <motion.div key="ticket" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.3 }} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-[#120F1A] border border-white/[0.06] rounded-[28px] p-6 md:p-8 shadow-xl">
@@ -448,7 +466,6 @@ export default function SupportPage() {
                     />
                   </div>
 
-                  {/* CUSTOM DROPDOWN IMPLEMENTATION */}
                   <div className="relative">
                     <label className="block text-xs font-bold text-[#8D89A8] mb-2">
                       Category <span className="text-[#FF5D73]">*</span>
@@ -925,5 +942,18 @@ export default function SupportPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// Wrapping the main component in Suspense to resolve Next.js dynamic routing build requirements
+export default function SupportPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#08070D] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#A66CFF] animate-spin" />
+      </div>
+    }>
+      <SupportPageContent />
+    </Suspense>
   );
 }

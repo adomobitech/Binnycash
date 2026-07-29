@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, PlayCircle, CheckCircle2, RotateCcw, Smartphone, ShieldCheck, Sparkles, AlertCircle, Info, Check } from 'lucide-react';
+import { Play, CheckCircle2, RotateCcw, Smartphone, ShieldCheck, Sparkles, AlertCircle, Info, ChevronRight } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
+import Link from 'next/link';
 
 const AndroidIcon = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[#A4C639]"><path d="M17.523 15.3414C17.523 15.3414 17.523 15.3414 17.523 15.3414C17.523 16.1432 16.8924 16.7738 16.0906 16.7738C15.2889 16.7738 14.6583 16.1432 14.6583 15.3414C14.6583 14.5397 15.2889 13.9091 16.0906 13.9091C16.8924 13.9091 17.523 14.5397 17.523 15.3414ZM9.34167 15.3414C9.34167 15.3414 9.34167 15.3414 9.34167 15.3414C9.34167 16.1432 8.71108 16.7738 7.90933 16.7738C7.10759 16.7738 6.47699 16.1432 6.47699 15.3414C6.47699 14.5397 7.10759 13.9091 7.90933 13.9091C8.71108 13.9091 9.34167 14.5397 9.34167 15.3414ZM17.9622 10.7416L19.8661 7.44426C19.9868 7.23517 19.915 6.96781 19.7059 6.84717C19.4968 6.72652 19.2295 6.79828 19.1088 7.00737L17.1706 10.3644C15.6171 9.64654 13.8631 9.24584 12.0003 9.24584C10.1374 9.24584 8.38338 9.64654 6.82998 10.3644L4.89173 7.00737C4.77109 6.79828 4.50373 6.72652 4.29464 6.84717C4.08554 6.96781 4.01379 7.23517 4.13444 7.44426L6.03831 10.7416C2.63935 12.6075 0.354181 16.166 0.0546875 20.315H23.9458C23.6463 16.166 21.3612 12.6075 17.9622 10.7416Z" /></svg>
@@ -112,53 +113,7 @@ export default function MyOffersPage() {
     }
   }, []);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/');
-      return;
-    }
-
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const startedRes = await fetch('https://apitest.binnycash.com/api/user/tracking/userStartedData', {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const startedData = await startedRes.json();
-        const startedList = startedData?.data?.list || startedData?.data || [];
-        setStartedOffers(Array.isArray(startedList) ? startedList : []);
-
-        const completedRes = await fetch('https://apitest.binnycash.com/api/user/tracking/getUserCompleteData', {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const completedData = await completedRes.json();
-        const completedList = completedData?.data?.list || completedData?.data || [];
-        setCompletedOffers(Array.isArray(completedList) ? completedList : []);
-
-        setSelectedOffer(null);
-        setOfferDetails(null);
-      } catch (err) {
-        console.error("Failed to fetch tracking data:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [router]);
-
-  const handleSelectOffer = async (offer: any) => {
-    if (selectedOffer && isSameOffer(selectedOffer, offer)) {
-      setSelectedOffer(null);
-      setOfferDetails(null);
-      setQrCodeUrl(null);
-      setApiError(null);
-      return;
-    }
-
+  const loadOfferDetails = async (offer: any) => {
     setSelectedOffer(offer);
     setQrCodeUrl(null);
     setApiError(null);
@@ -188,6 +143,77 @@ export default function MyOffersPage() {
     } finally {
       setIsDetailsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/');
+      return;
+    }
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const startedRes = await fetch('https://apitest.binnycash.com/api/user/tracking/userStartedData', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const startedData = await startedRes.json();
+        const startedList = startedData?.data?.list || startedData?.data || [];
+        const finalStartedList = Array.isArray(startedList) ? startedList : [];
+        setStartedOffers(finalStartedList);
+
+        const completedRes = await fetch('https://apitest.binnycash.com/api/user/tracking/getUserCompleteData', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const completedData = await completedRes.json();
+        const completedList = completedData?.data?.list || completedData?.data || [];
+        setCompletedOffers(Array.isArray(completedList) ? completedList : []);
+
+        if (finalStartedList.length > 0) {
+          loadOfferDetails(finalStartedList[0]);
+        } else {
+          setSelectedOffer(null);
+          setOfferDetails(null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch tracking data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router]);
+
+  // 🔥 Update logic for Tab Change
+  const handleTabChange = (tab: 'started' | 'completed') => {
+    setActiveTab(tab);
+    if (tab === 'started') {
+      if (startedOffers.length > 0) {
+        loadOfferDetails(startedOffers[0]);
+      } else {
+        setSelectedOffer(null);
+        setOfferDetails(null);
+        setQrCodeUrl(null);
+        setApiError(null);
+      }
+    } else {
+      // Completed offers me UI vertical card list h, detailed view/selected data ki need nahi h
+      setSelectedOffer(null);
+      setOfferDetails(null);
+      setQrCodeUrl(null);
+      setApiError(null);
+    }
+  };
+
+  const handleSelectOffer = async (offer: any) => {
+    if (selectedOffer && isSameOffer(selectedOffer, offer)) {
+      return; 
+    }
+    loadOfferDetails(offer);
   };
 
   const handlePlayClick = async () => {
@@ -313,9 +339,9 @@ export default function MyOffersPage() {
     }
   };
 
-  const currentList = activeTab === 'started' ? startedOffers : completedOffers;
   const currentData = { ...selectedOffer, ...offerDetails };
   const name = currentData?.offerName || currentData?.offer_name || currentData?.title || 'Offer Details';
+  const offerIdForSupport = currentData?.offerId || currentData?._id || currentData?.id || '';
   const rewardAmount = currentData?.userCredits ?? currentData?.reward ?? currentData?.payout ?? 0;
   
   let rawImage = currentData?.image_url || currentData?.offerImage || currentData?.logo || currentData?.preview || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=A855F7&color=fff`;
@@ -334,13 +360,13 @@ export default function MyOffersPage() {
         
         <div className="flex items-center gap-2 mb-4">
           <button 
-            onClick={() => { setActiveTab('started'); setSelectedOffer(null); setOfferDetails(null); setQrCodeUrl(null); setApiError(null); }}
+            onClick={() => handleTabChange('started')}
             className={`px-5 py-2.5 rounded-[14px] text-sm font-bold transition-all cursor-pointer ${activeTab === 'started' ? 'bg-[#A855F7] text-white shadow-lg' : 'bg-[#1A1C24] text-[#8F95A3] hover:text-white'}`}
           >
             Started Offer
           </button>
           <button 
-            onClick={() => { setActiveTab('completed'); setSelectedOffer(null); setOfferDetails(null); setQrCodeUrl(null); setApiError(null); }}
+            onClick={() => handleTabChange('completed')}
             className={`px-5 py-2.5 rounded-[14px] text-sm font-bold transition-all cursor-pointer ${activeTab === 'completed' ? 'bg-[#A855F7] text-white shadow-lg' : 'bg-[#1A1C24] text-[#8F95A3] hover:text-white'}`}
           >
             Completed Offer
@@ -352,152 +378,215 @@ export default function MyOffersPage() {
           Your {activeTab} offers from <span className="text-white font-bold">Featured Offers</span> will appear here.
         </p>
 
-        <div className="flex items-start gap-3 overflow-x-auto no-scrollbar pb-6 mb-8 border-b border-white/5">
-          {isLoading ? (
-            <div className="text-[#8F95A3] text-sm animate-pulse">Loading offers...</div>
-          ) : currentList.length === 0 ? (
-            <div className="text-[#8F95A3] text-sm">No {activeTab} offers found.</div>
-          ) : (
-            currentList.map((item, idx) => {
-              const hasSelection = selectedOffer !== null;
-              const isSelected = hasSelection && isSameOffer(selectedOffer, item);
-              
-              let iconImg = item.image_url || item.offerImage || item.logo || item.preview || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.offerName || 'O')}&background=A855F7&color=fff`;
-              if (iconImg && !iconImg.startsWith('http')) iconImg = `https://apitest.binnycash.com${iconImg}`;
-              
-              return (
-                <div 
-                  key={idx} 
-                  onClick={() => handleSelectOffer(item)}
-                  className={`flex flex-col items-center gap-2 cursor-pointer transition-all duration-300 w-24 shrink-0 ${
-                    hasSelection ? (isSelected ? 'opacity-100 scale-105' : 'opacity-40 blur-[2px] hover:opacity-70 hover:blur-none hover:scale-100') : 'opacity-100 hover:scale-105'
-                  }`}
-                >
-                  <div className={`w-24 h-24 bg-[#161821] rounded-2xl overflow-hidden transition-all border ${isSelected ? 'border-[3px] border-[#A855F7] shadow-[0_0_20px_rgba(168,85,247,0.4)]' : 'border-white/10'}`}>
-                    <img src={iconImg} alt="icon" className="w-full h-full object-cover" />
-                  </div>
-                  <span className={`text-xs font-semibold truncate w-full text-center px-1 ${isSelected ? 'text-[#A855F7]' : 'text-white'}`}>
-                    {item.offerName || item.offer_name || 'Offer'}
-                  </span>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {selectedOffer && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            {isDetailsLoading ? (
-               <div className="flex flex-col items-center justify-center py-20 gap-4">
-                  <div className="w-12 h-12 border-4 border-[#A855F7]/30 border-t-[#A855F7] rounded-full animate-spin"></div>
-               </div>
-            ) : (
-              <div className="flex flex-col lg:flex-row gap-8 items-start">
-                
-                <div className="w-full lg:w-[320px] shrink-0 flex flex-col gap-4">
-                  <div className="w-full aspect-[4/5] bg-[#161821] rounded-[28px] border border-white/5 relative overflow-hidden flex flex-col justify-end p-6 shadow-2xl group">
-                    <div className="absolute inset-0 z-0">
-                      <img src={rawImage} alt="bg-blur" className="w-full h-full object-cover opacity-20 blur-2xl group-hover:scale-110 transition-transform duration-700" />
+        {/* 🔥 STARTED TAB VIEW 🔥 */}
+        {activeTab === 'started' && (
+          <>
+            <div className="flex items-start gap-3 overflow-x-auto no-scrollbar pb-6 mb-8 border-b border-white/5">
+              {isLoading ? (
+                <div className="text-[#8F95A3] text-sm animate-pulse">Loading offers...</div>
+              ) : startedOffers.length === 0 ? (
+                <div className="text-[#8F95A3] text-sm">No started offers found.</div>
+              ) : (
+                startedOffers.map((item, idx) => {
+                  const hasSelection = selectedOffer !== null;
+                  const isSelected = hasSelection && isSameOffer(selectedOffer, item);
+                  
+                  let iconImg = item.image_url || item.offerImage || item.logo || item.preview || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.offerName || 'O')}&background=A855F7&color=fff`;
+                  if (iconImg && !iconImg.startsWith('http')) iconImg = `https://apitest.binnycash.com${iconImg}`;
+                  
+                  return (
+                    <div 
+                      key={idx} 
+                      onClick={() => handleSelectOffer(item)}
+                      className={`flex flex-col items-center gap-2 cursor-pointer transition-all duration-300 w-24 shrink-0 opacity-100 ${isSelected ? 'scale-105' : 'hover:scale-105'}`}
+                    >
+                      <div className={`w-24 h-24 bg-[#161821] rounded-2xl overflow-hidden transition-all border ${isSelected ? 'border-[3px] border-[#A855F7] shadow-[0_0_20px_rgba(168,85,247,0.4)]' : 'border-white/10'}`}>
+                        <img src={iconImg} alt="icon" className="w-full h-full object-cover" />
+                      </div>
+                      <span className={`text-xs font-semibold truncate w-full text-center px-1 ${isSelected ? 'text-[#A855F7]' : 'text-white'}`}>
+                        {item.offerName || item.offer_name || 'Offer'}
+                      </span>
                     </div>
+                  );
+                })
+              )}
+            </div>
+
+            {selectedOffer && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                {isDetailsLoading ? (
+                   <div className="flex flex-col items-center justify-center py-20 gap-4">
+                      <div className="w-12 h-12 border-4 border-[#A855F7]/30 border-t-[#A855F7] rounded-full animate-spin"></div>
+                   </div>
+                ) : (
+                  <div className="flex flex-col lg:flex-row gap-8 items-start">
                     
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-32 h-32 bg-white rounded-[32px] p-2 shadow-2xl">
-                      <img src={rawImage} alt={name} className="w-full h-full object-contain rounded-[24px]" />
-                    </div>
+                    <div className="w-full lg:w-[320px] shrink-0 flex flex-col gap-4">
+                      <div className="w-full aspect-[4/5] bg-[#161821] rounded-[28px] border border-white/5 relative overflow-hidden flex flex-col justify-end p-6 shadow-2xl group">
+                        <div className="absolute inset-0 z-0">
+                          <img src={rawImage} alt="bg-blur" className="w-full h-full object-cover opacity-20 blur-2xl group-hover:scale-110 transition-transform duration-700" />
+                        </div>
+                        
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-32 h-32 bg-white rounded-[32px] p-2 shadow-2xl">
+                          <img src={rawImage} alt={name} className="w-full h-full object-contain rounded-[24px]" />
+                        </div>
 
-                    <div className="absolute top-4 right-4 z-10">
-                       {isIos ? <AppleIcon /> : isWindowsOffer ? <WindowsIcon /> : isAndroidOffer ? <AndroidIcon /> : null}
-                    </div>
+                        <div className="absolute top-4 right-4 z-10">
+                           {isIos ? <AppleIcon /> : isWindowsOffer ? <WindowsIcon /> : isAndroidOffer ? <AndroidIcon /> : null}
+                        </div>
 
-                    <div className="relative z-20 flex items-end justify-between w-full mt-auto">
-                      <div className="flex flex-col w-[70%]">
-                        <span className="text-white font-bold text-sm mb-1">Offer Details</span>
-                        <h1 className="text-3xl font-black text-white leading-none">{formatPrice(Number(rewardAmount), currency)}</h1>
+                        <div className="relative z-20 flex items-end justify-between w-full mt-auto">
+                          <div className="flex flex-col w-[70%]">
+                            <span className="text-white font-bold text-sm mb-1">Offer Details</span>
+                            <h1 className="text-3xl font-black text-white leading-none">{formatPrice(Number(rewardAmount), currency)}</h1>
+                          </div>
+
+                          <button 
+                            onClick={handlePlayClick} 
+                            disabled={isProcessingClick}
+                            className="w-14 h-14 rounded-full bg-[#A855F7] hover:bg-[#9333EA] flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.4)] cursor-pointer hover:scale-105 transition-all shrink-0"
+                          >
+                            {isProcessingClick ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Play className="w-5 h-5 text-white fill-white ml-0.5" />}
+                          </button>
+                        </div>
                       </div>
 
-                      {activeTab !== 'completed' && (
-                        <button 
-                          onClick={handlePlayClick} 
-                          disabled={isProcessingClick}
-                          className="w-14 h-14 rounded-full bg-[#A855F7] hover:bg-[#9333EA] flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.4)] cursor-pointer hover:scale-105 transition-all shrink-0"
-                        >
-                          {isProcessingClick ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Play className="w-5 h-5 text-white fill-white ml-0.5" />}
-                        </button>
+                      <div className="flex items-center gap-3">
+                         <div className="flex-1 bg-[#161821] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+                           <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Status</span>
+                           <span className={`text-sm font-black flex items-center gap-1.5 text-amber-400`}>
+                             <RotateCcw className="w-4 h-4"/>
+                             {currentData?.status || 'PENDING'}
+                           </span>
+                         </div>
+                         <div className="flex-1 bg-[#161821] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+                           <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Retries</span>
+                           <span className="text-sm font-black text-white">
+                             {offerDetails?.retryAllow || 0} Left
+                           </span>
+                         </div>
+                      </div>
+
+                      <Link
+                        href={`/support?category=${encodeURIComponent('Offer and Surveys')}&description=${encodeURIComponent(`Offer Name: ${name}\nOffer ID: ${offerIdForSupport}`)}`}
+                        className="bg-[#161821] hover:bg-[#1A1C24] border border-white/5 rounded-2xl p-4 flex items-center justify-between transition-colors group cursor-pointer w-full mt-1"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0 group-hover:bg-red-500/20 transition-colors">
+                            <AlertCircle className="w-5 h-5 text-red-400" />
+                          </div>
+                          <div className="flex flex-col">
+                            <h4 className="text-white font-bold text-[14px]">Having issues with this offer?</h4>
+                            <p className="text-[#8F95A3] text-[12px] mt-0.5">Contact support for missing rewards or bugs.</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors shrink-0" />
+                      </Link>
+
+                      {apiError && (
+                        <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-4 rounded-2xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)] mt-2">
+                          {apiError}
+                        </div>
                       )}
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-3">
-                     <div className="flex-1 bg-[#161821] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                       <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Status</span>
-                       <span className={`text-sm font-black flex items-center gap-1.5 ${currentData?.status === 'COMPLETE' ? 'text-[#00E57A]' : 'text-amber-400'}`}>
-                         {currentData?.status === 'COMPLETE' ? <CheckCircle2 className="w-4 h-4"/> : <RotateCcw className="w-4 h-4"/>} 
-                         {currentData?.status || 'PENDING'}
-                       </span>
-                     </div>
-                     <div className="flex-1 bg-[#161821] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                       <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Retries</span>
-                       <span className="text-sm font-black text-white">
-                         {offerDetails?.retryAllow || 0} Left
-                       </span>
-                     </div>
-                  </div>
-
-                  {apiError && (
-                    <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-4 rounded-2xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)]">
-                      {apiError}
-                    </div>
-                  )}
-                </div>
-
-                <div className="w-full flex-1 flex flex-col gap-6 pt-2 pb-6">
-                  
-                  <div className="flex flex-col">
-                    <h3 className="text-white font-black text-lg mb-3 flex items-center gap-2">
-                      <ShieldCheck className="w-5 h-5 text-[#8B5CF6]" /> Requirements
-                    </h3>
-                    <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 shadow-inner">
-                      <p className="text-[#8F95A3] text-[15px] leading-relaxed font-medium">{requirements}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col mt-2">
-                    <div className="border-b-2 border-[#8B5CF6] pb-2 mb-4 w-fit">
-                      <h3 className="text-[#8B5CF6] font-bold text-sm tracking-wide">Details</h3>
-                    </div>
-                    
-                    <div className="bg-[#161821] border border-white/5 rounded-2xl p-6 shadow-inner mb-4">
-                      <h4 className="text-white font-bold text-base mb-3">Description</h4>
-                      <p className="text-[#8F95A3] text-sm leading-relaxed whitespace-pre-wrap">{description}</p>
-                    </div>
-
-                    <div className="flex flex-col gap-3 mt-2">
-                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 flex items-center gap-5">
-                        <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
-                          <RotateCcw className="w-5 h-5 text-[#8B5CF6]" />
-                        </div>
-                        <div className="flex flex-col">
-                          <h4 className="text-white font-bold text-[15px]">Task Order Flexibility</h4>
-                          <p className="text-[#8F95A3] text-sm mt-0.5">Tasks can be completed in any order. There is no fixed sequence.</p>
+                    <div className="w-full flex-1 flex flex-col gap-6 pt-2 pb-6">
+                      <div className="flex flex-col">
+                        <h3 className="text-white font-black text-lg mb-3 flex items-center gap-2">
+                          <ShieldCheck className="w-5 h-5 text-[#8B5CF6]" /> Requirements
+                        </h3>
+                        <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 shadow-inner">
+                          <p className="text-[#8F95A3] text-[15px] leading-relaxed font-medium">{requirements}</p>
                         </div>
                       </div>
 
-                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 flex items-center gap-5">
-                        <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8B5CF6]"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      <div className="flex flex-col mt-2">
+                        <div className="border-b-2 border-[#8B5CF6] pb-2 mb-4 w-fit">
+                          <h3 className="text-[#8B5CF6] font-bold text-sm tracking-wide">Details</h3>
                         </div>
-                        <div className="flex flex-col">
-                          <h4 className="text-white font-bold text-[15px]">New Users Only</h4>
-                          <p className="text-[#8F95A3] text-sm mt-0.5">This offer is valid only for users who have not installed the app before.</p>
+                        
+                        <div className="bg-[#161821] border border-white/5 rounded-2xl p-6 shadow-inner mb-4">
+                          <h4 className="text-white font-bold text-base mb-3">Description</h4>
+                          <p className="text-[#8F95A3] text-sm leading-relaxed whitespace-pre-wrap">{description}</p>
+                        </div>
+
+                        <div className="flex flex-col gap-3 mt-2">
+                          <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 flex items-center gap-5">
+                            <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                              <RotateCcw className="w-5 h-5 text-[#8B5CF6]" />
+                            </div>
+                            <div className="flex flex-col">
+                              <h4 className="text-white font-bold text-[15px]">Task Order Flexibility</h4>
+                              <p className="text-[#8F95A3] text-sm mt-0.5">Tasks can be completed in any order. There is no fixed sequence.</p>
+                            </div>
+                          </div>
+
+                          <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 flex items-center gap-5">
+                            <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8B5CF6]"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div className="flex flex-col">
+                              <h4 className="text-white font-bold text-[15px]">New Users Only</h4>
+                              <p className="text-[#8F95A3] text-sm mt-0.5">This offer is valid only for users who have not installed the app before.</p>
+                            </div>
+                          </div>
                         </div>
                       </div>
+
                     </div>
                   </div>
-
-                </div>
-              </div>
+                )}
+              </motion.div>
             )}
-          </motion.div>
+          </>
         )}
+
+        {/* 🔥 COMPLETED TAB VIEW (HORIZONTAL LIST) 🔥 */}
+        {activeTab === 'completed' && (
+          <div className="flex flex-col gap-3 w-full max-w-4xl">
+            {isLoading ? (
+              <div className="text-[#8F95A3] text-sm animate-pulse">Loading completed offers...</div>
+            ) : completedOffers.length === 0 ? (
+              <div className="text-[#8F95A3] text-sm">No completed offers found.</div>
+            ) : (
+              completedOffers.map((item, idx) => {
+                let iconImg = item.image_url || item.offerImage || item.logo || item.preview || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.offerName || 'O')}&background=A855F7&color=fff`;
+                if (iconImg && !iconImg.startsWith('http')) iconImg = `https://apitest.binnycash.com${iconImg}`;
+                const rew = item.userCredits ?? item.reward ?? item.payout ?? 0;
+
+                return (
+                  <motion.div 
+                    key={idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="w-full bg-[#161821] border border-white/5 hover:border-[#00E57A]/30 transition-all rounded-[20px] p-4 flex items-center justify-between shadow-sm"
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-12 h-12 md:w-14 md:h-14 bg-[#1A1C24] rounded-xl overflow-hidden border border-white/10 shrink-0">
+                        <img src={iconImg} alt="icon" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-white font-bold text-sm md:text-base truncate">{item.offerName || item.offer_name || 'Completed Offer'}</span>
+                        <span className="text-[#8F95A3] text-xs mt-0.5 truncate">{item.network || item.provider || 'Provider'}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5 shrink-0 pl-4">
+                      <span className="text-[#00E57A] font-black text-lg md:text-xl leading-none">
+                        {formatPrice(Number(rew), currency)}
+                      </span>
+                      <div className="flex items-center gap-1 bg-[#00E57A]/10 border border-[#00E57A]/20 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 className="w-3 h-3 text-[#00E57A]" />
+                        <span className="text-[#00E57A] text-[10px] font-bold uppercase tracking-wider">Completed</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
+        )}
+
       </main>
 
       <AnimatePresence>

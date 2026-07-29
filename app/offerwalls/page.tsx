@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import OfferwallCard from '@/components/offerwalls/OfferwallCard';
-import OfferwallModal from '@/components/offerwalls/OfferwallModal'; // 🔥 Naya Import 🔥
+import OfferwallModal from '@/components/offerwalls/OfferwallModal'; 
 import { Boxes, List, Star, Zap, ChevronDown, ChevronLeft, Search } from "lucide-react";
 
 export default function AllOfferwallsPage() {
@@ -14,7 +14,6 @@ export default function AllOfferwallsPage() {
   const [filterType, setFilterType] = useState('All');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
-  // 🔥 Modal State 🔥
   const [selectedOfferwall, setSelectedOfferwall] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -109,7 +108,7 @@ export default function AllOfferwallsPage() {
             <div className="pl-14">
               <p className="text-[13px] md:text-sm text-[#8F95A3] font-medium mb-1">Explore premium offerwalls to boost your earnings.</p>
               <p className="text-[13px] md:text-sm text-[#8F95A3] font-medium">
-                Total Available: <span className="text-emerald-400 font-bold">{offerwalls.length} Offerwalls</span>
+                Total Available: <span className="text-emerald-400 font-bold">{processedItems.length} Offerwalls</span>
               </p>
             </div>
           </div>
@@ -157,6 +156,7 @@ export default function AllOfferwallsPage() {
           </div>
         </div>
 
+        {/* 🔥 NO PAGINATION: STRAIGHT RENDER TO GRID FOR UP-DOWN SCROLLING 🔥 */}
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
@@ -164,7 +164,7 @@ export default function AllOfferwallsPage() {
             ))}
           </div>
         ) : processedItems.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4 lg:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4 lg:gap-5 pb-8">
             {processedItems.map((item, index) => {
               const fixedItem = {
                 ...item,
@@ -173,7 +173,6 @@ export default function AllOfferwallsPage() {
                   : item.image
               };
               return (
-                // 🔥 Passed onClick to open modal 🔥
                 <OfferwallCard key={item._id || item.id || index} offerwall={fixedItem} onClick={setSelectedOfferwall} />
               );
             })}
@@ -194,7 +193,6 @@ export default function AllOfferwallsPage() {
         `}} />
       </main>
 
-      {/* 🔥 The Modal Injection 🔥 */}
       <OfferwallModal 
         isOpen={!!selectedOfferwall} 
         onClose={() => setSelectedOfferwall(null)} 
