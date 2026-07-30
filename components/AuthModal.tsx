@@ -25,12 +25,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   const router = useRouter();
   const [view, setView] = useState<ViewState>(initialView);
   
-  useEffect(() => {
-    if (isOpen) {
-      setView(initialView);
-    }
-  }, [isOpen, initialView]);
-  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPromo, setShowPromo] = useState(false);
@@ -41,6 +35,28 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // 🔥 URL REFERRAL STATE 🔥
+  const [isUrlReferral, setIsUrlReferral] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setView(initialView);
+      
+      // Check if there is a referral code in URL
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const refCode = params.get('ref');
+        if (refCode) {
+          setPromoCode(refCode);
+          setShowPromo(true);
+          setIsUrlReferral(true); // Isse pata chalega ki ye referSignup API pe jana chahiye
+        } else {
+          setIsUrlReferral(false);
+        }
+      }
+    }
+  }, [isOpen, initialView]);
 
   if (!isOpen) return null;
 
@@ -60,19 +76,23 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     setIsLoading(true);
     setError('');
 
-    const isSubUser = showPromo && promoCode.trim() !== '';
-    const endpoint = isSubUser
+    // 🔥 API ENDPOINT LOGIC 🔥
+    // Agar link refer wali hai tabhi referSignup pe jayega, warna normal signup pe
+    const endpoint = isUrlReferral
       ? 'https://apitest.binnycash.com/api/user/referSignup'
       : 'https://apitest.binnycash.com/api/user/signup';
 
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
     urlEncoded.append('password', password);
-    if (isSubUser) {
-      const codeValue = promoCode.trim();
-      urlEncoded.append('referralCode', codeValue);
-      urlEncoded.append('promoCode', codeValue);
-      urlEncoded.append('device_id', getOrCreateDeviceId());
+    urlEncoded.append('device_id', getOrCreateDeviceId());
+
+    if (showPromo && promoCode.trim() !== '') {
+      urlEncoded.append('promoCode', promoCode.trim());
+      // Agar refer link se aaya hai toh referralCode bhi bhejenge API ki demand ke anusar
+      if (isUrlReferral) {
+        urlEncoded.append('referralCode', promoCode.trim());
+      }
     }
 
     try {
@@ -113,7 +133,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       const data = await res.json();
       
       if (res.ok) {
-        // 🔥 STRICT TOKEN EXTRACTION 🔥
         let userToken = data.token || data.accessToken || data.data?.token;
         if (!userToken && typeof data.data === 'string') userToken = data.data;
 
@@ -121,7 +140,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           localStorage.setItem('token', userToken);
         }
 
-        // 🔥 STRICT USERDETAILS & ID EXTRACTION 🔥
         const userDetails = data.data?.userDetails || data.userDetails || data.data?.user || data.user;
         if (userDetails && typeof userDetails === 'object') {
           localStorage.setItem('userDetails', JSON.stringify(userDetails));
@@ -172,11 +190,9 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       const data = await res.json();
 
       if (res.ok) {
-        // 🔥 STRICT TOKEN EXTRACTION AFTER OTP VERIFICATION 🔥
         let userToken = data.token || data.accessToken || data.data?.token;
         if (!userToken && typeof data.data === 'string') userToken = data.data;
 
-        // Agar Token sahi milta hai tabhi login state me bhejenge
         if (userToken && typeof userToken === 'string' && !userToken.includes('[object Object]')) {
           localStorage.setItem('token', userToken);
 
@@ -198,8 +214,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
             }, 800);
           }, 1500);
         } else {
-          // Agar Backend API token return nahi karti verifyOtp pe (Sirf message deti h)
-          // Toh safely Login screen pe bhej do valid token fetch karne ke liye.
           alert('Email verified successfully! Please log in to continue.');
           setView('login');
         }
@@ -429,11 +443,22 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
               </div>
 
               <div className="flex flex-col gap-2 mt-[-4px]">
-                <button type="button" onClick={() => setShowPromo(!showPromo)} className="text-left text-[11px] font-bold text-[#00E57A] hover:underline cursor-pointer">
-                  {showPromo ? '− Remove Promo Code' : '+ I have a promo code'}
+                <button 
+                  type="button" 
+                  onClick={() => !isUrlReferral && setShowPromo(!showPromo)} 
+                  className={`text-left text-[11px] font-bold text-[#00E57A] ${isUrlReferral ? 'cursor-default' : 'hover:underline cursor-pointer'}`}
+                >
+                  {isUrlReferral ? '✓ Referral Code Applied' : showPromo ? '− Remove Promo Code' : '+ I have a promo code'}
                 </button>
                 {showPromo && (
-                  <input type="text" placeholder="Enter Promo Code (Optional)" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} className={inputClass} />
+                  <input 
+                    type="text" 
+                    placeholder="Enter Promo Code (Optional)" 
+                    value={promoCode} 
+                    onChange={(e) => setPromoCode(e.target.value)} 
+                    readOnly={isUrlReferral}
+                    className={`${inputClass} ${isUrlReferral ? 'opacity-70 cursor-not-allowed select-none' : ''}`} 
+                  />
                 )}
               </div>
 

@@ -15,7 +15,6 @@ import SurveywallSlider from '@/components/surveywalls/SurveywallSlider';
 export default function DashboardPage() {
   const router = useRouter();
   
-  // 🔥 FIX: Prevent Hydration errors on Next.js by waiting to mount
   const [isMounted, setIsMounted] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
@@ -66,32 +65,15 @@ export default function DashboardPage() {
         
         let feeds: any[] = [];
         if (Array.isArray(resData)) feeds = resData; 
-        else if (Array.isArray(resData?.data?.data?.inbox)) feeds = resData.data.data.inbox; 
-        else if (Array.isArray(resData?.data?.inbox)) feeds = resData.data.inbox; 
+        else if (Array.isArray(resData?.data)) feeds = resData.data;
         else if (Array.isArray(resData?.data?.data)) feeds = resData.data.data;
+        else if (Array.isArray(resData?.data?.inbox)) feeds = resData.data.inbox; 
+        else if (Array.isArray(resData?.data?.data?.inbox)) feeds = resData.data.data.inbox; 
         else if (Array.isArray(resData?.data?.list)) feeds = resData.data.list; 
         else if (Array.isArray(resData?.inbox)) feeds = resData.inbox;
-        else if (Array.isArray(resData?.data)) feeds = resData.data;
         
-        // 🔥 FIX: Remove duplicate users so one user shows only once 🔥
-        const uniqueFeeds: any[] = [];
-        const seenUsers = new Set();
-
-        for (const feed of feeds) {
-          // Identify user by username or userId
-          const identifier = feed.userName || feed.user_name || feed.userId || feed.user_id || feed._id;
-          
-          if (identifier) {
-            if (!seenUsers.has(identifier)) {
-              seenUsers.add(identifier);
-              uniqueFeeds.push(feed);
-            }
-          } else {
-            uniqueFeeds.push(feed); // fallback if no ID exists
-          }
-        }
-        
-        setLiveFeeds(uniqueFeeds);
+        // 🔥 Keep all activity entries from the backend response seamlessly 🔥
+        setLiveFeeds(feeds);
       } catch (err) { 
         console.error("Error fetching live feeds:", err); 
       } finally { 
@@ -181,7 +163,6 @@ export default function DashboardPage() {
     fetchSurveywalls();
   }, [isAuthenticated]);
 
-  // Handle Hydration cleanly
   if (!isMounted || !isAuthenticated) {
     return <div className="min-h-screen bg-[#0B0D19]" />;
   }

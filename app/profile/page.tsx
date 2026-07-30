@@ -648,6 +648,9 @@ export default function ProfilePage() {
       if (json.code === 200 || json.responseCode === 0) {
         setMessage({ text: 'Avatar updated successfully!', type: 'success' });
         fetchProfileData();
+        
+        // 🔥 DISPATCH EVENT SO NAVBAR UPDATES INSTANTLY 🔥
+        window.dispatchEvent(new CustomEvent('profileUpdated'));
       } else {
         setMessage({ text: json.message || 'Failed to upload image. Backend error.', type: 'error' });
       }
@@ -684,7 +687,6 @@ export default function ProfilePage() {
     });
   };
 
-  // 🔥 0%, 33%, 66%, 100% REAL LOGIC 🔥
   // Basic Details require ALL fields from Settings to be filled
   const isBasicDetailsFilled = Boolean(
     userData?.firstName && 
@@ -727,7 +729,6 @@ export default function ProfilePage() {
 
   const kycSteps = getKycSteps();
 
-  // 🔥 Verify Button Dynamic Props Logic (Matching Reference Source) 🔥
   const getKycButtonProps = () => {
     if (isKycVerified) {
       return {
@@ -844,7 +845,6 @@ export default function ProfilePage() {
               <div className="flex justify-between items-center mb-8">
                  <h3 className="text-base font-bold text-white">KYC Panel</h3>
                  
-                 {/* 🔥 Premium Dynamic Status Verify Button 🔥 */}
                  <button 
                   disabled={btnProps.disabled}
                   onClick={() => {
@@ -875,7 +875,6 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     
-                    {/* 🔥 Fill Now Button specific for Basic Details 🔥 */}
                     {step.label === 'Basic Details' && step.status === 'Pending' && (
                       <button
                         onClick={() => setIsSettingsOpen(true)}
@@ -911,7 +910,6 @@ export default function ProfilePage() {
                 <h3 className="text-base font-bold text-white mb-6">Account Overview</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    
-                   {/* Total Offers Card */}
                    <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
                      <div className="w-12 h-12 rounded-xl bg-[#A66CFF]/10 flex items-center justify-center border border-[#A66CFF]/20 shrink-0">
                        <Target className="w-6 h-6 text-[#A66CFF]" />
@@ -925,7 +923,6 @@ export default function ProfilePage() {
                      </div>
                    </div>
 
-                   {/* Total Earnings Card */}
                    <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
                      <div className="w-12 h-12 rounded-xl bg-[#00E57A]/10 flex items-center justify-center border border-[#00E57A]/20 shrink-0">
                        <Wallet className="w-6 h-6 text-[#00E57A]" />
@@ -937,7 +934,6 @@ export default function ProfilePage() {
                      </div>
                    </div>
 
-                   {/* Referral Users Card (Restored with Affiliate API Data) */}
                    <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-5 flex items-center gap-4 sm:col-span-2">
                      <div className="w-12 h-12 rounded-xl bg-[#5EA8FF]/10 flex items-center justify-center border border-[#5EA8FF]/20 shrink-0">
                        <Users className="w-6 h-6 text-[#5EA8FF]" />
@@ -987,7 +983,7 @@ export default function ProfilePage() {
            </div>
         </div>
 
-        {/* BOTTOM TABS & TABLE (Original functionality intact) */}
+        {/* BOTTOM TABS & TABLE */}
         <div className="flex flex-col">
           <div className="relative inline-flex items-center bg-[#120F1A] border border-white/[0.06] rounded-full p-1 mb-5 w-fit">
             {(['earning', 'reversal'] as const).map((t) => (
@@ -1354,7 +1350,6 @@ export default function ProfilePage() {
                     </button>
                   </form>
                   
-                  {/* 🔥 Delete Account Option Restored 🔥 */}
                   <div className="mt-8 pt-4 border-t border-[#FF5D73]/20 text-center">
                     <button className="text-sm font-bold text-[#FF5D73] hover:text-[#FF5D73]/80 transition-colors cursor-pointer">
                       Delete account
@@ -1470,6 +1465,14 @@ export default function ProfilePage() {
           </div>
         )}
       </AnimatePresence>
+
+      <KycModal 
+        isOpen={isKycOpen} 
+        onClose={() => setIsKycOpen(false)} 
+        onSuccess={() => {
+          fetchProfileData();
+        }} 
+      />
 
     </div>
   );

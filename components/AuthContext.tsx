@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import AuthModal from './AuthModal'; 
 
 interface AuthContextType {
@@ -11,32 +12,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 🔥 FIX: Google login backend (/auth/google) par process hone ke baad wapas isi site par
-// redirect karta hai — kisi query param me token/userDetails ke saath. AuthModal ke andar yeh
-// data kabhi capture nahi hota tha kyunki Google button seedha backend URL pe le jaata hai
-// aur wapas aane par koi bhi component URL ko check nahi karta tha.
-// Yahan AuthContext hamesha mount rehta hai (har page par), isliye yahi sahi jagah hai
-// URL check karne ke liye — page load hote hi ek baar dekh lega.
-//
-// NOTE: Backend "Google ke baad" exact kis param naam se data bhejta hai (token=..&id=.. ya
-// kuch aur), yeh confirm nahi hai — isliye common possible naam try kiye hain. Agar save
-// abhi bhi na ho, ek baar Google se login karke jo final URL address bar me aaye woh dekh
-// ke batana, taaki param names exact kar sakein.
 function captureGoogleAuthFromUrl() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') return false;
 
   const params = new URLSearchParams(window.location.search);
 
-  // Possible token param names
   const token = params.get('token') || params.get('accessToken') || params.get('access_token');
-
-  // Possible full-user-object param (agar backend poora userDetails JSON bhi bhejta hai, encoded)
   const rawUserDetails = params.get('userDetails') || params.get('user');
-
-  // Possible direct numeric id param names
   const directId = params.get('id') || params.get('userId') || params.get('sid');
 
-  if (!token && !rawUserDetails && !directId) return; // Google redirect nahi tha, kuch nahi karna
+  if (!token && !rawUserDetails && !directId) return false; 
 
   if (token) {
     localStorage.setItem('token', token);
@@ -54,11 +39,9 @@ function captureGoogleAuthFromUrl() {
   if (userDetails) {
     localStorage.setItem('userDetails', JSON.stringify(userDetails));
   } else if (directId) {
-    // Poora object nahi mila, kam se kam numeric id hi save kar do taaki sid kaam kare
     localStorage.setItem('userDetails', JSON.stringify({ id: directId }));
   }
 
-  // URL se sensitive params hata do taaki token address bar/history me na reh jaaye
   params.delete('token');
   params.delete('accessToken');
   params.delete('access_token');
@@ -70,15 +53,77 @@ function captureGoogleAuthFromUrl() {
   const cleanQuery = params.toString();
   const cleanUrl = window.location.pathname + (cleanQuery ? `?${cleanQuery}` : '') + window.location.hash;
   window.history.replaceState({}, '', cleanUrl);
+  
+  return true;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [initialView, setInitialView] = useState<'login' | 'register'>('login');
+  
+  // 🔥 HYDRATION STATE 🔥
+  const [isAppLoading, setIsAppLoading] = useState(true);
+  
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    captureGoogleAuthFromUrl();
-  }, []);
+    const handleAuthCheck = async () => {
+      captureGoogleAuthFromUrl();
+
+      const token = localStorage.getItem('token');
+      
+      const protectedRoutes = ['/dashboard', '/myoffers', '/affiliate', '/leaderboard', '/cashout', '/rewards', '/profile'];
+      const isProtectedRoute = protectedRoutes.some(route => pathname?.startsWith(route));
+
+      // 🔥 AUTO-OPEN SIGNUP IF REF PARAM IS PRESENT 🔥
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('ref') && (!token || token === 'undefined')) {
+           setInitialView('register');
+           setIsOpen(true);
+        }
+      }
+
+      if (!token || token === 'undefined' || token.includes('[object Object]')) {
+        if (isProtectedRoute) {
+           router.replace('/'); 
+        }
+        setIsAppLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch('https://apitest.binnycash.com/api/user/viewData', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const user = data?.data?.user || data?.data;
+          
+          if (user) {
+            const backendCurrency = user.currency || user.currencyValue || 'Usd';
+            const resolvedCurrency = (backendCurrency.toString().toLowerCase() === 'coin') ? 'Coin' : 'Usd';
+            
+            localStorage.setItem('currency', resolvedCurrency);
+            window.dispatchEvent(new CustomEvent('currencyChanged', { detail: resolvedCurrency }));
+          }
+        } else {
+          localStorage.removeItem('token');
+          localStorage.removeItem('userId');
+          localStorage.removeItem('userDetails');
+          if (isProtectedRoute) router.replace('/');
+        }
+      } catch (err) {
+        console.error("Session verification failed", err);
+      } finally {
+        setIsAppLoading(false);
+      }
+    };
+
+    handleAuthCheck();
+  }, [pathname]);
 
   const openLogin = () => {
     setInitialView('login');
@@ -93,6 +138,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const closeModal = () => {
     setIsOpen(false);
   };
+
+  if (isAppLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-[#0B0E14]">
+        <div className="w-12 h-12 border-4 border-[#8B5CF6]/20 border-t-[#8B5CF6] rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{ openLogin, openRegister, closeModal }}>

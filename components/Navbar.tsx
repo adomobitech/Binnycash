@@ -13,6 +13,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
 import ChatDrawer from '@/components/chat/ChatDrawer';
 
+// 櫨 DYNAMIC COLOR GENERATOR: Hashing logic to assign fixed color to names 櫨
+const getDynamicColor = (name: string) => {
+  const colors = [
+    'bg-[#8B5CF6]', // Purple
+    'bg-[#3B82F6]', // Blue
+    'bg-[#EC4899]', // Pink
+    'bg-[#10B981]', // Green
+    'bg-[#F59E0B]', // Orange
+    'bg-[#EF4444]', // Red
+    'bg-[#6366F1]', // Indigo
+  ];
+  if (!name) return colors[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
 declare global {
   interface Window {
     googleTranslateElementInit: () => void;
@@ -20,7 +39,6 @@ declare global {
   }
 }
 
-// --- UTILITY: Get User ID securely ---
 function getUserId(): string {
   if (typeof window === 'undefined') return '';
   const isNumeric = (v: any) => v !== null && v !== undefined && /^\d+$/.test(String(v));
@@ -117,7 +135,6 @@ export default function Navbar() {
 
   const navRef = useRef<HTMLElement>(null);
 
-  // Translation & Currency Initial Load
   useEffect(() => {
     const cookies = document.cookie.split(';');
     for (let cookie of cookies) {
@@ -142,17 +159,35 @@ export default function Navbar() {
     }
   }, []);
 
+  const handleForceLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userDetails');
+    setIsLoggedIn(false);
+    if (pathname !== '/') {
+      router.replace('/');
+    }
+  };
+
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('token');
-      if (token) {
+      if (token && token !== 'undefined' && !token.includes('[object Object]')) {
         setIsLoggedIn(true);
         fetch('https://apitest.binnycash.com/api/user/wallet/total-earning', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         })
-          .then(res => res.json())
-          .then(data => { if (data && data.data !== undefined) setBalance(data.data); })
+          .then(res => {
+            if (res.status === 401 || res.status === 404) {
+               handleForceLogout();
+               return null;
+            }
+            return res.json();
+          })
+          .then(data => { 
+            if (data && data.data !== undefined) setBalance(data.data); 
+          })
           .catch(err => console.error("Wallet fetch error:", err));
       } else {
         setIsLoggedIn(false);
@@ -160,7 +195,7 @@ export default function Navbar() {
     };
     checkAuth();
     window.addEventListener('storage', checkAuth);
-    const interval = setInterval(checkAuth, 1000);
+    const interval = setInterval(checkAuth, 30000); 
     return () => {
       window.removeEventListener('storage', checkAuth);
       clearInterval(interval);
@@ -173,29 +208,56 @@ export default function Navbar() {
     return `https://apitest.binnycash.com${imgSrc}`;
   };
 
+  // 🔥 USER DATA FETCH FUNCTION (Added real-time sync wrapper) 🔥
+  const fetchUserData = () => {
+    const token = localStorage.getItem('token');
+    if (!token || token.includes('[object Object]')) return;
+
+    fetch('https://apitest.binnycash.com/api/user/viewData', {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => {
+       if (res.status === 401 || res.status === 404) {
+          handleForceLogout();
+          return null;
+       }
+       return res.json();
+    })
+    .then(data => {
+       if (!data) return;
+       const user = data?.data?.user || data?.data;
+       if (user) {
+          if (user.id) setTrueUserId(String(user.id));
+          let display = user.userName || user.firstName;
+          if (!display && user.email) {
+            display = user.email.split('@')[0];
+          }
+          if (display) setUserName(display);
+          
+          const rawPic = user.image || user.profilePic;
+          if (rawPic) {
+            setUserAvatar(resolveImage(rawPic));
+          } else {
+            setUserAvatar(null);
+          }
+       }
+    })
+    .catch(err => console.error("Profile fetch error:", err));
+  };
+
   useEffect(() => {
     if (isLoggedIn) {
-      const token = localStorage.getItem('token');
-      fetch('https://apitest.binnycash.com/api/user/viewData', {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-         const user = data?.data?.user || data?.data;
-         if (user) {
-            if (user.id) setTrueUserId(String(user.id));
-            let display = user.userName || user.firstName;
-            if (!display && user.email) {
-              display = user.email.split('@')[0];
-            }
-            if (display) setUserName(display);
-            
-            const rawPic = user.image || user.profilePic;
-            if (rawPic) setUserAvatar(resolveImage(rawPic));
-         }
-      })
-      .catch(err => console.error("Profile fetch error:", err));
+      fetchUserData();
+
+      // 🔥 LISTEN FOR PROFILE UPDATES 🔥
+      const handleProfileUpdate = () => {
+        fetchUserData();
+      };
+      window.addEventListener('profileUpdated', handleProfileUpdate);
+      return () => {
+        window.removeEventListener('profileUpdated', handleProfileUpdate);
+      };
     }
   }, [isLoggedIn]);
 
@@ -245,16 +307,24 @@ export default function Navbar() {
     setIsInboxLoading(true);
     try {
       const token = localStorage.getItem('token');
+      if (!token || token.includes('[object Object]')) return;
+
       const res = await fetch('https://apitest.binnycash.com/api/user/notificationList', {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+
+      if (res.status === 401 || res.status === 404) {
+         handleForceLogout();
+         setIsInboxLoading(false);
+         return;
+      }
+
       const data = await res.json();
       
       let notificationsList = data?.data?.notifications || data?.notifications || [];
       if (!Array.isArray(notificationsList)) notificationsList = [];
 
-      // 🔥 FIX: NO DEDUPLICATION - Show ALL backend data exactly as it comes 🔥
       setInboxMessages(notificationsList);
       
       if (data?.data?.unreadCount !== undefined) {
@@ -289,12 +359,10 @@ export default function Navbar() {
     }
   };
 
-  // API will only hit when isInboxOpen is true
   useEffect(() => { 
     if (isInboxOpen) fetchInboxMessages(); 
   }, [isInboxOpen]);
 
-  // Handle outside clicks to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(event.target as Node)) {
@@ -366,6 +434,7 @@ export default function Navbar() {
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('userId'); 
+      localStorage.removeItem('userDetails'); 
       setIsLoggedIn(false);
       setTimeout(() => {
         setIsTransitioning(false);
@@ -404,7 +473,6 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* NAVBAR */}
       <nav ref={navRef} className="w-full bg-[#0E1015]/80 backdrop-blur-xl sticky top-0 z-50 border-b border-white/5 h-[80px] flex items-center shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
         <div className="w-full px-4 lg:px-10 flex justify-between items-center relative">
           
@@ -418,7 +486,6 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* CENTER: Navigation Links */}
           {isLoggedIn && (
             <div className="hidden lg:flex items-center gap-6 xl:gap-8 mx-auto">
               {MAIN_LINKS.map((link) => {
@@ -487,7 +554,6 @@ export default function Navbar() {
             {isLoggedIn ? (
               <div className="flex items-center gap-2 md:gap-3">
                 
-                {/* 1. BALANCE */}
                 <div className="hidden lg:flex items-center justify-center gap-1.5 bg-[#2B164D] px-3.5 py-2 rounded-xl border border-[#A855F7]/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
                   <span className="text-[#A855F7] font-black text-[17px] leading-none">
                     {isCoin ? 'C' : '$'}
@@ -497,7 +563,6 @@ export default function Navbar() {
                   </span>
                 </div>
 
-                {/* 2. NOTIFICATION (Bell) & 🔥 POPUP UI MATCHING SCREENSHOT 🔥 */}
                 <div className="relative">
                   <button 
                     onClick={() => setIsInboxOpen(!isInboxOpen)}
@@ -518,11 +583,9 @@ export default function Navbar() {
                         transition={{ duration: 0.2 }} 
                         className="absolute right-0 mt-3 w-[320px] sm:w-[380px] bg-[#0E1015] border border-white/10 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden flex flex-col"
                       >
-                        {/* Header matching the screenshot */}
                         <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
                           <h3 className="text-white font-bold text-[17px]">Notifications</h3>
                           <div className="flex items-center gap-4">
-                             {/* 🔥 Mark all read text button 🔥 */}
                              {inboxMessages.length > 0 && (
                                <button 
                                  onClick={handleMarkAllAsRead}
@@ -540,14 +603,12 @@ export default function Navbar() {
                           </div>
                         </div>
 
-                        {/* List / Empty State */}
                         <div className="p-4 max-h-[380px] overflow-y-auto custom-scrollbar">
                           {isInboxLoading ? (
                             <div className="flex flex-col items-center justify-center py-10 gap-3">
                               <Loader2 className="w-6 h-6 text-white/50 animate-spin" />
                             </div>
                           ) : inboxMessages.length === 0 ? (
-                            /* Dark Box Empty State matching screenshot */
                             <div className="bg-[#12141A] border border-white/5 rounded-2xl py-12 flex items-center justify-center">
                               <span className="text-[#8F95A3] text-sm font-medium">No new notifications</span>
                             </div>
@@ -580,7 +641,6 @@ export default function Navbar() {
                   </AnimatePresence>
                 </div>
 
-                {/* 3. CHAT (Green Dot) */}
                 <button 
                   onClick={() => { setIsChatOpen(true); setUnreadChatCount(0); }}
                   className="relative w-10 h-10 rounded-xl bg-[#1A1C24] hover:bg-[#252836] flex items-center justify-center transition-colors cursor-pointer border border-white/5"
@@ -589,14 +649,14 @@ export default function Navbar() {
                   <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[#00E57A] border-2 border-[#0E1015] rounded-full shadow-[0_0_8px_rgba(0,229,122,0.8)]"></span>
                 </button>
 
-                {/* 4. PROFILE (Premium UI Dropdown) */}
+                {/* PROFILE BUTTON ME AVATAR/LETTER LOGIC LAG GAYA HAI */}
                 <div className="relative">
                   <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2.5 bg-[#1A1C24] hover:bg-[#252836] pl-1.5 pr-3 py-1.5 rounded-xl transition-all cursor-pointer border border-white/5">
                     {userAvatar ? (
-                      <img src={userAvatar} alt="Profile" className="w-8 h-8 rounded-full object-cover shadow-sm" />
+                      <img src={userAvatar} alt="Profile" className="w-8 h-8 rounded-xl object-cover shadow-sm" />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white text-sm font-black shadow-sm uppercase">
-                        {userName.charAt(0)}
+                      <div className={`w-8 h-8 rounded-xl ${getDynamicColor(userName)} flex items-center justify-center text-white text-[15px] font-black shadow-sm uppercase`}>
+                        {userName ? userName.charAt(0) : '?'}
                       </div>
                     )}
                     <span className="text-[#8F95A3] text-sm font-bold max-w-[100px] truncate hidden md:block">
@@ -614,10 +674,8 @@ export default function Navbar() {
                         transition={{ duration: 0.2 }} 
                         className="absolute right-0 mt-4 w-[280px] bg-[#0E1015]/95 backdrop-blur-xl border border-white/10 rounded-[24px] shadow-[0_15px_50px_rgba(139,92,246,0.15)] p-3 z-50 flex flex-col gap-2"
                       >
-                        {/* Triangle Pointer */}
                         <div className="absolute -top-2 right-6 w-4 h-4 bg-[#0E1015] border-t border-l border-white/10 rotate-45" />
 
-                        {/* Profile Item */}
                         <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
@@ -631,7 +689,6 @@ export default function Navbar() {
                           <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
                         </Link>
 
-                        {/* Help Item */}
                         <Link href="/support" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
@@ -645,14 +702,12 @@ export default function Navbar() {
                           <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
                         </Link>
 
-                        {/* Custom Separator Line with Diamond */}
                         <div className="flex items-center justify-center py-1.5">
                           <div className="h-px bg-gradient-to-r from-transparent via-[#8B5CF6]/40 to-transparent flex-1" />
                           <div className="w-1.5 h-1.5 rotate-45 bg-[#8B5CF6] mx-3 shadow-[0_0_8px_#8B5CF6]" />
                           <div className="h-px bg-gradient-to-r from-[#8B5CF6]/40 via-[#8B5CF6]/40 to-transparent flex-1" />
                         </div>
 
-                        {/* CUSTOM CURRENCY SWITCHER */}
                         <div className="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-2xl p-3.5 mb-1 transition-all hover:bg-white/[0.04]">
                           <span className="text-[14px] font-black text-white tracking-wide pl-2">
                             {currency.toUpperCase()}
@@ -674,7 +729,6 @@ export default function Navbar() {
                           </button>
                         </div>
 
-                        {/* Logout Item */}
                         <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="relative w-full group flex items-center justify-between bg-[#FF5D73]/5 hover:bg-[#FF5D73]/10 border border-[#FF5D73]/20 hover:border-[#FF5D73]/40 rounded-2xl p-3.5 transition-all text-left">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-[#FF5D73]/20 group-hover:border-[#FF5D73]/50 transition-colors shadow-inner">
@@ -703,12 +757,10 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* THE CHAT DRAWER */}
       {isLoggedIn && (
         <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       )}
 
-      {/* MOBILE BOTTOM NAVIGATION */}
       {isLoggedIn && (
         <div className="lg:hidden fixed bottom-0 left-0 w-full bg-[#111319]/90 backdrop-blur-xl border-t border-white/5 z-50 flex items-center justify-between px-2 pb-safe pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
           <Link href="/dashboard" className="flex flex-col items-center w-[16.6%] h-14">
