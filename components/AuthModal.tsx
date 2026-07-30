@@ -11,8 +11,6 @@ interface AuthModalProps {
 
 type ViewState = 'login' | 'register' | 'verifyOtp' | 'forgotPassword' | 'verifyForgotOtp' | 'loginSuccess';
 
-// 🔥 FIX: device_id ab ek hi jagah se generate/read hota hai (pehle sirf Google button ke
-// andar tha). referSignup API ko bhi device_id chahiye, isliye yeh helper dono jagah reuse hota hai.
 function getOrCreateDeviceId(): string {
   if (typeof window === 'undefined') return '';
   let deviceId = localStorage.getItem('device_id');
@@ -27,14 +25,12 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   const router = useRouter();
   const [view, setView] = useState<ViewState>(initialView);
   
-  // Sync view whenever initialView changes from props (Login vs Sign Up buttons)
   useEffect(() => {
     if (isOpen) {
       setView(initialView);
     }
   }, [isOpen, initialView]);
   
-  // Form States
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPromo, setShowPromo] = useState(false);
@@ -42,14 +38,12 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   
-  // UI States
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   if (!isOpen) return null;
 
-  // 🔥 FULL SCREEN SOLID OVERLAY FOR SMOOTH LOGIN TRANSITION 🔥
   if (view === 'loginSuccess') {
     return (
       <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0B0E14] transition-opacity duration-300">
@@ -75,10 +69,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('email', email);
     urlEncoded.append('password', password);
     if (isSubUser) {
-      // 🔥 FIX: referSignup API ka required field "referralCode" hai, "promoCode" nahi —
-      // backend dev ne dono ko same treat kiya hai (koi antar nahi rakha), isliye jo bhi
-      // value user ne "promo code" box me dali hai woh referralCode ke naam se bhejni padegi.
-      // promoCode bhi saath me bhej rahe hain (optional field) taaki dono side covered rahe.
       const codeValue = promoCode.trim();
       urlEncoded.append('referralCode', codeValue);
       urlEncoded.append('promoCode', codeValue);
@@ -123,19 +113,20 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       const data = await res.json();
       
       if (res.ok) {
-        const userToken = data.token || data.accessToken || data.data?.token || data.data;
-        if (userToken) {
+        // 🔥 STRICT TOKEN EXTRACTION 🔥
+        let userToken = data.token || data.accessToken || data.data?.token;
+        if (!userToken && typeof data.data === 'string') userToken = data.data;
+
+        if (userToken && typeof userToken === 'string' && !userToken.includes('[object Object]')) {
           localStorage.setItem('token', userToken);
         }
 
-        // 🔥 FIX: login response ka asli shape { data: { token, userDetails: { id: 12, ... } } } hai.
-        // Pehle yahan se numeric "id" kabhi save hi nahi hota tha, isliye baaki jagah
-        // (OfferDetailsModal/MyOfferModal) fallback me galat Mongo ObjectId use ho rahi thi.
-        // Ab poora userDetails object save karte hain — usme numeric id (sid ke liye) hoti hai.
-        const userDetails = data.data?.userDetails || data.userDetails;
-        if (userDetails) {
+        // 🔥 STRICT USERDETAILS & ID EXTRACTION 🔥
+        const userDetails = data.data?.userDetails || data.userDetails || data.data?.user || data.user;
+        if (userDetails && typeof userDetails === 'object') {
           localStorage.setItem('userDetails', JSON.stringify(userDetails));
         }
+        
         const userId = userDetails?.id ?? userDetails?._id ?? data.userId ?? data.user?._id ?? data.data?.userId ?? data.data?._id ?? data.id;
         if (userId) {
           localStorage.setItem('userId', String(userId));
@@ -174,35 +165,44 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
     try {
       const res = await fetch('https://apitest.binnycash.com/api/user/verifyOtp', {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
       });
       const data = await res.json();
 
       if (res.ok) {
-        const userToken = data.token || data.accessToken || data.data?.token || data.data;
-        if (userToken) {
-          localStorage.setItem('token', userToken);
-        }
+        // 🔥 STRICT TOKEN EXTRACTION AFTER OTP VERIFICATION 🔥
+        let userToken = data.token || data.accessToken || data.data?.token;
+        if (!userToken && typeof data.data === 'string') userToken = data.data;
 
-        // 🔥 FIX: yahan bhi wahi userDetails object save karo jisme numeric id hoti hai.
-        const userDetails = data.data?.userDetails || data.userDetails;
-        if (userDetails) {
-          localStorage.setItem('userDetails', JSON.stringify(userDetails));
-        }
-        const userId = userDetails?.id ?? userDetails?._id ?? data.userId ?? data.user?._id ?? data.data?.userId ?? data.data?._id ?? data.id;
-        if (userId) {
-          localStorage.setItem('userId', String(userId));
-        }
-        
-        setView('loginSuccess');
-        setTimeout(() => {
-          router.push('/dashboard');
+        // Agar Token sahi milta hai tabhi login state me bhejenge
+        if (userToken && typeof userToken === 'string' && !userToken.includes('[object Object]')) {
+          localStorage.setItem('token', userToken);
+
+          const userDetails = data.data?.userDetails || data.userDetails || data.data?.user || data.user;
+          if (userDetails && typeof userDetails === 'object') {
+            localStorage.setItem('userDetails', JSON.stringify(userDetails));
+          }
+          
+          const userId = userDetails?.id ?? userDetails?._id ?? data.userId ?? data.user?._id ?? data.data?.userId ?? data.data?._id ?? data.id;
+          if (userId) {
+            localStorage.setItem('userId', String(userId));
+          }
+          
+          setView('loginSuccess');
           setTimeout(() => {
-            onClose();
-          }, 800);
-        }, 1500);
+            router.push('/dashboard');
+            setTimeout(() => {
+              onClose();
+            }, 800);
+          }, 1500);
+        } else {
+          // Agar Backend API token return nahi karti verifyOtp pe (Sirf message deti h)
+          // Toh safely Login screen pe bhej do valid token fetch karne ke liye.
+          alert('Email verified successfully! Please log in to continue.');
+          setView('login');
+        }
       } else {
         setError(data.message || 'Invalid OTP');
       }
@@ -303,7 +303,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
         params.append('promoCode', promoCode.trim());
       }
 
-      // Redirect using GET with query parameters since endpoint accepts GET
       window.location.href = `https://apitest.binnycash.com/auth/google?${params.toString()}`;
     };
 

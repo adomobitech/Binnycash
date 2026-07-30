@@ -14,7 +14,7 @@ export default function HeroSection() {
 
   useEffect(() => {
     // 1. Fetch Total Users
-    fetch('https://apitest.binnycash.com/api/admin/totalUser?adminId=2')
+    fetch('https://apitest.binnycash.com/api/admin/totalUser?adminId=1')
       .then(res => res.json())
       .then(resData => {
         const count = typeof resData === 'number' ? resData : (resData?.data ?? resData?.totalUser ?? resData?.count ?? 0);

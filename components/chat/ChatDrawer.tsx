@@ -2,23 +2,60 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Minus, Send, Smile, ShieldCheck, CheckCheck, MessageSquare } from 'lucide-react';
-// 🔥 NAYA IMPORT EMOJI PICKER KE LIYE 🔥
+import { X, Minus, Send, Smile, ShieldCheck, CheckCheck, MessageSquare, AlertCircle } from 'lucide-react';
 import EmojiPicker, { Theme } from 'emoji-picker-react'; 
+
+// 🔥 FOOLPROOF USER ID EXTRACTOR 🔥
+function getUserId(): string {
+  if (typeof window === 'undefined') return '';
+  const isNumeric = (v: any) => v !== null && v !== undefined && /^\d+$/.test(String(v));
+  try {
+    const wrapperKeys = ['loginResponse', 'authResponse', 'loginData'];
+    for (const key of wrapperKeys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        const id = parsed?.data?.userDetails?.id ?? parsed?.userDetails?.id;
+        if (isNumeric(id)) return String(id);
+      } catch {}
+    }
+    const objectKeys = ['userDetails', 'user', 'userData', 'profile', 'authUser'];
+    for (const key of objectKeys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        const candidates = [parsed?.id, parsed?.userDetails?.id, parsed?._id, parsed?.userId, parsed?.user_id];
+        const numericMatch = candidates.find(isNumeric);
+        if (numericMatch !== undefined) return String(numericMatch);
+      } catch {}
+    }
+    const directKeys = ['userId', 'user_id', 'uid', 'sid', 'numericUserId'];
+    for (const key of directKeys) {
+      const val = localStorage.getItem(key);
+      if (isNumeric(val)) return String(val);
+    }
+  } catch (err) {}
+  return '';
+}
 
 export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<any>(null);
+  const [isSending, setIsSending] = useState(false);
   
-  // 🔥 EMOJI PICKER STATES 🔥
+  // 🔥 Error Popup State 🔥
+  const [errorPopup, setErrorPopup] = useState<string | null>(null);
+  
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
-  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Emoji picker ke bahar click karne par usko close karne ka logic
+  // Derive activeUserId directly
+  const activeUserId = getUserId();
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
@@ -29,7 +66,6 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Jab emoji select ho, usko input box me add karna
   const onEmojiClick = (emojiObject: any) => {
     setNewMessage(prevInput => prevInput + emojiObject.emoji);
   };
@@ -37,14 +73,23 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
   const fetchMessages = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token || token.includes('[object Object]')) {
+        setIsLoading(false);
+        return;
+      }
       
       const res = await fetch('https://apitest.binnycash.com/api/user/chat/messages', {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+
+      if (!res.ok) {
+        if (res.status === 404) setMessages([]);
+        setIsLoading(false);
+        return;
+      }
+
       const resData = await res.json();
-      
       let list: any[] = [];
       if (resData && resData.data) {
         list = resData.data;
@@ -53,15 +98,8 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
       }
       setMessages(list);
 
-      if (list.length > 0 && !currentUserId) {
-        const userMsg = list.find((m: any) => m.userId && !isNaN(Number(m.userId)));
-        if (userMsg) {
-          setCurrentUserId(userMsg.userId);
-          localStorage.setItem('numericUserId', String(userMsg.userId));
-        }
-      }
     } catch (error) {
-      console.error("Failed to fetch messages:", error);
+      // Intentionally suppressed generic fetch errors to keep dev console clean
     } finally {
       setIsLoading(false);
     }
@@ -69,14 +107,8 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
 
   useEffect(() => {
     if (!isOpen) return;
-
-    const savedId = localStorage.getItem('numericUserId');
-    if (savedId) {
-      setCurrentUserId(savedId);
-    }
     
     fetchMessages();
-    
     const interval = setInterval(fetchMessages, 10000);
     return () => clearInterval(interval);
   }, [isOpen]);
@@ -87,22 +119,28 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || isSending) return;
 
     const token = localStorage.getItem('token');
-    const activeUserId = currentUserId || localStorage.getItem('numericUserId') || '12';
 
-    if (!token) {
-      alert("Session expired: Please log in again.");
+    if (!token || token.includes('[object Object]')) {
+      setErrorPopup("Session expired or invalid. Please log in again.");
+      setTimeout(() => setErrorPopup(null), 4000);
       return;
     }
 
+    if (!activeUserId) {
+       setErrorPopup("User profile not synced. Please log out and log in again.");
+       setTimeout(() => setErrorPopup(null), 4000);
+       return;
+    }
+
     const msgText = newMessage.trim();
-    setNewMessage('');
-    setShowEmojiPicker(false); // Send karne pe picker band kar do
+    setShowEmojiPicker(false);
+    setIsSending(true);
 
     const urlEncoded = new URLSearchParams();
-    urlEncoded.append('userId', String(activeUserId));
+    urlEncoded.append('userId', activeUserId);
     urlEncoded.append('message', msgText);
 
     try {
@@ -116,10 +154,20 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
       });
       
       if (res.ok) {
+        // 🔥 Sirf SUCCESS hone par input clear hoga aur nayi chat fetch hogi 🔥
+        setNewMessage('');
         fetchMessages();
+      } else {
+         const errorData = await res.json();
+         // console.error removed to avoid Next.js red error overlay
+         setErrorPopup(errorData.message || "Failed to send message. Action restricted.");
+         setTimeout(() => setErrorPopup(null), 4000);
       }
     } catch (err) {
-      console.error("Failed to send message network error:", err);
+      setErrorPopup("Network error. Please check your connection.");
+      setTimeout(() => setErrorPopup(null), 4000);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -150,6 +198,7 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
           >
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
 
+            {/* HEADER */}
             <div className="p-4 border-b border-white/5 flex items-center justify-between bg-[#111319] relative z-10 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#6d28d9] flex items-center justify-center relative shadow-[0_0_15px_rgba(139,92,246,0.4)]">
@@ -175,6 +224,7 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
               </div>
             </div>
 
+            {/* WELCOME BANNER */}
             <div className="p-4 shrink-0 relative z-10">
               <div className="bg-[#14171F] border border-white/5 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden shadow-lg">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-[#8B5CF6]/10 blur-2xl rounded-full pointer-events-none"></div>
@@ -194,6 +244,7 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
               </div>
             </div>
 
+            {/* CHAT MESSAGES */}
             <div className="flex-1 overflow-y-auto px-4 pb-4 custom-scrollbar relative z-10 flex flex-col gap-4">
               {isLoading ? (
                 <div className="flex justify-center items-center h-full">
@@ -208,7 +259,7 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
                 </div>
               ) : (
                 messages.map((msg, index) => {
-                  const isMe = String(msg.userId) === String(currentUserId) || msg.userName === 'You';
+                  const isMe = String(msg.userId) === String(activeUserId) || msg.userName === 'You';
                   
                   return (
                     <div key={msg._id || index} className={`flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'} w-full`}>
@@ -233,10 +284,30 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
               <div ref={messagesEndRef} />
             </div>
 
+            {/* 🔥 CUSTOM ERROR POPUP 🔥 */}
+            <AnimatePresence>
+              {errorPopup && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                  className="absolute bottom-[100px] left-4 right-4 bg-[#1E1218] border border-[#FF5D73]/30 rounded-2xl p-4 shadow-[0_10px_40px_rgba(255,93,115,0.2)] z-[500] flex items-start gap-3"
+                >
+                  <AlertCircle className="w-5 h-5 text-[#FF5D73] shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="text-[#FF5D73] font-bold text-sm">Action Denied</h4>
+                    <p className="text-[#8F95A3] text-[13px] mt-1 leading-relaxed">{errorPopup}</p>
+                  </div>
+                  <button onClick={() => setErrorPopup(null)} className="text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
+                    <X className="w-4 h-4" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Input Area with Emoji Picker */}
             <div className="p-4 bg-[#111319] border-t border-white/5 relative z-10 pb-safe">
               
-              {/* 🔥 EMOJI PICKER INJECTION 🔥 */}
               <AnimatePresence>
                 {showEmojiPicker && (
                   <motion.div 
@@ -260,7 +331,6 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
 
               <form onSubmit={handleSendMessage} className="relative flex items-center bg-[#1A1C24] border border-[#8B5CF6]/50 rounded-[20px] p-1.5 focus-within:border-[#8B5CF6] focus-within:ring-1 focus-within:ring-[#8B5CF6]/50 transition-all shadow-[0_0_15px_rgba(139,92,246,0.1)]">
                 
-                {/* 🔥 EMOJI TOGGLE BUTTON 🔥 */}
                 <button 
                   type="button" 
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -275,14 +345,15 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Write a message..." 
                   className="flex-1 bg-transparent text-white text-[14px] px-2 outline-none placeholder:text-[#8F95A3]"
+                  disabled={isSending}
                 />
                 
                 <button 
                   type="submit" 
-                  disabled={!newMessage.trim()}
-                  className="px-5 py-2.5 rounded-[14px] bg-[#8B5CF6] hover:bg-[#7c3aed] flex items-center gap-2 text-white font-bold text-sm shadow-[0_4px_15px_rgba(139,92,246,0.4)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0"
+                  disabled={!newMessage.trim() || isSending}
+                  className="px-5 py-2.5 rounded-[14px] bg-[#8B5CF6] hover:bg-[#7c3aed] flex items-center gap-2 text-white font-bold text-sm shadow-[0_4px_15px_rgba(139,92,246,0.4)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer"
                 >
-                  <Send className="w-4 h-4" /> <span className="hidden sm:block">Send</span>
+                  <Send className="w-4 h-4" /> <span className="hidden sm:block">{isSending ? '...' : 'Send'}</span>
                 </button>
               </form>
               <div className="text-center mt-3 text-[11px] text-[#8F95A3] flex items-center justify-center gap-1.5 font-medium">
