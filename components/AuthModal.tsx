@@ -36,23 +36,24 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // 🔥 URL REFERRAL STATE 🔥
+  // 🔥 URL REFERRAL STATES 🔥
   const [isUrlReferral, setIsUrlReferral] = useState(false);
+  const [refCodeValue, setRefCodeValue] = useState(''); // Separate state for URL Referral Code
 
   useEffect(() => {
     if (isOpen) {
       setView(initialView);
       
-      // Check if there is a referral code in URL
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         const refCode = params.get('ref');
         if (refCode) {
-          setPromoCode(refCode);
-          setShowPromo(true);
-          setIsUrlReferral(true); // Isse pata chalega ki ye referSignup API pe jana chahiye
+          setRefCodeValue(refCode); // URL ka referral code save kar liya
+          setIsUrlReferral(true); 
+          // Note: promoCode ko blank chhod diya taaki user khud daal sake
         } else {
           setIsUrlReferral(false);
+          setRefCodeValue('');
         }
       }
     }
@@ -76,8 +77,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     setIsLoading(true);
     setError('');
 
-    // 🔥 API ENDPOINT LOGIC 🔥
-    // Agar link refer wali hai tabhi referSignup pe jayega, warna normal signup pe
+    // 🔥 STRICT ENDPOINT SELECTION 🔥
     const endpoint = isUrlReferral
       ? 'https://apitest.binnycash.com/api/user/referSignup'
       : 'https://apitest.binnycash.com/api/user/signup';
@@ -87,12 +87,13 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('password', password);
     urlEncoded.append('device_id', getOrCreateDeviceId());
 
+    // 🔥 PRECISE PAYLOAD LOGIC 🔥
+    if (isUrlReferral && refCodeValue) {
+      urlEncoded.append('referralCode', refCodeValue.trim()); // URL se uthaya hua Refer Code
+    }
+
     if (showPromo && promoCode.trim() !== '') {
-      urlEncoded.append('promoCode', promoCode.trim());
-      // Agar refer link se aaya hai toh referralCode bhi bhejenge API ki demand ke anusar
-      if (isUrlReferral) {
-        urlEncoded.append('referralCode', promoCode.trim());
-      }
+      urlEncoded.append('promoCode', promoCode.trim()); // User ne agar form mein Promo Code dala hai tab
     }
 
     try {
@@ -313,7 +314,13 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
       const params = new URLSearchParams();
       params.append('device_id', deviceId);
-      if (promoCode.trim()) {
+      
+      // 🔥 EXACT PAYLOAD LOGIC APPLIED FOR GOOGLE LOGIN TOO 🔥
+      if (isUrlReferral && refCodeValue) {
+        params.append('referralCode', refCodeValue.trim());
+      } 
+      
+      if (showPromo && promoCode.trim()) {
         params.append('promoCode', promoCode.trim());
       }
 
@@ -443,21 +450,28 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
               </div>
 
               <div className="flex flex-col gap-2 mt-[-4px]">
+                {/* Agar Refer Code url se aaya hai toh show it */}
+                {isUrlReferral && (
+                  <div className="text-[11px] font-bold text-[#00E57A] flex items-center gap-1.5 mb-1 bg-[#00E57A]/10 border border-[#00E57A]/20 px-3 py-2 rounded-lg">
+                    ✓ Referral Code Applied: <span className="text-white font-mono bg-black/20 px-1.5 py-0.5 rounded">{refCodeValue}</span>
+                  </div>
+                )}
+                
+                {/* Promo code dalne ka option hamesha open rahega */}
                 <button 
                   type="button" 
-                  onClick={() => !isUrlReferral && setShowPromo(!showPromo)} 
-                  className={`text-left text-[11px] font-bold text-[#00E57A] ${isUrlReferral ? 'cursor-default' : 'hover:underline cursor-pointer'}`}
+                  onClick={() => setShowPromo(!showPromo)} 
+                  className="text-left text-[11px] font-bold text-[#8B5CF6] hover:underline cursor-pointer w-fit"
                 >
-                  {isUrlReferral ? '✓ Referral Code Applied' : showPromo ? '− Remove Promo Code' : '+ I have a promo code'}
+                  {showPromo ? '− Remove Promo Code' : '+ I have a promo code (Optional)'}
                 </button>
                 {showPromo && (
                   <input 
                     type="text" 
-                    placeholder="Enter Promo Code (Optional)" 
+                    placeholder="Enter Promo Code" 
                     value={promoCode} 
                     onChange={(e) => setPromoCode(e.target.value)} 
-                    readOnly={isUrlReferral}
-                    className={`${inputClass} ${isUrlReferral ? 'opacity-70 cursor-not-allowed select-none' : ''}`} 
+                    className={inputClass} 
                   />
                 )}
               </div>
