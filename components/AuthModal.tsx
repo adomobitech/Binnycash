@@ -36,9 +36,9 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // 🔥 URL REFERRAL STATES 🔥
+  // 🔥 SEPARATE REFERRAL STATE 🔥
   const [isUrlReferral, setIsUrlReferral] = useState(false);
-  const [refCodeValue, setRefCodeValue] = useState(''); // Separate state for URL Referral Code
+  const [refCodeValue, setRefCodeValue] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -48,9 +48,9 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
         const params = new URLSearchParams(window.location.search);
         const refCode = params.get('ref');
         if (refCode) {
-          setRefCodeValue(refCode); // URL ka referral code save kar liya
+          setRefCodeValue(refCode); // URL wale code ko alag state mein save kiya
           setIsUrlReferral(true); 
-          // Note: promoCode ko blank chhod diya taaki user khud daal sake
+          // promoCode wali state ko nahi cheda
         } else {
           setIsUrlReferral(false);
           setRefCodeValue('');
@@ -77,7 +77,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     setIsLoading(true);
     setError('');
 
-    // 🔥 STRICT ENDPOINT SELECTION 🔥
     const endpoint = isUrlReferral
       ? 'https://apitest.binnycash.com/api/user/referSignup'
       : 'https://apitest.binnycash.com/api/user/signup';
@@ -87,13 +86,13 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('password', password);
     urlEncoded.append('device_id', getOrCreateDeviceId());
 
-    // 🔥 PRECISE PAYLOAD LOGIC 🔥
+    // 🔥 STRICT SEPARATION (Ab refer code galti se promo me nahi jayega) 🔥
     if (isUrlReferral && refCodeValue) {
-      urlEncoded.append('referralCode', refCodeValue.trim()); // URL se uthaya hua Refer Code
+      urlEncoded.append('referralCode', refCodeValue.trim());
     }
 
     if (showPromo && promoCode.trim() !== '') {
-      urlEncoded.append('promoCode', promoCode.trim()); // User ne agar form mein Promo Code dala hai tab
+      urlEncoded.append('promoCode', promoCode.trim());
     }
 
     try {
@@ -151,6 +150,9 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           localStorage.setItem('userId', String(userId));
         }
         
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('profileUpdated'));
+
         setView('loginSuccess');
         
         setTimeout(() => {
@@ -202,21 +204,53 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
             localStorage.setItem('userDetails', JSON.stringify(userDetails));
           }
           
-          const userId = userDetails?.id ?? userDetails?._id ?? data.userId ?? data.user?._id ?? data.data?.userId ?? data.data?._id ?? data.id;
-          if (userId) {
-            localStorage.setItem('userId', String(userId));
-          }
+          window.dispatchEvent(new Event('storage'));
+          window.dispatchEvent(new CustomEvent('profileUpdated'));
           
           setView('loginSuccess');
           setTimeout(() => {
             router.push('/dashboard');
-            setTimeout(() => {
-              onClose();
-            }, 800);
+            setTimeout(() => { onClose(); }, 800);
           }, 1500);
         } else {
-          alert('Email verified successfully! Please log in to continue.');
-          setView('login');
+          try {
+            const loginEncoded = new URLSearchParams();
+            loginEncoded.append('email', email);
+            loginEncoded.append('password', password); 
+
+            const loginRes = await fetch('https://apitest.binnycash.com/api/user/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: loginEncoded
+            });
+            const loginData = await loginRes.json();
+
+            if (loginRes.ok) {
+              let fallbackToken = loginData.token || loginData.accessToken || loginData.data?.token;
+              if (!fallbackToken && typeof loginData.data === 'string') fallbackToken = loginData.data;
+
+              localStorage.setItem('token', fallbackToken);
+
+              const userDetails = loginData.data?.userDetails || loginData.userDetails || loginData.data?.user || loginData.user;
+              if (userDetails && typeof userDetails === 'object') {
+                localStorage.setItem('userDetails', JSON.stringify(userDetails));
+              }
+
+              window.dispatchEvent(new Event('storage'));
+              window.dispatchEvent(new CustomEvent('profileUpdated'));
+
+              setView('loginSuccess');
+              setTimeout(() => {
+                router.push('/dashboard');
+                setTimeout(() => { onClose(); }, 800);
+              }, 1500);
+            } else {
+              alert('Email verified successfully! Please log in.');
+              setView('login');
+            }
+          } catch (fallbackErr) {
+            setView('login');
+          }
         }
       } else {
         setError(data.message || 'Invalid OTP');
@@ -315,7 +349,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       const params = new URLSearchParams();
       params.append('device_id', deviceId);
       
-      // 🔥 EXACT PAYLOAD LOGIC APPLIED FOR GOOGLE LOGIN TOO 🔥
       if (isUrlReferral && refCodeValue) {
         params.append('referralCode', refCodeValue.trim());
       } 
@@ -449,31 +482,40 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2 mt-[-4px]">
-                {/* Agar Refer Code url se aaya hai toh show it */}
-                {isUrlReferral && (
-                  <div className="text-[11px] font-bold text-[#00E57A] flex items-center gap-1.5 mb-1 bg-[#00E57A]/10 border border-[#00E57A]/20 px-3 py-2 rounded-lg">
-                    ✓ Referral Code Applied: <span className="text-white font-mono bg-black/20 px-1.5 py-0.5 rounded">{refCodeValue}</span>
+              {/* 🔥 UI AS REQUESTED IN SCREENSHOT 🔥 */}
+              <div className="flex flex-col gap-3">
+                {isUrlReferral && refCodeValue && (
+                  <div>
+                    <label className="text-[11px] font-bold text-[#00E57A] mb-1 block">
+                      ✓ Referral Code Applied
+                    </label>
+                    <input 
+                      type="text" 
+                      value={refCodeValue} 
+                      readOnly 
+                      className="w-full bg-[#A3A8B5] text-[#111315] font-medium rounded-xl pl-4 pr-4 py-3.5 outline-none cursor-not-allowed select-none opacity-80" 
+                    />
                   </div>
                 )}
                 
-                {/* Promo code dalne ka option hamesha open rahega */}
-                <button 
-                  type="button" 
-                  onClick={() => setShowPromo(!showPromo)} 
-                  className="text-left text-[11px] font-bold text-[#8B5CF6] hover:underline cursor-pointer w-fit"
-                >
-                  {showPromo ? '− Remove Promo Code' : '+ I have a promo code (Optional)'}
-                </button>
-                {showPromo && (
-                  <input 
-                    type="text" 
-                    placeholder="Enter Promo Code" 
-                    value={promoCode} 
-                    onChange={(e) => setPromoCode(e.target.value)} 
-                    className={inputClass} 
-                  />
-                )}
+                <div className="flex flex-col mt-[-4px]">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPromo(!showPromo)} 
+                    className="text-left text-[11px] font-bold text-[#8B5CF6] hover:underline cursor-pointer w-fit"
+                  >
+                    {showPromo ? '− Remove Promo Code' : '+ I have a promo code (Optional)'}
+                  </button>
+                  {showPromo && (
+                    <input 
+                      type="text" 
+                      placeholder="Enter Promo Code" 
+                      value={promoCode} 
+                      onChange={(e) => setPromoCode(e.target.value)} 
+                      className={`${inputClass} mt-2`} 
+                    />
+                  )}
+                </div>
               </div>
 
               <button disabled={isLoading} className="mt-2 w-full bg-[#00E57A] hover:bg-[#00c266] text-black font-black text-sm uppercase tracking-widest py-3.5 rounded-xl transition-colors cursor-pointer">
