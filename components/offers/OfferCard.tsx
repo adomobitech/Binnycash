@@ -31,26 +31,26 @@ export function getPlatformString(offer: any): string {
 
 const All5DevicesIcon = () => (
   <div className="flex items-center gap-1 opacity-90 px-0.5">
-    <svg className="w-3 h-3 text-[#A4C639]" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
-    <svg className="w-3 h-3 text-zinc-200" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.87 6.18c.61-.75 1.02-1.8 0.91-2.85-.9 0-1.99.6-2.62 1.35-.57.67-1.07 1.74-.93 2.78 1.01.08 2.03-.53 2.64-1.28z"/></svg>
-    <svg className="w-[11px] h-[11px] text-[#00A4EF]" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
-    <svg className="w-3 h-3 text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="12" rx="2" ry="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line></svg>
-    <svg className="w-[10px] h-[10px] text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+    <svg className="w-2.5 h-2.5 text-[#A4C639]" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
+    <svg className="w-2.5 h-2.5 text-zinc-200" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.87 6.18c.61-.75 1.02-1.8 0.91-2.85-.9 0-1.99.6-2.62 1.35-.57.67-1.07 1.74-.93 2.78 1.01.08 2.03-.53 2.64-1.28z"/></svg>
+    <svg className="w-[10px] h-[10px] text-[#00A4EF]" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
+    <svg className="w-2.5 h-2.5 text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="12" rx="2" ry="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line></svg>
+    <svg className="w-[9px] h-[9px] text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
   </div>
 );
 
 const AndroidIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[#A4C639]">
+  <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-[#A4C639]">
     <path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
 );
 
 const AppleIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
+  <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-white">
     <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
 );
 
 const WindowsIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[#00A4EF]">
+  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-[#00A4EF]">
     <path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
 );
 
@@ -88,17 +88,15 @@ export const DeviceIcon = ({ offer }: { offer: any }) => {
 
   if (isAndroid) return <AndroidIcon />;
   if (isWindows) return <WindowsIcon />;
-  if (isMac) return <svg className="w-3.5 h-3.5 text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="12" rx="2" ry="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line></svg>;
-  if (isIpad) return <svg className="w-3.5 h-3.5 text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>;
+  if (isMac) return <svg className="w-[14px] h-[14px] text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="12" rx="2" ry="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line></svg>;
+  if (isIpad) return <svg className="w-[14px] h-[14px] text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>;
   if (isIos) return <AppleIcon />;
 
   return <All5DevicesIcon />;
 };
 
-// ----------------------------------------------------
-// 🔥 INTERNAL MODAL FOR OFFER DETAILS / QR CODE 🔥
-// ----------------------------------------------------
 function OfferDetailsModal({ offer, isOpen, onClose }: any) {
+  // Same logic as before... keeping modal intact
   const currency = useCurrency();
   const [details, setDetails] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -300,6 +298,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   const title = currentData?.offerName || currentData?.title || 'Offer Details';
   const rewardAmount = currentData?.userCredits ?? currentData?.reward ?? currentData?.payout ?? 0;
   const formattedReward = formatPrice(rewardAmount, currency);
+
   const networkName = currentData?.network || currentData?.provider || 'BinnyCash';
   const category = currentData?.categories || currentData?.category || 'All';
   const requirements = currentData?.offer_requirements || currentData?.requirements || "CPA offer";
@@ -317,7 +316,6 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
           transition={{ duration: 0.2 }}
           className={`w-full max-w-[500px] rounded-[28px] max-h-[90vh] overflow-y-auto no-scrollbar relative border border-white/10 shadow-2xl ${qrCodeUrl ? 'bg-[#0B0D15]' : 'bg-[#111319]'}`}
         >
-          {/* 🔥 FIXED Z-INDEX & POSITION FOR CROSS BUTTON 🔥 */}
           <button 
             onClick={onClose}
             className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/80 text-white transition-all border border-white/10 cursor-pointer z-[10000]"
@@ -442,6 +440,22 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                           <h4 className="text-white font-bold text-sm">Description</h4>
                           <p className="text-[#8F95A3] text-xs leading-relaxed whitespace-pre-wrap">{description}</p>
                         </div>
+                        {events.length > 0 && (
+                          <div className="flex flex-col gap-2 pt-2 border-t border-white/5">
+                            <h4 className="text-white font-bold text-xs uppercase tracking-wider text-[#A855F7]">Milestone Events</h4>
+                            <div className="flex flex-col gap-2">
+                              {events.map((ev: any, idx: number) => (
+                                <div key={ev._id || idx} className="flex items-center justify-between bg-white/5 p-2.5 rounded-lg border border-white/5">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                                    <span className="text-white text-xs font-medium">{ev.event_name}</span>
+                                  </div>
+                                  <span className="text-emerald-400 font-black text-xs">+{formatPrice(ev.event_payout || 0, currency)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -456,7 +470,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
 }
 
 // ----------------------------------------------------
-// 🔥 MAIN EXPORTED COMPONENT (OFFER CARD) 🔥
+// 櫨 MAIN EXPORTED COMPONENT (OFFER CARD) 櫨
 // ----------------------------------------------------
 export default function OfferCard({ offer, onClick, isSurveyCard = false }: OfferCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -485,19 +499,23 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
     <>
       <div 
         onClick={handleCardClick}
-        className="bg-[#1A1C24] border border-white/5 rounded-2xl overflow-hidden flex flex-col hover:border-[#8B5CF6]/50 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all duration-300 cursor-pointer shrink-0 w-[165px] sm:w-[175px] h-full"
+        // 🔥 Reduced width (w-[140px] sm:w-[150px]) and height to make it more compact
+        className="bg-[#1A1C24] border border-white/5 rounded-2xl overflow-hidden flex flex-col hover:border-[#8B5CF6]/50 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all duration-300 cursor-pointer shrink-0 w-[140px] sm:w-[150px] h-full"
       >
-        <div className="h-28 w-full bg-white/5 relative overflow-hidden">
+        {/* 🔥 Reduced image height (h-24) */}
+        <div className="h-24 w-full bg-white/5 relative overflow-hidden">
           <img src={rawImage} alt={title} className="w-full h-full object-cover" />
         </div>
-        <div className="p-3 flex flex-col justify-between flex-1 gap-2">
+        
+        {/* 🔥 Reduced padding and gap */}
+        <div className="p-2.5 flex flex-col justify-between flex-1 gap-1.5">
           <div>
-            <h3 className="text-xs font-bold text-white truncate">{title}</h3>
-            <p className="text-[10px] text-[#8F95A3] truncate mt-0.5">{sub}</p>
+            <h3 className="text-[11px] sm:text-xs font-bold text-white truncate">{title}</h3>
+            <p className="text-[9px] sm:text-[10px] text-[#8F95A3] truncate mt-0.5">{sub}</p>
           </div>
-          <div className="flex justify-between items-center pt-1 border-t border-white/5">
-            <span className="text-[13px] font-black text-[#8B5CF6]">{formattedReward}</span>
-            <div className="p-1 rounded-md bg-white/5 flex items-center justify-center min-w-[24px] min-h-[24px]">
+          <div className="flex justify-between items-center pt-1.5 border-t border-white/5 mt-1">
+            <span className="text-xs sm:text-[13px] font-black text-[#8B5CF6]">{formattedReward}</span>
+            <div className="p-1 rounded-md bg-white/5 flex items-center justify-center min-w-[20px] min-h-[20px]">
               <DeviceIcon offer={offer} />
             </div>
           </div>

@@ -59,10 +59,7 @@ export default function SurveywallSlider({ surveywalls = [], isLoading = false }
               )}
             </div>
           )}
-          <Link href="/surveywalls" className="text-[11px] font-bold text-white bg-[#8B5CF6]/20 px-3.5 py-2 rounded-lg border border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/40 transition-colors whitespace-nowrap">
-            View All
-          </Link>
-        </div>
+         </div>
       </div>
 
       {isLoading ? (

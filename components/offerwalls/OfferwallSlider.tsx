@@ -64,10 +64,7 @@ export default function OfferwallSlider({ offerwalls = [], isLoading = false }: 
               )}
             </div>
           )}
-          <Link href="/offerwalls" className="text-xs font-bold text-[#8B5CF6] bg-[#8B5CF6]/10 px-4 py-2.5 rounded-xl border border-[#8B5CF6]/20 hover:bg-[#8B5CF6] hover:text-white transition-all whitespace-nowrap">
-            View All
-          </Link>
-        </div>
+          </div>
       </div>
 
       {isLoading ? (
