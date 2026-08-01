@@ -72,7 +72,6 @@ export default function DashboardPage() {
         else if (Array.isArray(resData?.data?.list)) feeds = resData.data.list; 
         else if (Array.isArray(resData?.inbox)) feeds = resData.inbox;
         
-        // 🔥 Keep all activity entries from the backend response seamlessly 🔥
         setLiveFeeds(feeds);
       } catch (err) { 
         console.error("Error fetching live feeds:", err); 
@@ -175,8 +174,11 @@ export default function DashboardPage() {
         <LiveTicker feeds={liveFeeds} />
       )}
 
-      <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-        <div className="w-full mb-10">
+      {/* 🚀 Page padding top/bottom reduced */}
+      <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10">
+        
+        {/* 🚀 Margin Bottom reduced */}
+        <div className="w-full mb-4">
           <DashboardHero />
         </div>
 
@@ -186,7 +188,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="flex flex-col gap-12"
+          className="flex flex-col gap-8" /* 🚀 Gap between sliders reduced from 12 to 8 */
         >
           <div id="featured-offers">
             <OfferSlider offers={offers} isLoading={isLoadingOffers} selectedDevices={selectedDevices} onSelectDevice={handleSelectDevice} />

@@ -27,7 +27,6 @@ const MobileIcon = () => (
   <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
 );
 
-// RESTORED ORIGINAL LOGIC IDs
 const devices = [
   { id: 'all', label: 'All', icon: null },
   { id: 'android', label: 'Android', icon: <AndroidIcon /> },
@@ -60,7 +59,8 @@ export default function OfferFilters({ selectedDevices = [], onSelectDevice }: O
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold transition-all shrink-0 cursor-pointer ${
               isActive
                 ? 'bg-[#8B5CF6] text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]'
-                : 'bg-[#161821] text-[#8F95A3] hover:text-white border border-white/5'
+                // 🚀 Added bg-white/5 and border-white/10 for unselected tabs to stand out
+                : 'bg-white/5 text-[#9CA3AF] hover:text-white border border-white/10'
             }`}
           >
             {dev.icon}

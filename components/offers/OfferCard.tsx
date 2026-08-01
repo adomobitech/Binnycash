@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, PlayCircle, Star, CheckCircle2, AlertCircle, Smartphone, ShieldCheck, Sparkles } from "lucide-react";
+import { X, Play, Star, CheckCircle2, AlertCircle, Smartphone, ShieldCheck, Sparkles } from "lucide-react";
 import SurveyModal from '@/components/surveys/SurveyModal';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency'; 
 
@@ -18,20 +18,19 @@ const All5DevicesIcon = () => (
     <svg className="w-2.5 h-2.5 text-zinc-200" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.87 6.18c.61-.75 1.02-1.8 0.91-2.85-.9 0-1.99.6-2.62 1.35-.57.67-1.07 1.74-.93 2.78 1.01.08 2.03-.53 2.64-1.28z"/></svg>
     <svg className="w-[10px] h-[10px] text-[#00A4EF]" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
     <svg className="w-2.5 h-2.5 text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="12" rx="2" ry="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line></svg>
-    <svg className="w-[9px] h-[9px] text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
   </div>
 );
 
 const AndroidIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] fill-[#A4C639]"><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
+  <svg viewBox="0 0 24 24" className="w-[13px] h-[13px] fill-[#A4C639]"><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
 );
 
 const AppleIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] fill-white"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
+  <svg viewBox="0 0 24 24" className="w-[13px] h-[13px] fill-white"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
 );
 
 const WindowsIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] fill-[#00A4EF]"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
+  <svg viewBox="0 0 24 24" className="w-[13px] h-[13px] fill-[#00A4EF]"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
 );
 
 function getUserId(): string {
@@ -64,8 +63,8 @@ export const DeviceIcon = ({ offer }: { offer: any }) => {
 
   if (isAndroid) return <AndroidIcon />;
   if (isWindows) return <WindowsIcon />;
-  if (isMac) return <svg className="w-[14px] h-[14px] text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="12" rx="2" ry="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line></svg>;
-  if (isIpad) return <svg className="w-[14px] h-[14px] text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>;
+  if (isMac) return <svg className="w-[13px] h-[13px] text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="12" rx="2" ry="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line></svg>;
+  if (isIpad) return <svg className="w-[13px] h-[13px] text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>;
   if (isIos) return <AppleIcon />;
   return <All5DevicesIcon />;
 };
@@ -291,7 +290,6 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
             </button>
 
             <div className="relative p-6 pt-12 sm:p-8 sm:pt-14 flex flex-col items-center text-center w-full">
-              {/* Top Target Device Icon with Glow */}
               <div className="absolute -top-7">
                 <div className="p-[2px] rounded-full bg-gradient-to-r from-purple-500 to-blue-500 shadow-[0_0_20px_rgba(168,85,247,0.6)]">
                   <div className="bg-[#12121a] p-3 rounded-full flex items-center justify-center">
@@ -300,7 +298,6 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                 </div>
               </div>
 
-              {/* Headings & Subtext */}
               <div className="mt-2 text-center space-y-3">
                 <h2 className="text-2xl font-extrabold text-white tracking-wide">Open on {targetDeviceName}</h2>
                 <div className="flex items-start justify-center gap-2 text-[#8F95A3] text-sm px-2">
@@ -310,7 +307,6 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                 </div>
               </div>
 
-              {/* QR Code Box with Neon Gradient Border */}
               <div className="mt-8 mb-8 p-1 rounded-[28px] bg-gradient-to-br from-purple-500 via-purple-400 to-blue-500 shadow-[0_0_35px_rgba(168,85,247,0.35)]">
                 <div className="bg-white p-3 sm:p-4 rounded-[24px]">
                   <img 
@@ -321,15 +317,11 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                 </div>
               </div>
 
-              {/* Bottom Current Device Pill */}
               <div className="w-full bg-black/40 rounded-2xl p-3 flex items-center justify-between border border-gray-800/50">
                 <div className="flex items-center gap-4">
-                  {/* Phone Icon */}
                   <div className="bg-gray-800/60 p-2.5 rounded-xl text-purple-400">
                     <Smartphone size={20} />
                   </div>
-                  
-                  {/* Device Info */}
                   <div className="flex flex-col text-left">
                     <span className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">
                       Current Device
@@ -339,8 +331,6 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                     </span>
                   </div>
                 </div>
-
-                {/* Current OS Icon */}
                 <div className="bg-white/5 p-2.5 rounded-xl border border-white/5 flex items-center justify-center w-10 h-10">
                   {currentOS === 'Windows' ? <WindowsIcon /> : currentOS === 'Android' ? <AndroidIcon /> : <AppleIcon />}
                 </div>
@@ -354,7 +344,6 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
             exit={{ opacity: 0, scale: 0.95, y: 20 }} 
             className="w-full max-w-[420px] max-h-[85vh] bg-[#12151D] border border-white/5 rounded-[24px] overflow-hidden relative shadow-2xl flex flex-col"
           >
-            {/* Fixed Header */}
             <div className="flex justify-between items-start px-5 pt-5 pb-3 bg-[#12151D] shrink-0 z-10">
               <h2 className="text-white font-bold text-lg truncate pr-4">{title}</h2>
               <button 
@@ -365,9 +354,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
               </button>
             </div>
 
-            {/* Scrollable Content Area */}
             <div className="px-5 pb-5 overflow-y-auto no-scrollbar flex-1">
-              {/* Blurred Image Banner */}
               <div className="w-full h-[160px] rounded-[16px] overflow-hidden relative flex items-center justify-center bg-[#1A1C24] mb-4 shrink-0">
                 <img src={rawImage} alt="bg" className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 scale-125" />
                 <img src={rawImage} alt={title} className="w-[70px] h-[70px] rounded-2xl relative z-10 shadow-lg object-cover bg-white" />
@@ -376,10 +363,8 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                 </div>
               </div>
 
-              {/* Price */}
               <h1 className="text-center text-[32px] font-black text-white mb-4 shrink-0">{formattedReward}</h1>
 
-              {/* Stats Row */}
               <div className="flex items-center justify-between border-t border-b border-white/5 py-3 mb-4 shrink-0">
                 <div className="flex flex-col items-center flex-1 border-r border-white/5">
                   <span className="text-white font-bold text-[13px] truncate">{currentData?.status || 'Active'}</span>
@@ -401,12 +386,11 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                 </div>
               </div>
 
-              {/* Play Button */}
               <button 
                 onClick={handlePlayClick} disabled={isProcessingClick}
                 className="w-full shrink-0 py-3.5 rounded-[12px] bg-[#9333EA] hover:bg-[#8B5CF6] text-white font-bold text-[15px] transition-colors flex items-center justify-center gap-2 cursor-pointer mb-4 shadow-[0_0_20px_rgba(147,51,234,0.3)]"
               >
-                {isProcessingClick ? "Processing..." : <> <PlayCircle className="w-4 h-4" /> Play & Earn {formattedReward} </>}
+                {isProcessingClick ? "Processing..." : <> <Play className="w-4 h-4 fill-white" /> Play & Earn {formattedReward} </>}
               </button>
 
               {apiError && (
@@ -415,13 +399,11 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                 </div>
               )}
 
-              {/* Requirements */}
               <div className="bg-[#1A1C24] rounded-[12px] p-4 mb-4 border border-white/5 shrink-0">
                 <h4 className="text-white font-bold text-[13px] mb-1">Requirements</h4>
                 <p className="text-[#8F95A3] text-[12px] leading-relaxed">{requirements}</p>
               </div>
 
-              {/* Details (Description & Milestones) */}
               <div className="flex flex-col shrink-0">
                 <div className="border-b-2 border-[#8B5CF6] pb-1 w-fit mb-3">
                   <h3 className="text-white font-bold text-sm">Details</h3>
@@ -462,6 +444,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
 
 export default function OfferCard({ offer, onClick, isSurveyCard = false }: OfferCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const currency = useCurrency();
 
   if (!offer) return null;
@@ -482,48 +465,61 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
     setIsModalOpen(true);
   };
 
-  const getDifficulty = () => {
-    if (offer.difficulty) return offer.difficulty;
-    if (rewardVal > 10) return 'Hard';
-    if (rewardVal > 2) return 'Medium';
-    return 'Easy';
-  };
-  const diff = getDifficulty();
-  const diffColor = diff === 'Easy' ? 'text-[#00E57A] bg-[#00E57A]/10' : diff === 'Medium' ? 'text-[#F59E0B] bg-[#F59E0B]/10' : 'text-[#EF4444] bg-[#EF4444]/10';
-
   const isStrictlySurvey = isSurveyCard || offer?.offer_type === 'survey';
 
   return (
     <>
       <div 
         onClick={handleCardClick}
-        className="w-full h-full bg-[#111319] border border-white/5 hover:border-[#8B5CF6]/40 rounded-[16px] p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 hover:shadow-[0_8px_30px_rgba(139,92,246,0.1)] group"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className="relative w-full h-full bg-[#161821] border border-white/5 rounded-[16px] p-2 sm:p-2.5 flex flex-col cursor-pointer overflow-hidden group transition-all duration-200 hover:border-[#8B5CF6]/50 shadow-sm hover:shadow-[0_8px_20px_rgba(139,92,246,0.15)]"
       >
-        <div className="flex gap-4 items-start">
-          <div className="w-14 h-14 bg-white rounded-[14px] overflow-hidden shrink-0 shadow-sm">
-            <img src={rawImage} alt={title} className="w-full h-full object-cover" />
-          </div>
+        <div className="w-full aspect-square bg-white rounded-xl overflow-hidden mb-2 shrink-0 shadow-sm border border-white/5 relative">
+          <img 
+            src={rawImage} 
+            alt={title} 
+            className={`w-full h-full object-cover transition-transform duration-300 ${isHovered ? 'scale-105' : 'scale-100'}`} 
+          />
+        </div>
 
-          <div className="flex flex-col flex-1 min-w-0">
-            <h3 className="text-white font-bold text-[14px] leading-tight line-clamp-2 pr-2">{title}</h3>
-            <span className="text-[#8F95A3] text-[11px] mt-0.5 mb-1.5 truncate">{subtitle}</span>
-            
-            <div className="flex items-center gap-2 mt-auto">
-              <span className={`px-2 py-0.5 rounded-[6px] text-[10px] font-bold ${diffColor}`}>
-                {diff}
-              </span>
-              <div className="flex items-center gap-1 opacity-70">
-                <DeviceIcon offer={offer} />
-              </div>
-            </div>
+        <div className="flex flex-col flex-1">
+          <h3 className="text-white font-bold text-[13px] sm:text-[14px] leading-tight line-clamp-1">{title}</h3>
+          <span className="text-[#9CA3AF] text-[11px] sm:text-[12px] font-medium truncate mt-0.5">{subtitle}</span>
+          
+          <div className="mt-auto pt-3 pb-1 flex items-center justify-between">
+            <span className="text-[#A855F7] font-black text-[13px] sm:text-[14px] drop-shadow-sm">{formattedReward}</span>
+            <div className="opacity-80"><DeviceIcon offer={offer} /></div>
           </div>
         </div>
 
-        <div className="flex justify-end items-center mt-4 pt-3 border-t border-white/5">
-          <button className="px-4 py-1.5 rounded-[8px] border border-[#8B5CF6]/50 text-[#8B5CF6] font-bold text-xs group-hover:bg-[#8B5CF6] group-hover:text-white transition-colors flex items-center justify-center w-full sm:w-auto gap-1.5">
-            Start Offer <span className="hidden sm:inline-block opacity-60">•</span> <span className="hidden sm:inline-block">{formattedReward}</span>
-          </button>
-        </div>
+        {/* 🚀 FULL DARK OVERLAY WITH SOFT BLUR 🚀 */}
+        <AnimatePresence>
+          {isHovered && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#0B0D19]/60 backdrop-blur-[3px] rounded-[16px]"
+            >
+              <motion.div 
+                initial={{ scale: 0.6, y: 10 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.6, y: 10 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className="flex flex-col items-center pointer-events-none"
+              >
+                <div className="w-11 h-11 rounded-full bg-[#9333EA] flex items-center justify-center mb-1.5 shadow-[0_0_20px_rgba(147,51,234,0.8)]">
+                  <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                </div>
+                <span className="text-white font-black text-[12px] tracking-wide drop-shadow-md">
+                  {isStrictlySurvey ? 'Start Survey' : 'Start Offer'}
+                </span>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {isStrictlySurvey ? (
