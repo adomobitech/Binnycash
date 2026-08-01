@@ -73,10 +73,10 @@ export default function OfferwallModal({ isOpen, onClose, offerwall }: any) {
           className="absolute inset-0 bg-[#0B0D19]/80 backdrop-blur-sm cursor-pointer"
         />
 
-        {/* Centered Popup Box */}
+        {/* 🚀 Centered Popup Box - MT add kiya hai shift karne ke liye */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ duration: 0.3 }}
-          className="w-full max-w-6xl h-[85vh] bg-[#111319] border border-white/10 rounded-2xl shadow-[0_30px_80px_rgba(0,0,0,0.8)] relative overflow-hidden z-10 flex flex-col"
+          className="w-full max-w-6xl h-[82vh] sm:h-[80vh] mt-16 sm:mt-20 bg-[#111319] border border-white/10 rounded-2xl shadow-[0_30px_80px_rgba(0,0,0,0.8)] relative overflow-hidden z-10 flex flex-col"
         >
           
           {/* Header Bar */}

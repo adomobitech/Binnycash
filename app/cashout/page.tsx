@@ -370,9 +370,6 @@ export default function CashoutPage() {
   // Modals visibility
   const [isKycOpen, setIsKycOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  
-  // WITHDRAW UI STATES
-  const [showMethodsPopup, setShowMethodsPopup] = useState(false);
 
   // PAYMENT REQUEST FORM STATES
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
@@ -449,17 +446,6 @@ export default function CashoutPage() {
       case 'REJECTED': case 'FAILED': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
       default: return 'bg-white/5 text-white/60 border-white/10';
     }
-  };
-
-  // 🔥 1. HANDLE GENERAL WITHDRAW CLICK (NO API CALL) 🔥
-  const handleGeneralWithdrawClick = () => {
-    const status = String(kycStatus).toLowerCase();
-    if (status !== 'verified' && status !== 'approved') {
-      setIsAlertOpen(true);
-      return;
-    }
-    // If KYC verified, just show the methods popup directly
-    setShowMethodsPopup(true);
   };
 
   // 🔥 2. HANDLE METHOD CARD CLICK (NO API CALL) 🔥
@@ -614,8 +600,9 @@ export default function CashoutPage() {
 
         {/* Stats Cards Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
-          <div className="bg-[#111319] border border-[#8B5CF6]/20 rounded-[20px] p-6 shadow-xl flex flex-col justify-between">
-            <div className="flex items-start gap-4 mb-5">
+          {/* 🔥 BIG WITHDRAW NOW BUTTON COMPLETELY REMOVED FROM THIS CARD 🔥 */}
+          <div className="bg-[#111319] border border-[#8B5CF6]/20 rounded-[20px] p-6 shadow-xl flex flex-col justify-center">
+            <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0 border border-[#8B5CF6]/20">
                 <Wallet className="w-5 h-5 text-[#8B5CF6]" />
               </div>
@@ -624,17 +611,9 @@ export default function CashoutPage() {
                 <span className="text-3xl font-black mt-1 text-[#C4B5FD]">{loading ? '...' : formatPrice(Number(totalEarning), currency)}</span>
               </div>
             </div>
-            {/* 🔥 BIG WITHDRAW NOW BUTTON 🔥 */}
-            <button 
-              onClick={handleGeneralWithdrawClick}
-              className="w-full bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:opacity-90 text-white font-black text-sm py-3.5 rounded-xl transition-all shadow-[0_4px_20px_rgba(139,92,246,0.3)] flex justify-center items-center gap-2 cursor-pointer"
-            >
-              <Wallet className="w-4 h-4" />
-              Withdraw Now
-            </button>
           </div>
 
-          <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6 shadow-xl flex flex-col">
+          <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6 shadow-xl flex flex-col justify-center">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20">
                 <Clock className="w-5 h-5 text-amber-500" />
@@ -642,7 +621,7 @@ export default function CashoutPage() {
               <div className="flex flex-col">
                 <h3 className="text-white font-bold text-sm">Pending Process</h3>
                 <p className="text-[#8F95A3] text-xs mt-0.5">Awaiting Completion</p>
-                <span className="text-3xl font-black text-amber-500 mt-3">{loading ? '...' : formatPrice(Number(pendingAmount), currency)}</span>
+                <span className="text-3xl font-black text-amber-500 mt-1">{loading ? '...' : formatPrice(Number(pendingAmount), currency)}</span>
               </div>
             </div>
           </div>
@@ -780,43 +759,6 @@ export default function CashoutPage() {
 
       <KycModal isOpen={isKycOpen} onClose={() => setIsKycOpen(false)} onSuccess={() => { setKycStatus('pending'); fetchUserData(); }} />
       <VerificationAlertModal isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} onVerifyNow={() => { setIsAlertOpen(false); setIsKycOpen(true); }} kycStatus={kycStatus} />
-
-      {/* --- 🔥 CHOOSE WITHDRAWAL METHOD POPUP 🔥 --- */}
-      <AnimatePresence>
-        {showMethodsPopup && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative w-full max-w-4xl bg-[#0E111E] border border-[#8B5CF6]/30 rounded-[32px] p-6 sm:p-8 shadow-2xl">
-              <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
-                <div>
-                  <h2 className="text-2xl font-black text-white">Choose Withdrawal Method</h2>
-                  <p className="text-[#8F95A3] text-sm mt-1">Select how you want to receive your funds</p>
-                </div>
-                <button onClick={() => setShowMethodsPopup(false)} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white cursor-pointer"><X /></button>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                {withdrawalMethods.map((method) => (
-                  <button
-                    key={method.id}
-                    onClick={() => {
-                      setSelectedMethod(method);
-                      setShowMethodsPopup(false);
-                    }}
-                    className="bg-[#15192C] border border-white/5 hover:border-[#8B5CF6]/50 rounded-2xl p-6 flex flex-col items-center justify-center gap-4 text-center transition-all hover:shadow-[0_10px_30px_rgba(139,92,246,0.15)] group cursor-pointer"
-                  >
-                    <div className="scale-90 group-hover:scale-110 transition-transform duration-300">
-                      {method.icon}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-white font-bold text-sm">{method.name}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* --- 🔥 PAYMENT REQUEST FORM MODAL 🔥 --- */}
       <AnimatePresence>

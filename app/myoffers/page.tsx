@@ -201,7 +201,6 @@ export default function MyOffersPage() {
         setApiError(null);
       }
     } else {
-      // Completed offers me UI vertical card list h, detailed view/selected data ki need nahi h
       setSelectedOffer(null);
       setOfferDetails(null);
       setQrCodeUrl(null);
@@ -467,18 +466,16 @@ export default function MyOffersPage() {
                          </div>
                       </div>
 
+                      {/* 🔥 NEW SLEEK SUPPORT BUTTON AS PER IMAGE 🔥 */}
                       <Link
                         href={`/support?category=${encodeURIComponent('Offer and Surveys')}&description=${encodeURIComponent(`Offer Name: ${name}\nOffer ID: ${offerIdForSupport}`)}`}
-                        className="bg-[#161821] hover:bg-[#1A1C24] border border-white/5 rounded-2xl p-4 flex items-center justify-between transition-colors group cursor-pointer w-full mt-1"
+                        className="bg-[#14151C] hover:bg-[#1A1C24] border border-white/5 rounded-2xl p-4 flex items-center justify-between transition-colors group cursor-pointer w-full mt-2"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0 group-hover:bg-red-500/20 transition-colors">
-                            <AlertCircle className="w-5 h-5 text-red-400" />
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-[#FF5D73]/10 flex items-center justify-center shrink-0">
+                            <AlertCircle className="w-5 h-5 text-[#FF5D73]" />
                           </div>
-                          <div className="flex flex-col">
-                            <h4 className="text-white font-bold text-[14px]">Having issues with this offer?</h4>
-                            <p className="text-[#8F95A3] text-[12px] mt-0.5">Contact support for missing rewards or bugs.</p>
-                          </div>
+                          <span className="text-white font-bold text-[15px]">Support</span>
                         </div>
                         <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors shrink-0" />
                       </Link>
@@ -541,7 +538,7 @@ export default function MyOffersPage() {
           </>
         )}
 
-        {/* 🔥 COMPLETED TAB VIEW (HORIZONTAL LIST) 🔥 */}
+        {/* 🔥 COMPLETED TAB VIEW (HORIZONTAL LIST) WITH ROBUST IMAGE FETCHING 🔥 */}
         {activeTab === 'completed' && (
           <div className="flex flex-col gap-3 w-full max-w-4xl">
             {isLoading ? (
@@ -550,9 +547,22 @@ export default function MyOffersPage() {
               <div className="text-[#8F95A3] text-sm">No completed offers found.</div>
             ) : (
               completedOffers.map((item, idx) => {
-                let iconImg = item.image_url || item.offerImage || item.logo || item.preview || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.offerName || 'O')}&background=A855F7&color=fff`;
-                if (iconImg && !iconImg.startsWith('http')) iconImg = `https://apitest.binnycash.com${iconImg}`;
-                const rew = item.userCredits ?? item.reward ?? item.payout ?? 0;
+                
+                // 🔥 SMART IMAGE FETCHING LOGIC 🔥
+                // Tries checking inside nested 'offer' or 'campaign' object if available
+                const nestedOffer = item.offer || item.campaign || item;
+                
+                let iconImg = nestedOffer.image_url || nestedOffer.offerImage || nestedOffer.logo || nestedOffer.image || nestedOffer.preview || item.image_url || item.offerImage || item.logo || item.image || item.preview;
+                
+                const offerName = nestedOffer.offerName || nestedOffer.offer_name || nestedOffer.title || item.offerName || item.offer_name || 'Completed Offer';
+                const providerName = nestedOffer.network || nestedOffer.provider || item.network || item.provider || 'Provider';
+                const rew = item.userCredits ?? item.reward ?? item.payout ?? nestedOffer.userCredits ?? nestedOffer.reward ?? nestedOffer.payout ?? 0;
+
+                if (!iconImg) {
+                  iconImg = `https://ui-avatars.com/api/?name=${encodeURIComponent(offerName)}&background=A855F7&color=fff`;
+                } else if (!iconImg.startsWith('http')) {
+                  iconImg = `https://apitest.binnycash.com${iconImg.startsWith('/') ? '' : '/'}${iconImg}`;
+                }
 
                 return (
                   <motion.div 
@@ -567,8 +577,8 @@ export default function MyOffersPage() {
                         <img src={iconImg} alt="icon" className="w-full h-full object-cover" />
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <span className="text-white font-bold text-sm md:text-base truncate">{item.offerName || item.offer_name || 'Completed Offer'}</span>
-                        <span className="text-[#8F95A3] text-xs mt-0.5 truncate">{item.network || item.provider || 'Provider'}</span>
+                        <span className="text-white font-bold text-sm md:text-base truncate">{offerName}</span>
+                        <span className="text-[#8F95A3] text-xs mt-0.5 truncate">{providerName}</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0 pl-4">

@@ -39,7 +39,6 @@ const EmailIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-
 // --- UTILITY: Get User ID securely ---
 function getUserId(): string {
   if (typeof window === 'undefined') return '';
@@ -91,10 +90,11 @@ export default function AffiliatePage() {
   const [availableBalance, setAvailableBalance] = useState<string>('0.00');
   const [referralLink, setReferralLink] = useState('Loading...');
   
+  // 🔥 FIXED API RESPONSE KEYS HERE (levels instead of tiers) 🔥
   const [tierData, setTierData] = useState<any>({
     currentTier: 1,
     currentReferralEarning: 0,
-    tiers: []
+    levels: [] 
   });
 
   const [claimHistory, setClaimHistory] = useState<any[]>([]);
@@ -373,7 +373,8 @@ export default function AffiliatePage() {
         <div className="min-h-[300px]">
           {activeTab === 'tier' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {(tierData?.tiers || []).map((tier: any, idx: number) => {
+              {/* 🔥 FIXED MAPPING HERE (levels instead of tiers) 🔥 */}
+              {(tierData?.levels || []).map((tier: any, idx: number) => {
                 const isCurrent = tier.level === tierData.currentTier;
                 const isCompleted = tier.level < tierData.currentTier;
                 const colorClasses = getLevelColor(tier.level);
@@ -449,7 +450,6 @@ export default function AffiliatePage() {
                           if (!avatar.startsWith('http')) {
                             avatar = `https://apitest.binnycash.com${avatar.startsWith('/') ? '' : '/'}${avatar}`;
                           }
-                          // 🔥 HOTFIX: Fix typo in API response if it says binycash instead of binnycash
                           avatar = avatar.replace('binycash.com', 'binnycash.com'); 
                         } else {
                           avatar = fallbackAvatar;
@@ -459,7 +459,6 @@ export default function AffiliatePage() {
                           <tr key={idx} className="border-b border-white/[0.06] hover:bg-white/[0.02] transition-colors">
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
-                                {/* 🔥 IMAGE BROKEN FIX: Added onError fallback and adjusted size to match UI screenshot 🔥 */}
                                 <img 
                                   src={avatar} 
                                   alt="User" 

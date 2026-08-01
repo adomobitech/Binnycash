@@ -12,23 +12,6 @@ interface OfferCardProps {
   isSurveyCard?: boolean; 
 }
 
-export function getPlatformString(offer: any): string {
-  return [
-    offer?.browsers,
-    offer?.platform,
-    offer?.device,
-    offer?.device_type,
-    offer?.os,
-    offer?.os_type,
-    offer?.categories,
-    offer?.category,
-    offer?.sub
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-}
-
 const All5DevicesIcon = () => (
   <div className="flex items-center gap-1 opacity-90 px-0.5">
     <svg className="w-2.5 h-2.5 text-[#A4C639]" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
@@ -40,18 +23,15 @@ const All5DevicesIcon = () => (
 );
 
 const AndroidIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-[#A4C639]">
-    <path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
+  <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] fill-[#A4C639]"><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
 );
 
 const AppleIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-white">
-    <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
+  <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] fill-white"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
 );
 
 const WindowsIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-[#00A4EF]">
-    <path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
+  <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] fill-[#00A4EF]"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
 );
 
 function getUserId(): string {
@@ -75,11 +55,7 @@ function getUserId(): string {
 
 export const DeviceIcon = ({ offer }: { offer: any }) => {
   const rawBrowsers = String(offer?.browsers || offer?.platform || offer?.os || offer?.device_type || '').toLowerCase();
-
-  if (rawBrowsers === 'all' || rawBrowsers === 'global' || rawBrowsers === '') {
-    return <All5DevicesIcon />;
-  }
-
+  if (rawBrowsers === 'all' || rawBrowsers === 'global' || rawBrowsers === '') return <All5DevicesIcon />;
   const isAndroid = rawBrowsers.includes('android');
   const isWindows = rawBrowsers.includes('windows') || rawBrowsers.includes('win') || rawBrowsers.includes('pc') || rawBrowsers.includes('desktop');
   const isMac = rawBrowsers.includes('mac') || rawBrowsers.includes('osx');
@@ -91,12 +67,10 @@ export const DeviceIcon = ({ offer }: { offer: any }) => {
   if (isMac) return <svg className="w-[14px] h-[14px] text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="12" rx="2" ry="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line></svg>;
   if (isIpad) return <svg className="w-[14px] h-[14px] text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>;
   if (isIos) return <AppleIcon />;
-
   return <All5DevicesIcon />;
 };
 
 function OfferDetailsModal({ offer, isOpen, onClose }: any) {
-  // Same logic as before... keeping modal intact
   const currency = useCurrency();
   const [details, setDetails] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -150,7 +124,6 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
           setDetails(offer);
         }
       } catch (err) {
-        console.error("Error fetching offer details:", err);
         setDetails(offer);
       } finally {
         setIsLoading(false);
@@ -229,7 +202,6 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
 
     try {
       const token = localStorage.getItem('token') || '';
-
       const res = await fetch(
         `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`,
         {
@@ -276,7 +248,6 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       onClose();
 
     } catch (err) {
-      console.error("Error processing click URL:", err);
       if (newTab) {
          newTab.location.href = offer?.click_url || offer?.link || offer?.url || 'https://binnycash.com';
       }
@@ -292,16 +263,12 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   let rawImage = currentData?.image_url || currentData?.preview || currentData?.image || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop';
   if (rawImage && !rawImage.startsWith('http')) rawImage = `https://apitest.binnycash.com${rawImage}`;
 
-  let rawNetworkLogo = currentData?.networkImage || currentData?.network_image;
-  if (rawNetworkLogo && !rawNetworkLogo.startsWith('http')) rawNetworkLogo = `https://apitest.binnycash.com${rawNetworkLogo}`;
-
   const title = currentData?.offerName || currentData?.title || 'Offer Details';
+  const networkName = currentData?.network || currentData?.provider || 'App';
+  const category = currentData?.categories || currentData?.category || 'App';
   const rewardAmount = currentData?.userCredits ?? currentData?.reward ?? currentData?.payout ?? 0;
   const formattedReward = formatPrice(rewardAmount, currency);
-
-  const networkName = currentData?.network || currentData?.provider || 'BinnyCash';
-  const category = currentData?.categories || currentData?.category || 'All';
-  const requirements = currentData?.offer_requirements || currentData?.requirements || "CPA offer";
+  const requirements = currentData?.offer_requirements || currentData?.requirements || "Complete task to earn reward";
   const description = currentData?.description || "Complete the task as instructed to receive your reward.";
   const events = currentData?.offer_events || [];
 
@@ -309,169 +276,190 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     <AnimatePresence>
       <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm">
         
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 20 }} 
-          animate={{ opacity: 1, scale: 1, y: 0 }} 
-          exit={{ opacity: 0, scale: 0.95, y: 20 }} 
-          transition={{ duration: 0.2 }}
-          className={`w-full max-w-[500px] rounded-[28px] max-h-[90vh] overflow-y-auto no-scrollbar relative border border-white/10 shadow-2xl ${qrCodeUrl ? 'bg-[#0B0D15]' : 'bg-[#111319]'}`}
-        >
-          <button 
-            onClick={onClose}
-            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/80 text-white transition-all border border-white/10 cursor-pointer z-[10000]"
+        {qrCodeUrl ? (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            exit={{ opacity: 0, scale: 0.95 }} 
+            className="w-full max-w-[380px] bg-[#0a0a0f] rounded-[28px] relative shadow-2xl flex flex-col items-center p-0 overflow-visible mx-auto border border-gray-800/60"
           >
-            <X className="w-5 h-5" />
-          </button>
+            <button 
+              onClick={onClose}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-800/40 hover:bg-gray-700/60 text-[#8F95A3] hover:text-white transition-colors cursor-pointer z-50"
+            >
+              <X className="w-4 h-4" />
+            </button>
 
-          {qrCodeUrl ? (
-            <div className="relative p-8 pt-10 flex flex-col items-center text-center overflow-hidden h-full">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#8B5CF6]/20 blur-[100px] rounded-full pointer-events-none" />
-
-              <div className="relative w-14 h-14 rounded-full border border-[#8B5CF6]/30 bg-black/40 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(139,92,246,0.3)] z-10 backdrop-blur-md">
-                {targetDeviceName.toLowerCase().includes('android') ? <AndroidIcon /> : targetDeviceName.toLowerCase().includes('windows') ? <WindowsIcon /> : <AppleIcon />}
+            <div className="relative p-6 pt-12 sm:p-8 sm:pt-14 flex flex-col items-center text-center w-full">
+              {/* Top Target Device Icon with Glow */}
+              <div className="absolute -top-7">
+                <div className="p-[2px] rounded-full bg-gradient-to-r from-purple-500 to-blue-500 shadow-[0_0_20px_rgba(168,85,247,0.6)]">
+                  <div className="bg-[#12121a] p-3 rounded-full flex items-center justify-center">
+                    {targetDeviceName.toLowerCase().includes('android') ? <AndroidIcon /> : targetDeviceName.toLowerCase().includes('windows') ? <WindowsIcon /> : <AppleIcon />}
+                  </div>
+                </div>
               </div>
 
-              <h2 className="text-2xl font-black text-white mb-2 relative z-10">Open on {targetDeviceName}</h2>
-              <p className="text-[#8F95A3] text-sm mb-8 relative z-10 flex items-center justify-center gap-2 max-w-[85%]">
-                <Sparkles className="w-3.5 h-3.5 text-[#8B5CF6]" />
-                Scan this QR code on a supported {targetDeviceName} device to start the offer.
-                <Sparkles className="w-3.5 h-3.5 text-[#8B5CF6]" />
-              </p>
+              {/* Headings & Subtext */}
+              <div className="mt-2 text-center space-y-3">
+                <h2 className="text-2xl font-extrabold text-white tracking-wide">Open on {targetDeviceName}</h2>
+                <div className="flex items-start justify-center gap-2 text-[#8F95A3] text-sm px-2">
+                  <Sparkles size={16} className="text-purple-400 shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">Scan this QR code on a supported {targetDeviceName} device to start the offer.</p>
+                  <Sparkles size={16} className="text-purple-400 shrink-0 mt-0.5" />
+                </div>
+              </div>
 
-              <div className="relative z-10 p-[2px] rounded-[24px] bg-gradient-to-b from-[#A855F7] to-[#8B5CF6]/10 shadow-[0_0_50px_rgba(139,92,246,0.4)] mb-8">
-                <div className="bg-white p-3 rounded-[22px]">
+              {/* QR Code Box with Neon Gradient Border */}
+              <div className="mt-8 mb-8 p-1 rounded-[28px] bg-gradient-to-br from-purple-500 via-purple-400 to-blue-500 shadow-[0_0_35px_rgba(168,85,247,0.35)]">
+                <div className="bg-white p-3 sm:p-4 rounded-[24px]">
                   <img 
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrCodeUrl)}&margin=10`} 
                     alt="Scan to play"
-                    className="w-[200px] h-[200px] object-contain rounded-xl"
+                    className="w-48 h-48 object-contain rounded-xl"
                   />
                 </div>
               </div>
 
-              <div className="relative z-10 flex items-center justify-between bg-black/40 backdrop-blur-md border border-white/5 rounded-[20px] p-4 w-full max-w-[280px] mb-8 shadow-inner">
-                <div className="flex items-center gap-3">
-                  <Smartphone className="w-5 h-5 text-white/40" />
-                  <div className="flex flex-col items-start border-l border-white/10 pl-3">
-                    <span className="text-[10px] text-white/50 uppercase tracking-wide">Current device</span>
-                    <span className="text-[15px] font-bold text-white leading-tight">{currentOS}</span>
+              {/* Bottom Current Device Pill */}
+              <div className="w-full bg-black/40 rounded-2xl p-3 flex items-center justify-between border border-gray-800/50">
+                <div className="flex items-center gap-4">
+                  {/* Phone Icon */}
+                  <div className="bg-gray-800/60 p-2.5 rounded-xl text-purple-400">
+                    <Smartphone size={20} />
+                  </div>
+                  
+                  {/* Device Info */}
+                  <div className="flex flex-col text-left">
+                    <span className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">
+                      Current Device
+                    </span>
+                    <span className="text-white font-bold text-base leading-tight">
+                      {currentOS}
+                    </span>
                   </div>
                 </div>
-                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
+
+                {/* Current OS Icon */}
+                <div className="bg-white/5 p-2.5 rounded-xl border border-white/5 flex items-center justify-center w-10 h-10">
                   {currentOS === 'Windows' ? <WindowsIcon /> : currentOS === 'Android' ? <AndroidIcon /> : <AppleIcon />}
                 </div>
               </div>
             </div>
-          ) : (
-            <>
-              <div className="sticky top-0 bg-[#111319]/95 backdrop-blur-md z-20 flex items-center p-4 border-b border-white/5">
-                <h2 className="text-white font-black text-base truncate pr-10">{title}</h2>
+          </motion.div>
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+            animate={{ opacity: 1, scale: 1, y: 0 }} 
+            exit={{ opacity: 0, scale: 0.95, y: 20 }} 
+            className="w-full max-w-[420px] max-h-[85vh] bg-[#12151D] border border-white/5 rounded-[24px] overflow-hidden relative shadow-2xl flex flex-col"
+          >
+            {/* Fixed Header */}
+            <div className="flex justify-between items-start px-5 pt-5 pb-3 bg-[#12151D] shrink-0 z-10">
+              <h2 className="text-white font-bold text-lg truncate pr-4">{title}</h2>
+              <button 
+                onClick={onClose}
+                className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors cursor-pointer border border-white/10"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Scrollable Content Area */}
+            <div className="px-5 pb-5 overflow-y-auto no-scrollbar flex-1">
+              {/* Blurred Image Banner */}
+              <div className="w-full h-[160px] rounded-[16px] overflow-hidden relative flex items-center justify-center bg-[#1A1C24] mb-4 shrink-0">
+                <img src={rawImage} alt="bg" className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 scale-125" />
+                <img src={rawImage} alt={title} className="w-[70px] h-[70px] rounded-2xl relative z-10 shadow-lg object-cover bg-white" />
+                <div className="absolute top-3 right-3 z-10">
+                  <DeviceIcon offer={currentData} />
+                </div>
               </div>
 
-              {isLoading ? (
-                <div className="p-6 flex flex-col items-center justify-center min-h-[300px]">
-                  <div className="w-10 h-10 border-4 border-[#A855F7]/30 border-t-[#A855F7] rounded-full animate-spin mb-4"></div>
-                  <p className="text-[#8F95A3] text-sm font-bold">Loading offer details...</p>
+              {/* Price */}
+              <h1 className="text-center text-[32px] font-black text-white mb-4 shrink-0">{formattedReward}</h1>
+
+              {/* Stats Row */}
+              <div className="flex items-center justify-between border-t border-b border-white/5 py-3 mb-4 shrink-0">
+                <div className="flex flex-col items-center flex-1 border-r border-white/5">
+                  <span className="text-white font-bold text-[13px] truncate">{currentData?.status || 'Active'}</span>
+                  <span className="text-[#8F95A3] text-[9px] font-bold uppercase tracking-wider mt-0.5">Status</span>
                 </div>
-              ) : (
-                <div className="p-4 sm:p-5 flex flex-col gap-5">
-                  <div className="w-full h-[180px] rounded-xl overflow-hidden relative flex items-center justify-center bg-[#1A1C24]">
-                    <img src={rawImage} alt="blur-bg" className="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110" />
-                    <img src={rawImage} alt={title} className="w-[100px] h-[100px] rounded-2xl relative z-10 shadow-2xl object-cover" />
-                    <div className="absolute top-3 right-3 z-10 w-8 h-8 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white">
-                      <DeviceIcon offer={currentData} />
-                    </div>
+                <div className="flex flex-col items-center flex-1 border-r border-white/5">
+                  <div className="flex items-center gap-0.5">
+                    {[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 text-amber-400 fill-amber-400" />)}
                   </div>
+                  <span className="text-[#8F95A3] text-[9px] font-bold uppercase tracking-wider mt-0.5">Popularity</span>
+                </div>
+                <div className="flex flex-col items-center flex-1 border-r border-white/5">
+                  <span className="text-white font-bold text-[13px] truncate px-1 uppercase">{category}</span>
+                  <span className="text-[#8F95A3] text-[9px] font-bold uppercase tracking-wider mt-0.5">Category</span>
+                </div>
+                <div className="flex flex-col items-center flex-1">
+                  <span className="text-white font-bold text-[13px] truncate">{networkName}</span>
+                  <span className="text-[#8F95A3] text-[9px] font-bold uppercase tracking-wider mt-0.5">Provider</span>
+                </div>
+              </div>
 
-                  <div className="text-center">
-                    <h1 className="text-3xl font-black text-white drop-shadow-md">{formattedReward}</h1>
-                  </div>
+              {/* Play Button */}
+              <button 
+                onClick={handlePlayClick} disabled={isProcessingClick}
+                className="w-full shrink-0 py-3.5 rounded-[12px] bg-[#9333EA] hover:bg-[#8B5CF6] text-white font-bold text-[15px] transition-colors flex items-center justify-center gap-2 cursor-pointer mb-4 shadow-[0_0_20px_rgba(147,51,234,0.3)]"
+              >
+                {isProcessingClick ? "Processing..." : <> <PlayCircle className="w-4 h-4" /> Play & Earn {formattedReward} </>}
+              </button>
 
-                  <div className="grid grid-cols-4 divide-x divide-white/5 py-3 border-y border-white/5">
-                    <div className="flex flex-col items-center justify-center gap-1">
-                      <span className="text-white font-bold text-xs truncate max-w-[90px]">{currentData?.status || 'Active'}</span>
-                      <span className="text-[#8F95A3] text-[10px] font-medium uppercase tracking-wider">Status</span>
-                    </div>
-                    <div className="flex flex-col items-center justify-center gap-1">
-                      <div className="flex items-center gap-0.5">
-                        {[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 text-amber-400 fill-amber-400" />)}
-                      </div>
-                      <span className="text-[#8F95A3] text-[10px] font-medium uppercase tracking-wider">Popularity</span>
-                    </div>
-                    <div className="flex flex-col items-center justify-center gap-1">
-                      <span className="text-white font-bold text-xs truncate max-w-[90px] px-1 uppercase">{category}</span>
-                      <span className="text-[#8F95A3] text-[10px] font-medium uppercase tracking-wider">Category</span>
-                    </div>
-                    <div className="flex flex-col items-center justify-center gap-1">
-                      {rawNetworkLogo ? (
-                        <img src={rawNetworkLogo} alt={networkName} className="h-4 object-contain mb-0.5 max-w-[70px]" onError={(e: any) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'block'; }} />
-                      ) : null}
-                      <span className="text-white font-bold text-xs truncate max-w-[80px]" style={{ display: rawNetworkLogo ? 'none' : 'block' }}>{networkName}</span>
-                      <span className="text-[#8F95A3] text-[10px] font-medium uppercase tracking-wider">Provider</span>
-                    </div>
-                  </div>
-
-                  {apiError && (
-                    <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-3 rounded-xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)]">
-                      {apiError}
-                    </div>
-                  )}
-
-                  <button 
-                    onClick={handlePlayClick} disabled={isProcessingClick}
-                    className="w-full py-4 rounded-xl bg-[#A855F7] hover:bg-[#9333EA] shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-all flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
-                    {isProcessingClick ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <>
-                      <PlayCircle className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
-                      <span className="text-white font-black text-base">Play & Earn {formattedReward}</span>
-                    </>}
-                  </button>
-
-                  <div className="bg-[#1A1C24] border border-white/5 rounded-xl p-4 flex flex-col gap-1">
-                    <h3 className="text-white font-bold text-sm">Requirements</h3>
-                    <p className="text-[#8F95A3] text-xs leading-relaxed">{requirements}</p>
-                  </div>
-
-                  <div className="flex flex-col gap-3 mt-1">
-                    <div className="flex flex-col">
-                      <h3 className="text-white font-black text-sm mb-1">Details</h3>
-                      <div className="w-8 h-0.5 bg-[#A855F7] rounded-full mb-3"></div>
-                      <div className="bg-[#1A1C24] border border-white/5 rounded-xl p-4 flex flex-col gap-4">
-                        <div className="flex flex-col gap-1">
-                          <h4 className="text-white font-bold text-sm">Description</h4>
-                          <p className="text-[#8F95A3] text-xs leading-relaxed whitespace-pre-wrap">{description}</p>
-                        </div>
-                        {events.length > 0 && (
-                          <div className="flex flex-col gap-2 pt-2 border-t border-white/5">
-                            <h4 className="text-white font-bold text-xs uppercase tracking-wider text-[#A855F7]">Milestone Events</h4>
-                            <div className="flex flex-col gap-2">
-                              {events.map((ev: any, idx: number) => (
-                                <div key={ev._id || idx} className="flex items-center justify-between bg-white/5 p-2.5 rounded-lg border border-white/5">
-                                  <div className="flex items-center gap-2">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                                    <span className="text-white text-xs font-medium">{ev.event_name}</span>
-                                  </div>
-                                  <span className="text-emerald-400 font-black text-xs">+{formatPrice(ev.event_payout || 0, currency)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+              {apiError && (
+                <div className="w-full shrink-0 bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold p-3 rounded-xl mb-4 text-center">
+                  {apiError}
                 </div>
               )}
-            </>
-          )}
-        </motion.div>
+
+              {/* Requirements */}
+              <div className="bg-[#1A1C24] rounded-[12px] p-4 mb-4 border border-white/5 shrink-0">
+                <h4 className="text-white font-bold text-[13px] mb-1">Requirements</h4>
+                <p className="text-[#8F95A3] text-[12px] leading-relaxed">{requirements}</p>
+              </div>
+
+              {/* Details (Description & Milestones) */}
+              <div className="flex flex-col shrink-0">
+                <div className="border-b-2 border-[#8B5CF6] pb-1 w-fit mb-3">
+                  <h3 className="text-white font-bold text-sm">Details</h3>
+                </div>
+                
+                <div className="bg-[#1A1C24] border border-white/5 rounded-[12px] p-4 flex flex-col gap-4">
+                  <div className="flex flex-col gap-1">
+                    <h4 className="text-white font-bold text-[13px]">Description</h4>
+                    <p className="text-[#8F95A3] text-[12px] leading-relaxed whitespace-pre-wrap">{description}</p>
+                  </div>
+                  
+                  {events.length > 0 && (
+                    <div className="flex flex-col gap-2 pt-3 border-t border-white/5">
+                      <h4 className="text-white font-bold text-[11px] uppercase tracking-wider">Milestone Events</h4>
+                      <div className="flex flex-col gap-2">
+                        {events.map((ev: any, idx: number) => (
+                          <div key={ev._id || idx} className="flex items-center justify-between bg-white/5 p-2.5 rounded-lg border border-white/5">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                              <span className="text-white text-[11px] leading-tight">{ev.event_name}</span>
+                            </div>
+                            <span className="text-emerald-400 font-black text-xs shrink-0 pl-2">+{formatPrice(ev.event_payout || 0, currency)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          </motion.div>
+        )}
       </div>
     </AnimatePresence>
   );
 }
 
-// ----------------------------------------------------
-// 櫨 MAIN EXPORTED COMPONENT (OFFER CARD) 櫨
-// ----------------------------------------------------
 export default function OfferCard({ offer, onClick, isSurveyCard = false }: OfferCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const currency = useCurrency();
@@ -479,7 +467,8 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
   if (!offer) return null;
 
   const title = offer.offerName || offer.title || offer.name || offer.offer_name || 'Offer Item';
-  const sub = offer.categories || offer.sub || offer.category || 'All';
+  const subtitle = offer.categories || offer.sub || offer.category || offer.network || offer.provider || 'App';
+  
   const rewardVal = offer.userCredits ?? offer.reward ?? offer.payout ?? 0;
   const formattedReward = formatPrice(rewardVal, currency);
   
@@ -493,32 +482,47 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
     setIsModalOpen(true);
   };
 
+  const getDifficulty = () => {
+    if (offer.difficulty) return offer.difficulty;
+    if (rewardVal > 10) return 'Hard';
+    if (rewardVal > 2) return 'Medium';
+    return 'Easy';
+  };
+  const diff = getDifficulty();
+  const diffColor = diff === 'Easy' ? 'text-[#00E57A] bg-[#00E57A]/10' : diff === 'Medium' ? 'text-[#F59E0B] bg-[#F59E0B]/10' : 'text-[#EF4444] bg-[#EF4444]/10';
+
   const isStrictlySurvey = isSurveyCard || offer?.offer_type === 'survey';
 
   return (
     <>
       <div 
         onClick={handleCardClick}
-        // 🔥 Reduced width (w-[140px] sm:w-[150px]) and height to make it more compact
-        className="bg-[#1A1C24] border border-white/5 rounded-2xl overflow-hidden flex flex-col hover:border-[#8B5CF6]/50 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all duration-300 cursor-pointer shrink-0 w-[140px] sm:w-[150px] h-full"
+        className="w-full h-full bg-[#111319] border border-white/5 hover:border-[#8B5CF6]/40 rounded-[16px] p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 hover:shadow-[0_8px_30px_rgba(139,92,246,0.1)] group"
       >
-        {/* 🔥 Reduced image height (h-24) */}
-        <div className="h-24 w-full bg-white/5 relative overflow-hidden">
-          <img src={rawImage} alt={title} className="w-full h-full object-cover" />
-        </div>
-        
-        {/* 🔥 Reduced padding and gap */}
-        <div className="p-2.5 flex flex-col justify-between flex-1 gap-1.5">
-          <div>
-            <h3 className="text-[11px] sm:text-xs font-bold text-white truncate">{title}</h3>
-            <p className="text-[9px] sm:text-[10px] text-[#8F95A3] truncate mt-0.5">{sub}</p>
+        <div className="flex gap-4 items-start">
+          <div className="w-14 h-14 bg-white rounded-[14px] overflow-hidden shrink-0 shadow-sm">
+            <img src={rawImage} alt={title} className="w-full h-full object-cover" />
           </div>
-          <div className="flex justify-between items-center pt-1.5 border-t border-white/5 mt-1">
-            <span className="text-xs sm:text-[13px] font-black text-[#8B5CF6]">{formattedReward}</span>
-            <div className="p-1 rounded-md bg-white/5 flex items-center justify-center min-w-[20px] min-h-[20px]">
-              <DeviceIcon offer={offer} />
+
+          <div className="flex flex-col flex-1 min-w-0">
+            <h3 className="text-white font-bold text-[14px] leading-tight line-clamp-2 pr-2">{title}</h3>
+            <span className="text-[#8F95A3] text-[11px] mt-0.5 mb-1.5 truncate">{subtitle}</span>
+            
+            <div className="flex items-center gap-2 mt-auto">
+              <span className={`px-2 py-0.5 rounded-[6px] text-[10px] font-bold ${diffColor}`}>
+                {diff}
+              </span>
+              <div className="flex items-center gap-1 opacity-70">
+                <DeviceIcon offer={offer} />
+              </div>
             </div>
           </div>
+        </div>
+
+        <div className="flex justify-end items-center mt-4 pt-3 border-t border-white/5">
+          <button className="px-4 py-1.5 rounded-[8px] border border-[#8B5CF6]/50 text-[#8B5CF6] font-bold text-xs group-hover:bg-[#8B5CF6] group-hover:text-white transition-colors flex items-center justify-center w-full sm:w-auto gap-1.5">
+            Start Offer <span className="hidden sm:inline-block opacity-60">•</span> <span className="hidden sm:inline-block">{formattedReward}</span>
+          </button>
         </div>
       </div>
 

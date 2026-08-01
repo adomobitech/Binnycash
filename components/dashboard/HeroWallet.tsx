@@ -8,7 +8,6 @@ export default function HeroWallet() {
   const isCoin = currency === 'Coin' || currency === 'COIN';
 
   return (
-    // Reduced height from 200px to 150px
     <div className="relative w-full h-[150px] flex items-center justify-center">
       <motion.div 
         animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
@@ -23,7 +22,6 @@ export default function HeroWallet() {
         <Sparkles className="w-4 h-4 text-[#00E57A]" />
       </motion.div>
 
-      {/* 🔥 Dynamic Icon (Coins or Dollar) - Scaled down 🔥 */}
       {[1, 2, 3].map((i) => (
         <motion.div
           key={i}
@@ -40,7 +38,6 @@ export default function HeroWallet() {
         </motion.div>
       ))}
 
-      {/* Main Wallet Body - Scaled down */}
       <motion.div 
         animate={{ y: [-5, 5, -5] }} 
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}

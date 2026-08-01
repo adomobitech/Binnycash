@@ -4,34 +4,21 @@ import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import OfferCard from '@/components/offers/OfferCard';
 import OfferFilters from '@/components/offers/OfferFilters'; 
-import { Sparkles } from "lucide-react";
+import { Sparkles, ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
+
 export function filterOffersByDevice(offers: any[], selectedDevices: string[]) {
-  // Agar koi filter selected nahi hai, tabhi sab dikhao (View All / Default state)
-  if (!selectedDevices || selectedDevices.length === 0) return offers;
+  if (!selectedDevices || selectedDevices.length === 0 || selectedDevices.includes('all')) return offers;
 
   return offers.filter((offer) => {
-    // Strictly JSON data ka browsers ya platform check karo
     const browsers = String(offer?.browsers || offer?.platform || offer?.os || offer?.device_type || '').toLowerCase();
+    if (browsers === 'all' || browsers === 'global' || browsers === '') return false; 
     
-    // 🔥 Agar offer 'all' devices ke liye hai, toh filter selected hone pe isko hide kar do
-    if (browsers === 'all' || browsers === 'global' || browsers === '') {
-      return false; 
-    }
-
-    // Match karo based on filter
     return selectedDevices.some((device) => {
       if (device === 'android') return browsers.includes('android');
-      
       if (device === 'ios') return browsers.includes('ios') || browsers.includes('iphone');
-      
-      // 🔥 iPad me iOS wale offers bhi dikhane hain
-      if (device === 'ipad') return browsers.includes('ipad') || browsers.includes('ios'); 
-      
-      // 🔥 Windows me desktop wale offers bhi dikhane hain
       if (device === 'windows') return browsers.includes('windows') || browsers.includes('win') || browsers.includes('pc') || browsers.includes('desktop');
-      
       if (device === 'mac') return browsers.includes('mac') || browsers.includes('osx');
-      
+      if (device === 'ipad') return browsers.includes('ipad');
       return false;
     });
   });
@@ -44,7 +31,8 @@ export default function OfferSlider({
   onSelectDevice = () => {} 
 }: any) {
   const sliderRef = useRef<HTMLDivElement>(null);
-  const [showArrows, setShowArrows] = useState(false);
+  
+  // 🚀 Added left and right scroll states
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -53,7 +41,6 @@ export default function OfferSlider({
   const checkScroll = () => {
     if (sliderRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
-      setShowArrows(scrollWidth > clientWidth);
       setCanScrollLeft(scrollLeft > 5); 
       setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 5); 
     }
@@ -65,68 +52,101 @@ export default function OfferSlider({
     return () => window.removeEventListener('resize', checkScroll);
   }, [filteredOffers]);
 
-  const scroll = (direction: 'left' | 'right') => {
+  // 🚀 Scroll Functions
+  const scrollLeft = () => {
     if (sliderRef.current) {
-      const { clientWidth } = sliderRef.current;
-      const scrollAmount = clientWidth * 0.75;
-      sliderRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
+      sliderRef.current.scrollBy({ left: -320, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (sliderRef.current) {
+      sliderRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+    }
+  };
+
+  const handleDeviceSelect = (dev: string) => {
+    if (dev === 'all') {
+      onSelectDevice(''); 
+    } else {
+      onSelectDevice(dev);
     }
   };
 
   return (
-    <div className="w-full flex flex-col gap-3">
-      <div className="flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 bg-[#14171F] p-3 md:p-4 rounded-xl border border-white/5">
-        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar max-w-full">
-          <div className="flex items-center gap-2 shrink-0">
-            <Sparkles className="w-5 h-5 text-violet-400" />
-            <h2 className="text-base font-black text-white whitespace-nowrap">Featured Offers</h2>
+    <div className="w-full flex flex-col gap-6 mt-6">
+      
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/5 pb-4">
+        
+        {/* Title */}
+        <div className="flex flex-col shrink-0">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="w-5 h-5 text-[#8B5CF6]" />
+            <h2 className="text-xl font-black text-white tracking-widest uppercase">OFFERS</h2>
           </div>
-          <OfferFilters selectedDevices={selectedDevices} onSelectDevice={onSelectDevice} />
+          <p className="text-[#8F95A3] text-xs font-medium">Complete offers and earn exciting rewards.</p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 ml-auto lg:ml-0">
-          {showArrows && (
-            <div className="hidden sm:flex items-center gap-1.5">
-              {canScrollLeft && (
-                <button onClick={() => scroll('left')} className="w-8 h-8 rounded-lg bg-[#1A1C24] border border-white/5 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all cursor-pointer">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                </button>
-              )}
-              {canScrollRight && (
-                <button onClick={() => scroll('right')} className="w-8 h-8 rounded-lg bg-[#1A1C24] border border-white/5 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all cursor-pointer">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                </button>
-              )}
-            </div>
-          )}
-          <Link href="/offers" className="text-[11px] font-bold text-white bg-[#8B5CF6]/20 px-3.5 py-2 rounded-lg border border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/40 transition-colors whitespace-nowrap">
-            View All
+        {/* Filters */}
+        <div className="flex-1 flex lg:justify-center">
+          <OfferFilters selectedDevices={selectedDevices} onSelectDevice={handleDeviceSelect} />
+        </div>
+
+        {/* 🚀 Updated: Dynamic Left and Right Arrows */}
+        <div className="hidden lg:flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-1.5">
+            {canScrollLeft && (
+              <button 
+                onClick={scrollLeft} 
+                className="w-9 h-9 rounded-[10px] bg-[#111319] border border-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white hover:bg-white/5 transition-all cursor-pointer shadow-sm"
+              >
+                <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            )}
+            {canScrollRight && (
+              <button 
+                onClick={scrollRight} 
+                className="w-9 h-9 rounded-[10px] bg-[#111319] border border-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white hover:bg-white/5 transition-all cursor-pointer shadow-sm"
+              >
+                <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            )}
+          </div>
+          <Link href="/offers" className="flex items-center gap-1.5 text-sm text-[#8B5CF6] font-bold hover:text-[#A855F7] transition-colors cursor-pointer pl-2 border-l border-white/10">
+            View All <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
+
       </div>
 
-      {isLoading ? (
-        <div className="flex gap-3 overflow-hidden py-1">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-44 w-[165px] sm:w-[175px] bg-white/5 animate-pulse rounded-2xl shrink-0"></div>
-          ))}
-        </div>
-      ) : filteredOffers.length > 0 ? (
-        <div ref={sliderRef} onScroll={checkScroll} className="flex overflow-x-auto no-scrollbar gap-3 pb-3 pt-1 snap-x scroll-smooth" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          {filteredOffers.map((offer: any, index: number) => (
-            <div key={offer._id || offer.id || index} className="snap-start">
-              <OfferCard offer={offer} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12 bg-[#1A1C24] border border-white/5 rounded-2xl text-[#8F95A3] text-sm">
-          No matching offers found for this device filter.
-        </div>
-      )}
+      {/* Slider Section */}
+      <div className="relative group">
+        {isLoading ? (
+          <div className="flex gap-4 overflow-hidden py-1">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-[120px] w-[320px] bg-[#161821] animate-pulse rounded-[16px] shrink-0 border border-white/5"></div>
+            ))}
+          </div>
+        ) : filteredOffers.length > 0 ? (
+          <div 
+            ref={sliderRef} 
+            onScroll={checkScroll} 
+            className="flex overflow-x-auto no-scrollbar gap-4 pb-2 snap-x scroll-smooth" 
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {filteredOffers.map((offer: any, index: number) => (
+              <div key={offer._id || offer.id || index} className="snap-start shrink-0 w-[280px] sm:w-[320px]">
+                <OfferCard offer={offer} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-[#120F1A] border border-white/5 rounded-2xl text-[#8F95A3] text-sm">
+            No matching offers found for this category.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

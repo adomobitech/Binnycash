@@ -7,13 +7,14 @@ import { useAuth } from './AuthContext';
 import { 
   Bell, Rocket, Trophy, Wallet, ChevronDown, User, 
   LogOut, MessageSquare, HelpCircle, Gift, 
-  BarChart3, Users, X, CheckCheck, Loader2, Globe, ChevronRight
+  BarChart3, Users, X, CheckCheck, Loader2, Globe, ChevronRight,
+  Lock, ShieldCheck // 🔥 Added new icons for logout screen
 } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
 import ChatDrawer from '@/components/chat/ChatDrawer';
 
-// 櫨 DYNAMIC COLOR GENERATOR: Hashing logic to assign fixed color to names 櫨
+// 🔥 DYNAMIC COLOR GENERATOR: Hashing logic to assign fixed color to names 🔥
 const getDynamicColor = (name: string) => {
   const colors = [
     'bg-[#8B5CF6]', // Purple
@@ -449,11 +450,78 @@ export default function Navbar() {
     <>
       <AnimatePresence>
         {isTransitioning && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0B0E14]">
-            <div className="w-24 h-24 mb-6 rounded-full border border-[#8B5CF6]/30 bg-[#1A1C23] flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.3)]">
-              <motion.img animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 1 }} src="/logo.png" alt="BinnyCash" className="w-14 h-14 object-contain" />
-            </div>
-            <h2 className="text-white text-xl font-black tracking-wide animate-pulse">Logging out securely...</h2>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#070913] overflow-hidden font-sans">
+            
+            {/* Background Subtle Glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#8B5CF6]/15 blur-[120px] rounded-full pointer-events-none" />
+            
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="relative flex flex-col items-center z-10"
+            >
+               {/* Logo Container with Animations */}
+               <div className="relative flex items-center justify-center mb-10 mt-[-50px]">
+                  
+                  {/* Outer Spinning Ring (Gradient) */}
+                  <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                    className="absolute w-32 h-32 rounded-full border-2 border-transparent border-t-[#8B5CF6] border-r-[#8B5CF6] opacity-80"
+                  />
+                  
+                  {/* Reverse Spinning Dashed Ring */}
+                  <motion.div 
+                    animate={{ rotate: -360 }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                    className="absolute w-36 h-36 rounded-full border border-dashed border-white/10"
+                  />
+                  
+                  {/* Inner Pulsing Glow */}
+                  <motion.div 
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute w-24 h-24 rounded-full bg-[#00E57A]/30 blur-md"
+                  />
+
+                  {/* Core Logo Box */}
+                  <div className="w-20 h-20 bg-[#120F1A] border border-[#8B5CF6]/30 rounded-[20px] flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.2)] z-10 relative overflow-hidden backdrop-blur-xl">
+                     <img src="/logo.png" alt="BinnyCash Logo" className="w-10 h-10 object-contain z-10" />
+                     
+                     {/* Shimmer Effect Inside Logo Box */}
+                     <motion.div 
+                       animate={{ x: ['-150%', '250%'] }}
+                       transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }}
+                       className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
+                     />
+                  </div>
+
+                  {/* Small Security Lock Badge */}
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                    className="absolute -bottom-2 -right-2 bg-[#00E57A] w-8 h-8 rounded-full flex items-center justify-center border-4 border-[#070913] z-20 shadow-[0_0_15px_rgba(0,229,122,0.4)]"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-black" strokeWidth={3} />
+                  </motion.div>
+               </div>
+
+               {/* Animated Text */}
+               <motion.h2 
+                 animate={{ opacity: [0.5, 1, 0.5] }}
+                 transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                 className="text-2xl font-black text-white tracking-wide mb-3"
+               >
+                 Logging out securely...
+               </motion.h2>
+               
+               <p className="text-[#8F95A3] text-sm font-medium flex items-center gap-2">
+                 <ShieldCheck className="w-4 h-4 text-[#00E57A]" />
+                 Clearing your session data
+               </p>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
