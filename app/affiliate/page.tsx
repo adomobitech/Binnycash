@@ -1,14 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Copy, Users, ShieldAlert, Clock, Wallet, DollarSign,
-  CheckCircle2, Circle, ShieldCheck, Medal, Star, Crown
+  CheckCircle2, Circle, ShieldCheck, Medal, Star, Crown,
+  ArrowRight, Percent, Infinity, Zap, BarChart2, Headphones, Info, X, Loader2,
+  Award, Sparkles, Shield
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
+import Link from 'next/link';
 
-// --- CUSTOM BRAND ICONS (Original Logos for exact look) ---
+// --- CUSTOM BRAND ICONS ---
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
@@ -33,51 +36,87 @@ const TwitterIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const EmailIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+const LinkIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
   </svg>
 );
 
-// --- UTILITY: Get User ID securely ---
+const Sparkline = ({ color }: { color: string }) => (
+  <svg className="w-full h-8 mt-2 opacity-30" viewBox="0 0 100 20" preserveAspectRatio="none">
+    <path d="M0 20 Q 10 15 20 18 T 40 10 T 60 15 T 80 5 T 100 12 L 100 20 Z" fill={`url(#gradient-${color})`} />
+    <path d="M0 20 Q 10 15 20 18 T 40 10 T 60 15 T 80 5 T 100 12" stroke={color} strokeWidth="2" fill="none" />
+    <defs>
+      <linearGradient id={`gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={color} stopOpacity="0.5" />
+        <stop offset="100%" stopColor={color} stopOpacity="0" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+// --- ANIMATION VARIANTS ---
+const fadeUp: any = {
+  hidden: { opacity: 0, y: 18 },
+  visible: (i: number = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.45, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }
+  })
+};
+
+const staggerContainer: any = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.07 }
+  }
+};
+
+const rowFade: any = {
+  hidden: { opacity: 0, x: -8 },
+  visible: (i: number = 0) => ({
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.3, delay: Math.min(i * 0.04, 0.5) }
+  })
+};
+
+// --- UTILITY ---
 function getUserId(): string {
   if (typeof window === 'undefined') return '';
   const isNumeric = (v: any) => v !== null && v !== undefined && /^\d+$/.test(String(v));
   try {
-    const wrapperKeys = ['loginResponse', 'authResponse', 'loginData'];
-    for (const key of wrapperKeys) {
+    const keys = ['loginResponse', 'authResponse', 'loginData', 'userDetails', 'user', 'userData', 'profile', 'authUser', 'userId', 'user_id', 'uid', 'sid'];
+    for (const key of keys) {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
+      if (isNumeric(raw)) return String(raw);
       try {
         const parsed = JSON.parse(raw);
-        const id = parsed?.data?.userDetails?.id ?? parsed?.userDetails?.id;
-        if (isNumeric(id)) return String(id);
-      } catch {}
-    }
-    const objectKeys = ['userDetails', 'user', 'userData', 'profile', 'authUser'];
-    for (const key of objectKeys) {
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-      try {
-        const parsed = JSON.parse(raw);
-        const candidates = [parsed?.id, parsed?.userDetails?.id, parsed?._id, parsed?.userId, parsed?.user_id];
+        const candidates = [parsed?.id, parsed?.userDetails?.id, parsed?._id, parsed?.userId, parsed?.user_id, parsed?.data?.userDetails?.id];
         const numericMatch = candidates.find(isNumeric);
         if (numericMatch !== undefined) return String(numericMatch);
       } catch {}
-    }
-    const directKeys = ['userId', 'user_id', 'uid', 'sid', 'numericUserId'];
-    for (const key of directKeys) {
-      const val = localStorage.getItem(key);
-      if (isNumeric(val)) return String(val);
     }
   } catch (err) {}
   return '';
 }
 
+// 🔥 DYNAMIC ACHIEVEMENT ICON SYSTEM 🔥
+const getAchievementIcon = (level: number) => {
+  if (level <= 2) return <Shield className="w-4 h-4" />;
+  if (level <= 4) return <ShieldCheck className="w-4 h-4" />;
+  if (level <= 6) return <Award className="w-4 h-4" />;
+  if (level <= 7) return <Medal className="w-4 h-4" />;
+  return <Crown className="w-4 h-4" />;
+};
+
 export default function AffiliatePage() {
   const currency = useCurrency();
-  const [activeTab, setActiveTab] = useState<'tier' | 'affiliate' | 'history'>('tier');
-  
+  const [activeTab, setActiveTab] = useState<'tier' | 'affiliate' | 'history' | 'payouts'>('tier');
+  const [isLearnMoreOpen, setIsLearnMoreOpen] = useState(false);
+
   // API States
   const [dashboardData, setDashboardData] = useState<any>({
     totalReferUsers: 0,
@@ -89,84 +128,61 @@ export default function AffiliatePage() {
   
   const [availableBalance, setAvailableBalance] = useState<string>('0.00');
   const [referralLink, setReferralLink] = useState('Loading...');
-  
-  // 🔥 FIXED API RESPONSE KEYS HERE (levels instead of tiers) 🔥
-  const [tierData, setTierData] = useState<any>({
-    currentTier: 1,
-    currentReferralEarning: 0,
-    levels: [] 
-  });
-
+  const [currentBonusInfo, setCurrentBonusInfo] = useState<{level: number, referalBonus: string}>({ level: 1, referalBonus: "3%" });
+  const [tierData, setTierData] = useState<any>({ currentTier: 1, currentReferralEarning: 0, levels: [] });
   const [claimHistory, setClaimHistory] = useState<any[]>([]);
   const [affiliateUsers, setAffiliateUsers] = useState<any[]>([]);
+  const [topAffiliates, setTopAffiliates] = useState<any[]>([]); 
+  const [referHistory, setReferHistory] = useState<any[]>([]); 
 
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+
+  // Withdraw States
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [withdrawMessage, setWithdrawMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     const fetchAffiliateData = async () => {
       setIsLoading(true);
       const token = localStorage.getItem('token') || '';
       const userId = getUserId();
-      if (!userId) {
-        setIsLoading(false);
-        return;
-      }
+      if (!userId) { setIsLoading(false); return; }
 
       try {
-        // Fetch Dashboard Stats
-        const dashRes = await fetch(`https://apitest.binnycash.com/api/user/affiliate_dashboard?userId=${userId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const dashJson = await dashRes.json();
-        if (dashJson.code === 200 && dashJson.data) {
-          setDashboardData(dashJson.data);
+        const [dashRes, balanceRes, profileRes, tierRes, historyRes, affiliateListRes, topReferRes, walletTierRes, referHistoryRes] = await Promise.all([
+          fetch(`https://apitest.binnycash.com/api/user/affiliate_dashboard?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`https://apitest.binnycash.com/api/user/wallet/refer-earning-balance`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`https://apitest.binnycash.com/api/user/viewData?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`https://apitest.binnycash.com/api/user/affiliateTierLevel?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`https://apitest.binnycash.com/api/user/wallet/claim-earning-history`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`https://apitest.binnycash.com/api/user/UserReferList?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`https://apitest.binnycash.com/api/user/topRefer`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`https://apitest.binnycash.com/api/user/wallet/tier-level`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`https://apitest.binnycash.com/api/user/wallet/refer-earning-report`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+
+        const [dashJson, balanceJson, profileJson, tierJson, historyJson, affiliateListJson, topReferJson, walletTierJson, referHistoryJson] = await Promise.all([
+          dashRes.json(), balanceRes.json(), profileRes.json(), tierRes.json(), historyRes.json(), affiliateListRes.json(), topReferRes.json(), walletTierRes.json(), referHistoryRes.json()
+        ]);
+
+        if (dashJson.code === 200 && dashJson.data) setDashboardData(dashJson.data);
+        if (balanceJson.code === 200 && balanceJson.data !== undefined) setAvailableBalance(balanceJson.data);
+        if (profileJson.code === 200 && profileJson.data?.user?.referralUrl) setReferralLink(profileJson.data.user.referralUrl);
+        if (tierJson.code === 200 && tierJson.data) setTierData(tierJson.data);
+        if (historyJson.code === 200 && Array.isArray(historyJson.data)) setClaimHistory(historyJson.data);
+        if (affiliateListJson.code === 200 && affiliateListJson.data?.users) setAffiliateUsers(affiliateListJson.data.users);
+        
+        // 🔥 BULLETPROOF JSON EXTRACTION FOR TOP AFFILIATES 🔥
+        if (topReferJson) {
+          const topAffArr = topReferJson?.data?.data || topReferJson?.data || [];
+          if (Array.isArray(topAffArr)) {
+            setTopAffiliates(topAffArr.slice(0, 5));
+          }
         }
 
-        // Fetch Available Balance (Refer Earning Balance)
-        const balanceRes = await fetch(`https://apitest.binnycash.com/api/user/wallet/refer-earning-balance`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const balanceJson = await balanceRes.json();
-        if (balanceJson.code === 200 && balanceJson.data !== undefined) {
-          setAvailableBalance(balanceJson.data);
-        }
-
-        // Fetch Referral URL
-        const profileRes = await fetch(`https://apitest.binnycash.com/api/user/viewData?userId=${userId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const profileJson = await profileRes.json();
-        if (profileJson.code === 200 && profileJson.data?.user?.referralUrl) {
-          setReferralLink(profileJson.data.user.referralUrl);
-        }
-
-        // Fetch Tiers
-        const tierRes = await fetch(`https://apitest.binnycash.com/api/user/affiliateTierLevel?userId=${userId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const tierJson = await tierRes.json();
-        if (tierJson.code === 200 && tierJson.data) {
-          setTierData(tierJson.data);
-        }
-
-        // Fetch Claim Earning History
-        const historyRes = await fetch(`https://apitest.binnycash.com/api/user/wallet/claim-earning-history`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const historyJson = await historyRes.json();
-        if (historyJson.code === 200 && Array.isArray(historyJson.data)) {
-          setClaimHistory(historyJson.data);
-        }
-
-        // Fetch Affiliate Referred Users List
-        const affiliateListRes = await fetch(`https://apitest.binnycash.com/api/user/UserReferList?userId=${userId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const affiliateListJson = await affiliateListRes.json();
-        if (affiliateListJson.code === 200 && affiliateListJson.data?.users) {
-          setAffiliateUsers(affiliateListJson.data.users);
-        }
+        if (walletTierJson.code === 200 && walletTierJson.data) setCurrentBonusInfo(walletTierJson.data);
+        if (referHistoryJson.code === 200 && Array.isArray(referHistoryJson.data)) setReferHistory(referHistoryJson.data);
 
       } catch (error) {
         console.error('Error fetching affiliate data:', error);
@@ -174,7 +190,6 @@ export default function AffiliatePage() {
         setIsLoading(false);
       }
     };
-
     fetchAffiliateData();
   }, []);
 
@@ -184,346 +199,519 @@ export default function AffiliatePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const getLevelIcon = (level: number) => {
-    if (level <= 3) return <ShieldCheck className="w-5 h-5" />;
-    if (level <= 6) return <Medal className="w-5 h-5" />;
-    if (level === 7) return <Star className="w-5 h-5" />;
-    return <Crown className="w-5 h-5" />;
-  };
+  const handleWithdrawClick = async () => {
+    const balanceNum = Number(availableBalance) || 0;
+    if (balanceNum < 5) {
+      setWithdrawMessage({ text: `Minimum payout is ${formatPrice(5, currency)}. You need ${formatPrice(5 - balanceNum, currency)} more.`, type: 'error' });
+      setTimeout(() => setWithdrawMessage(null), 4000);
+      return;
+    }
 
-  const getLevelColor = (level: number) => {
-    if (level <= 3) return 'bg-[#00E57A]/10 text-[#00E57A] border-[#00E57A]/20';
-    if (level <= 6) return 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/20';
-    if (level === 7) return 'bg-amber-400/10 text-amber-400 border-amber-400/20';
-    return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+    setIsWithdrawing(true);
+    setWithdrawMessage(null);
+    const token = localStorage.getItem('token') || '';
+
+    try {
+      const res = await fetch(`https://apitest.binnycash.com/api/user/withdraw/claim-refer-earning`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      const json = await res.json();
+      
+      if (res.ok || json.code === 200 || json.type === 'success') {
+        setWithdrawMessage({ text: json.message || 'Withdrawal requested successfully!', type: 'success' });
+        setAvailableBalance('0.00');
+      } else {
+        setWithdrawMessage({ text: json.message || 'Failed to process withdrawal.', type: 'error' });
+      }
+    } catch (err) {
+      setWithdrawMessage({ text: 'Network error. Please try again.', type: 'error' });
+    } finally {
+      setIsWithdrawing(false);
+      setTimeout(() => setWithdrawMessage(null), 4000);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#08070D] text-[#F5F3FF] relative overflow-x-hidden pb-16">
+    <div className="min-h-screen bg-[#0B0D14] text-white relative pb-16 font-sans overflow-hidden">
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(166,108,255,0.35); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.3); border-radius: 10px; }
       `}</style>
 
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-24 w-[520px] h-[520px] bg-[#A66CFF]/10 blur-[120px] rounded-full" />
-        <div className="absolute top-1/3 -right-32 w-[420px] h-[420px] bg-[#FFC94A]/[0.05] blur-[130px] rounded-full" />
-      </div>
-
-      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-        
-        <div className="flex justify-between items-center mb-6">
+      <motion.main 
+        variants={staggerContainer} initial="hidden" animate="visible"
+        className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10"
+      >
+        {/* HEADER */}
+        <motion.div variants={fadeUp} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">Affiliate</h1>
-            <p className="text-[#8D89A8] text-sm mt-1">Become an affiliate and earn money for every referral.</p>
+            <h1 className="text-[28px] font-black text-white tracking-tight leading-none mb-1">Affiliate Program</h1>
+            <p className="text-[#8F95A3] text-sm font-medium">Refer friends, earn more, and grow your passive income.</p>
+            <motion.div whileHover={{ scale: 1.02 }} className="mt-3 inline-flex items-center gap-2 bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 px-3 py-1.5 rounded-full text-[#A78BFA] text-xs font-bold w-fit shadow-md">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Earn {currentBonusInfo.referalBonus} on every successful referral
+            </motion.div>
           </div>
-          <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-[#8D89A8] flex items-center gap-1.5 shadow-md">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#3DE8A0] animate-pulse" /> Live affiliate overview
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           
-          <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 rounded-2xl bg-[#A66CFF]/10 flex items-center justify-center border border-[#A66CFF]/20 shadow-inner">
-                  <Wallet className="w-7 h-7 text-[#A66CFF]" />
-                </div>
-                <div>
-                  <h3 className="text-[10px] font-bold text-[#8D89A8] tracking-widest uppercase">Available Balance</h3>
-                  <div className="text-3xl font-black text-white mt-1 f-mono">
+          {/* STATS GRID - 4 CARDS */}
+          <div className="flex gap-4 w-full md:w-auto overflow-x-auto no-scrollbar pb-2 md:pb-0">
+            {[
+              { icon: Users, color: '#A855F7', bg: 'bg-[#8B5CF6]/20', text: 'Total Earnings', value: formatPrice(Number(dashboardData?.totalReferEarning) || 0, currency) },
+              { icon: DollarSign, color: '#10B981', bg: 'bg-[#10B981]/20', text: 'Total Referrals', value: dashboardData?.totalReferUsers || 0 },
+              { icon: ShieldAlert, color: '#F59E0B', bg: 'bg-[#F59E0B]/20', text: 'Pending Earnings', value: formatPrice(Number(dashboardData?.totalProcessingAmount) || 0, currency) },
+              { icon: Wallet, color: '#3B82F6', bg: 'bg-[#3B82F6]/20', text: 'Paid Earnings', value: formatPrice(Number(dashboardData?.totalNetCommission) || 0, currency) },
+            ].map((stat, i) => (
+              <motion.div key={i} variants={fadeUp} custom={i} whileHover={{ y: -5 }} className="bg-[#161821] border border-white/5 rounded-2xl p-4 flex flex-col justify-between w-[160px] shrink-0 shadow-lg relative overflow-hidden transition-colors hover:border-white/10">
+                 <div className="flex items-center gap-3 relative z-10">
+                   <div className={`w-9 h-9 rounded-xl ${stat.bg} flex items-center justify-center`}>
+                     <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
+                   </div>
+                   <div className="flex flex-col">
+                     <span className="text-xl font-black text-white leading-none">{stat.value}</span>
+                   </div>
+                 </div>
+                 <span className="text-[11px] font-medium text-[#8F95A3] mt-2 relative z-10">{stat.text}</span>
+                 <div className="absolute bottom-0 left-0 right-0"><Sparkline color={stat.color} /></div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* MIDDLE 3 COLUMNS */}
+        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          
+          {/* BALANCE CARD */}
+          <motion.div variants={fadeUp} whileHover={{ y: -3 }} className="bg-[#161821] border border-white/5 rounded-[20px] p-6 shadow-xl relative overflow-hidden flex flex-col justify-between group">
+            <motion.div animate={{ opacity: [0.5, 0.8, 0.5] }} transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }} className="absolute top-0 right-0 w-32 h-32 bg-[#8B5CF6]/20 blur-[50px] rounded-full pointer-events-none transition-all duration-500 group-hover:scale-150 group-hover:bg-[#8B5CF6]/30" />
+            
+            <div className="relative z-10 mb-6 flex justify-between items-start">
+               <div>
+                  <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-1.5">Your Affiliate Balance <Info className="w-3.5 h-3.5 text-[#8F95A3]"/></h3>
+                  <motion.div key={availableBalance} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="text-[32px] font-black text-white tracking-tight">
                     {formatPrice(Number(availableBalance) || 0, currency)}
-                  </div>
-                </div>
-              </div>
-              <p className="text-[11px] text-[#8D89A8] mb-6 font-medium">Ready to withdraw • Min {formatPrice(5, currency)}</p>
-            </div>
-            
-            <div className="space-y-4">
-              <button className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:opacity-90 text-white font-bold text-sm shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all cursor-pointer">
-                Withdraw now
-              </button>
-              <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#8D89A8]">
-                <ShieldAlert className="w-3.5 h-3.5 text-[#A66CFF]" /> Secure payout • Processed instantly
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-2 bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl">
-            <h3 className="text-xs font-bold text-[#8D89A8] mb-4">Affiliate performance</h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-[#1A1725] rounded-2xl p-4 flex items-center gap-4 border border-white/5">
-                <div className="w-10 h-10 rounded-full bg-[#00E57A]/10 flex items-center justify-center shrink-0">
-                  <DollarSign className="w-5 h-5 text-[#00E57A]" />
-                </div>
-                <div>
-                  <div className="text-lg font-black text-white f-mono">{formatPrice(Number(dashboardData?.totalReferEarning) || 0, currency)}</div>
-                  <div className="text-xs text-[#8D89A8]">Total Earned Commission</div>
-                </div>
-              </div>
-
-              <div className="bg-[#1A1725] rounded-2xl p-4 flex items-center gap-4 border border-white/5">
-                <div className="w-10 h-10 rounded-full bg-[#A66CFF]/10 flex items-center justify-center shrink-0">
-                  <Users className="w-5 h-5 text-[#A66CFF]" />
-                </div>
-                <div>
-                  <div className="text-lg font-black text-white f-mono">{dashboardData?.totalReferUsers || 0}</div>
-                  <div className="text-xs text-[#8D89A8]">Referrals</div>
-                </div>
-              </div>
-
-              <div className="bg-[#1A1725] rounded-2xl p-4 flex items-center gap-4 border border-white/5">
-                <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <Clock className="w-5 h-5 text-amber-500" />
-                </div>
-                <div>
-                  <div className="text-lg font-black text-white f-mono">{formatPrice(Number(dashboardData?.totalProcessingAmount) || 0, currency)}</div>
-                  <div className="text-xs text-[#8D89A8]">Pending Commission</div>
-                </div>
-              </div>
-
-              <div className="bg-[#1A1725] rounded-2xl p-4 flex items-center gap-4 border border-white/5">
-                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
-                  <Clock className="w-5 h-5 text-red-500" />
-                </div>
-                <div>
-                  <div className="text-lg font-black text-white f-mono">{formatPrice(Number(dashboardData?.totalReferReverse) || 0, currency)}</div>
-                  <div className="text-xs text-[#8D89A8]">Reverse Commission</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* FULL WIDTH REFERRAL BLOCK WITH SOCIAL SHARE */}
-        <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl mb-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-            <div>
-              <span className="text-[10px] font-bold text-[#8D89A8] tracking-widest uppercase">Referral Program</span>
-              <div className="flex items-center gap-2 mt-1">
-                <h2 className="text-xl font-bold text-white">Refer & Earn</h2>
-                <span className="px-2 py-0.5 rounded-full bg-[#A66CFF]/20 text-[#A66CFF] text-[10px] font-bold border border-[#A66CFF]/30">New</span>
-              </div>
+                  </motion.div>
+                  <p className="text-xs text-[#8F95A3] mt-1">Minimum Payout: {formatPrice(5, currency)}</p>
+               </div>
+               <motion.div initial={{ rotate: 0 }} animate={{ rotate: 12 }} whileHover={{ rotate: 0, scale: 1.08 }} transition={{ type: 'spring', stiffness: 250, damping: 15 }} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#6366F1] p-3 flex items-center justify-center shadow-lg">
+                  <Wallet className="w-8 h-8 text-white" />
+               </motion.div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(referralLink)}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-[#25D366]/10 hover:bg-[#25D366]/20 flex items-center justify-center border border-[#25D366]/30 transition-all text-[#25D366] shadow-[0_0_15px_rgba(37,211,102,0.15)]">
-                <WhatsAppIcon className="w-5 h-5" />
-              </a>
-              <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-[#1877F2]/10 hover:bg-[#1877F2]/20 flex items-center justify-center border border-[#1877F2]/30 transition-all text-[#1877F2] shadow-[0_0_15px_rgba(24,119,242,0.15)]">
-                <FacebookIcon className="w-5 h-5" />
-              </a>
-              <a href={`mailto:?body=${encodeURIComponent(referralLink)}`} className="w-10 h-10 rounded-full bg-[#EA4335]/10 hover:bg-[#EA4335]/20 flex items-center justify-center border border-[#EA4335]/30 transition-all text-[#EA4335] shadow-[0_0_15px_rgba(234,67,53,0.15)]">
-                <EmailIcon className="w-5 h-5" />
-              </a>
-              <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(referralLink)}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-[#1DA1F2]/10 hover:bg-[#1DA1F2]/20 flex items-center justify-center border border-[#1DA1F2]/30 transition-all text-[#1DA1F2] shadow-[0_0_15px_rgba(29,161,242,0.15)]">
-                <TwitterIcon className="w-4 h-4" />
-              </a>
-              <a href={`https://t.me/share/url?url=${encodeURIComponent(referralLink)}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-[#0088cc]/10 hover:bg-[#0088cc]/20 flex items-center justify-center border border-[#0088cc]/30 transition-all text-[#0088cc] shadow-[0_0_15px_rgba(0,136,204,0.15)]">
-                <TelegramIcon className="w-5 h-5 ml-[-2px]" />
-              </a>
+            <div className="relative z-10 space-y-3">
+              <AnimatePresence>
+                {withdrawMessage && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className={`p-2 rounded-xl text-xs font-bold text-center border ${withdrawMessage.type === 'success' ? 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}`}>
+                    {withdrawMessage.text}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <motion.button onClick={handleWithdrawClick} disabled={isWithdrawing} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="w-full py-3.5 rounded-xl bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-bold text-sm shadow-[0_4px_15px_rgba(139,92,246,0.3)] hover:shadow-[0_4px_20px_rgba(139,92,246,0.5)] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+                {isWithdrawing && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isWithdrawing ? 'Processing...' : 'Withdraw Now'}
+              </motion.button>
+              <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#8F95A3] font-medium mt-2">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#8B5CF6]" /> Secure payout • Processed instantly
+              </div>
             </div>
-          </div>
+          </motion.div>
 
-          <p className="text-sm text-[#8D89A8] leading-relaxed mb-6 max-w-full">
-            Earn unlimited rewards by referring your friends, family, and followers. You'll earn <span className="text-white font-bold">3%</span> of the confirmed payouts from your referred members. Keep referring more friends and watch your earnings grow!
-          </p>
+          {/* REFERRAL LINK CARD */}
+          <motion.div variants={fadeUp} whileHover={{ y: -3 }} className="bg-[#161821] border border-white/5 rounded-[20px] p-6 shadow-xl flex flex-col justify-between">
+             <div>
+                <h3 className="text-sm font-bold text-white mb-4">Referral Link</h3>
+                <div className="flex items-center w-full bg-[#0B0D14] border border-white/10 rounded-xl p-1.5 focus-within:border-[#8B5CF6] transition-colors mb-2 shadow-inner">
+                  <input type="text" readOnly value={referralLink} className="w-full bg-transparent px-3 py-2 text-xs text-[#8F95A3] focus:outline-none truncate" />
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={handleCopy} className="h-9 px-4 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0">
+                    <AnimatePresence mode="wait" initial={false}>
+                      {copied ? (
+                        <motion.span key="check" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Copy
+                        </motion.span>
+                      ) : (
+                        <motion.span key="copy" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} className="flex items-center gap-1.5">
+                          <Copy className="w-3.5 h-3.5" /> Copy
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                </div>
+                <p className="text-[11px] text-[#8F95A3] mb-6">Share your link and start earning</p>
+             </div>
+          </motion.div>
 
-          <div className="relative w-full">
-            <div className="flex items-center w-full bg-[#1A1725] border border-white/10 rounded-xl overflow-hidden p-1.5 focus-within:border-[#A66CFF]/50 transition-colors">
-              <input 
-                type="text" 
-                readOnly 
-                value={referralLink} 
-                className="w-full bg-transparent px-4 py-2 text-sm text-white font-bold focus:outline-none"
-              />
-              <button 
-                onClick={handleCopy}
-                className="w-12 h-11 shrink-0 rounded-lg bg-[#c084fc] hover:bg-[#a855f7] flex items-center justify-center transition-colors cursor-pointer"
-              >
-                {copied ? <CheckCircle2 className="w-5 h-5 text-white" /> : <Copy className="w-5 h-5 text-white" />}
-              </button>
-            </div>
-            <p className="text-[11px] text-[#8D89A8] mt-2 pl-1">Share your link across social media, communities, or with close friends and start earning on every confirmed payout they make.</p>
-          </div>
-        </div>
+          {/* SHARE CARD */}
+          <motion.div variants={fadeUp} whileHover={{ y: -3 }} className="bg-[#161821] border border-white/5 rounded-[20px] p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+             <div className="relative z-10">
+                <h3 className="text-sm font-bold text-white mb-1">Share & Earn More</h3>
+                <p className="text-xs text-[#8F95A3] mb-5">Share on social media and increase your referrals</p>
+                <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="flex items-center gap-3">
+                  {[
+                    { icon: WhatsAppIcon, color: 'text-[#25D366]', hover: 'hover:bg-[#25D366]/20', url: `https://api.whatsapp.com/send?text=${encodeURIComponent(referralLink)}` },
+                    { icon: FacebookIcon, color: 'text-[#1877F2]', hover: 'hover:bg-[#1877F2]/20', url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}` },
+                    { icon: TwitterIcon, color: 'text-[#1DA1F2]', hover: 'hover:bg-[#1DA1F2]/20', url: `https://twitter.com/intent/tweet?url=${encodeURIComponent(referralLink)}` },
+                    { icon: TelegramIcon, color: 'text-[#0088cc]', hover: 'hover:bg-[#0088cc]/20', url: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}` }
+                  ].map((s, i) => (
+                    <motion.a variants={fadeUp} whileHover={{ scale: 1.15, y: -2 }} whileTap={{ scale: 0.9 }} key={i} href={s.url} target="_blank" rel="noreferrer" className={`w-10 h-10 rounded-full bg-[#1A1C24] ${s.hover} flex items-center justify-center border border-white/5 transition-all ${s.color}`}>
+                      <s.icon className="w-5 h-5" />
+                    </motion.a>
+                  ))}
+                  <motion.button variants={fadeUp} whileHover={{ scale: 1.15, y: -2 }} whileTap={{ scale: 0.9 }} onClick={handleCopy} className="w-10 h-10 rounded-full bg-[#1A1C24] hover:bg-white/10 flex items-center justify-center border border-white/5 transition-all text-white">
+                    <LinkIcon className="w-4 h-4" />
+                  </motion.button>
+                </motion.div>
+             </div>
+             <motion.div animate={{ rotate: [ -12, -8, -12 ] }} transition={{ repeat: Number.POSITIVE_INFINITY, duration: 5 }} className="absolute -bottom-6 -right-6 opacity-80 pointer-events-none">
+                <div className="w-32 h-32 bg-gradient-to-tl from-[#8B5CF6] to-[#EC4899] rounded-full blur-[40px] opacity-30 absolute top-0 left-0" />
+                <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="url(#megaGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="transform -rotate-12">
+                  <defs><linearGradient id="megaGrad" x1="0" y1="0" x2="24" y2="24"><stop offset="0%" stopColor="#c084fc" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient></defs>
+                  <path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+             </motion.div>
+          </motion.div>
+        </motion.div>
 
-        <div className="flex items-center gap-6 border-b border-white/[0.06] mb-6">
-          {[
-            { id: 'tier', label: 'Level' },
-            { id: 'affiliate', label: 'Affiliate' },
-            { id: 'history', label: 'Claim history' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`relative pb-3 text-sm font-bold transition-colors cursor-pointer ${activeTab === tab.id ? 'text-white' : 'text-[#8D89A8] hover:text-white'}`}
-            >
-              {tab.label}
-              {activeTab === tab.id && (
-                <motion.div layoutId="affiliateTab" className="absolute bottom-0 left-0 w-full h-[3px] bg-[#A66CFF] rounded-t-full shadow-[0_0_10px_rgba(166,108,255,0.6)]" />
-              )}
-            </button>
-          ))}
-        </div>
+        {/* FEATURES BANNER */}
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.5 }} className="bg-[#161821] border border-white/5 rounded-[20px] p-6 shadow-xl mb-8 flex flex-col lg:flex-row items-start lg:items-center gap-6 lg:gap-10 hover:border-white/10 transition-colors">
+           <div className="flex items-center gap-3 shrink-0">
+             <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1.5 }} className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+             </motion.div>
+             <h3 className="text-sm font-bold text-white">Why Join BinnyCash Affiliate?</h3>
+           </div>
+           
+           <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-4">
+              {[
+                { icon: Percent, color: 'text-[#8B5CF6]', bg: 'bg-[#8B5CF6]/10', title: currentBonusInfo.referalBonus, sub: 'Commission Rate' },
+                { icon: Infinity, color: 'text-[#10B981]', bg: 'bg-[#10B981]/10', title: 'Lifetime', sub: 'Earnings' },
+                { icon: Zap, color: 'text-[#F59E0B]', bg: 'bg-[#F59E0B]/10', title: 'Instant', sub: 'Payouts' },
+                { icon: BarChart2, color: 'text-[#3B82F6]', bg: 'bg-[#3B82F6]/10', title: 'Real-time', sub: 'Tracking' },
+                { icon: Users, color: 'text-[#EC4899]', bg: 'bg-[#EC4899]/10', title: 'No Limits', sub: 'Referrals' }
+              ].map((f, i) => (
+                <motion.div variants={fadeUp} whileHover={{ y: -3, scale: 1.05 }} key={i} className="flex items-center gap-3">
+                   <div className={`w-10 h-10 rounded-full ${f.bg} flex items-center justify-center shrink-0`}>
+                     <f.icon className={`w-4 h-4 ${f.color}`} />
+                   </div>
+                   <div className="flex flex-col">
+                     <span className="text-xs font-bold text-white">{f.title}</span>
+                     <span className="text-[10px] text-[#8F95A3]">{f.sub}</span>
+                   </div>
+                </motion.div>
+              ))}
+           </motion.div>
+        </motion.div>
 
-        <div className="min-h-[300px]">
-          {activeTab === 'tier' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* 🔥 FIXED MAPPING HERE (levels instead of tiers) 🔥 */}
-              {(tierData?.levels || []).map((tier: any, idx: number) => {
-                const isCurrent = tier.level === tierData.currentTier;
-                const isCompleted = tier.level < tierData.currentTier;
-                const colorClasses = getLevelColor(tier.level);
-                
-                return (
-                  <div 
-                    key={idx} 
-                    className={`relative bg-[#120F1A] rounded-2xl p-5 border transition-all ${isCurrent ? 'border-[#A66CFF] shadow-[0_0_15px_rgba(166,108,255,0.15)]' : 'border-white/[0.06]'}`}
+        {/* BOTTOM SECTION: TABS & SIDEBAR */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+           
+           {/* LEFT CONTENT AREA */}
+           <div className="lg:col-span-8 xl:col-span-9 bg-[#161821] border border-white/5 rounded-[24px] p-6 shadow-xl">
+              <div className="flex items-center gap-6 border-b border-white/5 mb-6">
+                {[
+                  { id: 'tier', label: 'Level Structure' },
+                  { id: 'affiliate', label: 'Affiliate Stats' },
+                  { id: 'history', label: 'Referral History' },
+                  { id: 'payouts', label: 'Payout History' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`relative pb-3 text-[13px] font-bold transition-colors cursor-pointer ${activeTab === tab.id ? 'text-white' : 'text-[#8F95A3] hover:text-white'}`}
                   >
-                    {isCurrent && (
-                      <div className="absolute -top-3 -right-2 px-2 py-0.5 rounded-md bg-[#c084fc] text-white text-[9px] font-black tracking-widest uppercase shadow-md">
-                        Current
-                      </div>
+                    {tab.label}
+                    {activeTab === tab.id && (
+                      <motion.div layoutId="affiliateTab" className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-[#8B5CF6] shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
                     )}
-                    
-                    <div className="flex justify-between items-center mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${isCurrent || isCompleted ? colorClasses : 'bg-white/5 text-[#8D89A8] border-transparent'}`}>
-                          {getLevelIcon(tier.level)}
-                        </div>
-                        <span className="font-bold text-white text-base">Level {tier.level}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-[#A66CFF]">
-                        <Users className="w-3.5 h-3.5" /> {tier.commissionPercent}% commission
-                      </div>
-                    </div>
+                  </button>
+                ))}
+              </div>
 
-                    <div className="border-t border-white/5 pt-4">
-                      <span className="text-[11px] text-[#8D89A8] mb-2 block">Requirements</span>
-                      <div className="flex items-center gap-2">
-                        {isCompleted || isCurrent ? (
-                          <CheckCircle2 className="w-4 h-4 text-[#A66CFF] shrink-0" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-white/20 shrink-0" />
-                        )}
-                        <span className="text-xs text-white">
-                          US{formatPrice(Number(tier.referralAmount) || 0, currency)} affiliate earnings
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+              <AnimatePresence mode="wait">
+              {/* LEVEL TAB CONTENT */}
+              {activeTab === 'tier' && (
+                <motion.div key="tier" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
+                  <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
+                    {tierData?.levels?.map((tier: any, idx: number) => {
+                      const levelNum = tier.level;
+                      const isCurrent = levelNum === tierData.currentTier;
+                      const req = `${tier.referralAmount}+ Active Referrals`;
+                      const comm = tier.commissionPercent;
 
-          {activeTab === 'affiliate' && (
-            <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] overflow-hidden shadow-xl">
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse min-w-[800px]">
-                  <thead>
-                    <tr className="bg-white/[0.02] border-b border-white/[0.06]">
-                      <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider">User</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider">Earn</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider">Pending</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider">Reversed</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider">Net Commission</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {affiliateUsers.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-16 text-center">
-                          <span className="text-sm font-medium text-[#8D89A8]">No referrals found.</span>
-                        </td>
-                      </tr>
-                    ) : (
-                      affiliateUsers.map((user, idx) => {
-                        let avatar = user.profileImage;
-                        const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName || 'U')}&background=A855F7&color=fff`;
-                        
-                        if (avatar) {
-                          if (!avatar.startsWith('http')) {
-                            avatar = `https://apitest.binnycash.com${avatar.startsWith('/') ? '' : '/'}${avatar}`;
-                          }
-                          avatar = avatar.replace('binycash.com', 'binnycash.com'); 
-                        } else {
-                          avatar = fallbackAvatar;
-                        }
+                      return (
+                        <motion.div key={idx} variants={fadeUp} custom={idx} whileHover={{ y: -4, scale: 1.015 }} transition={{ type: 'spring', stiffness: 260, damping: 20 }} className={`relative bg-[#0B0D14] border ${isCurrent ? 'border-[#8B5CF6] shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'border-white/5'} rounded-2xl p-4 flex flex-col`}>
+                           {isCurrent && (
+                             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.1 }} className="absolute -top-2 right-4 px-2 py-0.5 rounded text-[9px] font-black tracking-widest bg-[#c084fc] text-white uppercase shadow-md">
+                               Current
+                             </motion.div>
+                           )}
+                           
+                           <div className="flex justify-between items-center mb-5">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                                  levelNum <= 2 ? 'bg-[#8B5CF6]/20 text-[#A855F7]' : 
+                                  levelNum <= 4 ? 'bg-[#EC4899]/20 text-[#EC4899]' : 
+                                  levelNum <= 6 ? 'bg-[#10B981]/20 text-[#10B981]' : 
+                                  'bg-amber-500/20 text-amber-500'
+                                }`}>
+                                  {getAchievementIcon(levelNum)}
+                                </div>
+                                <span className="font-bold text-white text-sm">Level {levelNum}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs font-bold text-[#8F95A3]">
+                                <Users className="w-3.5 h-3.5" /> {comm}%
+                              </div>
+                           </div>
 
-                        return (
-                          <tr key={idx} className="border-b border-white/[0.06] hover:bg-white/[0.02] transition-colors">
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <img 
-                                  src={avatar} 
-                                  alt="User" 
-                                  onError={(e) => { e.currentTarget.src = fallbackAvatar; }}
-                                  className="w-10 h-10 rounded-full bg-white/5 object-cover shrink-0 border border-white/10" 
-                                />
-                                <div className="flex flex-col">
-                                  <span className="text-xs font-bold text-white">{user.userName || 'Unknown'}</span>
-                                  <span className="text-[10px] text-[#8D89A8]">Joined {new Date(user.joiningDate).toLocaleDateString()}</span>
+                           <div className="space-y-3">
+                              <div>
+                                <span className="text-[10px] text-[#8F95A3] block mb-1">Requirements</span>
+                                <div className="flex items-center gap-1.5 text-xs text-white font-medium">
+                                  <CheckCircle2 className={`w-3.5 h-3.5 ${isCurrent || levelNum < tierData.currentTier ? 'text-[#8B5CF6]' : 'text-white/20'}`} />
+                                  {req}
                                 </div>
                               </div>
-                            </td>
-                            <td className="px-6 py-4 text-xs font-bold text-white">{formatPrice(Number(user.totalEarning || 0), currency)}</td>
-                            <td className="px-6 py-4 text-xs font-bold text-amber-500">{formatPrice(Number(user.processingCommission || 0), currency)}</td>
-                            <td className="px-6 py-4 text-xs font-bold text-red-400">{formatPrice(Number(user.reverseCommission || 0), currency)}</td>
-                            <td className="px-6 py-4 text-xs font-bold text-[#00E57A]">{formatPrice(Number(user.netCommission || 0), currency)}</td>
-                          </tr>
-                        );
+                              <div>
+                                <span className="text-[10px] text-[#8F95A3] block mb-1">Commission</span>
+                                <span className="text-xs text-white font-medium">{comm}% on every payout</span>
+                              </div>
+                           </div>
+                        </motion.div>
+                      );
+                    })}
+                  </motion.div>
+                  
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="w-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 rounded-xl p-3 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-[#8B5CF6] shrink-0" />
+                    <p className="text-xs text-[#8F95A3]">Levels are based on total active referrals. Once you reach a new level, the higher commission rate applies automatically.</p>
+                  </motion.div>
+                </motion.div>
+              )}
+
+              {/* AFFILIATE STATS TAB CONTENT */}
+              {activeTab === 'affiliate' && (
+                <motion.div key="affiliate" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="border-b border-white/5">
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">User</th>
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Earn</th>
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Pending</th>
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Reversed</th>
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Net Commission</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {affiliateUsers.length === 0 ? (
+                        <tr><td colSpan={5} className="py-10 text-center text-[#8F95A3] text-sm">No referrals found.</td></tr>
+                      ) : (
+                        affiliateUsers.map((user, idx) => (
+                          <motion.tr key={idx} custom={idx} initial="hidden" animate="visible" variants={rowFade} className="border-b border-white/5 hover:bg-white/[0.02]">
+                            <td className="py-3 px-4 text-xs font-bold text-white">{user.userName || 'User'}</td>
+                            <td className="py-3 px-4 text-xs font-bold text-white">{formatPrice(Number(user.totalEarning || 0), currency)}</td>
+                            <td className="py-3 px-4 text-xs font-bold text-amber-500">{formatPrice(Number(user.processingCommission || 0), currency)}</td>
+                            <td className="py-3 px-4 text-xs font-bold text-red-400">{formatPrice(Number(user.reverseCommission || 0), currency)}</td>
+                            <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(user.netCommission || 0), currency)}</td>
+                          </motion.tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </motion.div>
+              )}
+
+              {/* REFERRAL HISTORY TAB */}
+              {activeTab === 'history' && (
+                <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="border-b border-white/5">
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Date</th>
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">User</th>
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Amount Earned</th>
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {referHistory.length === 0 ? (
+                        <tr><td colSpan={4} className="py-10 text-center text-[#8F95A3] text-sm">No referral earning rows found.</td></tr>
+                      ) : (
+                        referHistory.map((row, idx) => (
+                          <motion.tr key={idx} custom={idx} initial="hidden" animate="visible" variants={rowFade} className="border-b border-white/5 hover:bg-white/[0.02]">
+                            <td className="py-3 px-4 text-xs text-[#8F95A3]">{row.createdAt || row.date ? new Date(row.createdAt || row.date).toLocaleDateString() : 'N/A'}</td>
+                            <td className="py-3 px-4 text-xs text-white">{row.userName || row.referredUser || 'N/A'}</td>
+                            <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(row.amount || row.commission || 0), currency)}</td>
+                            <td className="py-3 px-4 text-xs text-white capitalize">{row.status || 'Completed'}</td>
+                          </motion.tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </motion.div>
+              )}
+
+              {/* PAYOUT HISTORY TAB */}
+              {activeTab === 'payouts' && (
+                <motion.div key="payouts" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="border-b border-white/5">
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Claim ID</th>
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Date</th>
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Method</th>
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Amount</th>
+                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {claimHistory.length === 0 ? (
+                        <tr><td colSpan={5} className="py-10 text-center text-[#8F95A3] text-sm">No payout history found.</td></tr>
+                      ) : (
+                        claimHistory.map((claim, idx) => (
+                          <motion.tr key={idx} custom={idx} initial="hidden" animate="visible" variants={rowFade} className="border-b border-white/5 hover:bg-white/[0.02]">
+                            <td className="py-3 px-4 text-xs text-white">{claim._id || claim.claimId || 'N/A'}</td>
+                            <td className="py-3 px-4 text-xs text-[#8F95A3]">{claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : 'N/A'}</td>
+                            <td className="py-3 px-4 text-xs text-white">{claim.method || 'N/A'}</td>
+                            <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(claim.amount || 0), currency)}</td>
+                            <td className="py-3 px-4 text-xs text-white">{claim.status || 'Completed'}</td>
+                          </motion.tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </motion.div>
+              )}
+              </AnimatePresence>
+           </div>
+
+           {/* RIGHT SIDEBAR */}
+           <div className="lg:col-span-4 xl:col-span-3 flex flex-col gap-6">
+              
+              {/* Top Affiliates Leaderboard (ANIMATIONS REMOVED FOR RELIABILITY) */}
+              <div className="bg-[#161821] border border-white/5 rounded-[24px] p-6 shadow-xl">
+                 <div className="flex items-center gap-2 mb-6">
+                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                       <Medal className="w-4 h-4 text-amber-500" />
+                    </div>
+                    <h3 className="text-sm font-bold text-white">Top Affiliates</h3>
+                 </div>
+                 
+                 <div className="flex flex-col gap-4">
+                    {topAffiliates.length === 0 ? (
+                      <div className="text-center text-xs text-[#8F95A3] py-4">No top affiliates yet.</div>
+                    ) : (
+                      topAffiliates.map((user, idx) => {
+                        const rank = idx + 1;
+                        return (
+                          <div key={idx} className="flex items-center justify-between hover:translate-x-1 transition-transform cursor-default">
+                             <div className="flex items-center gap-3">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm
+                                  ${rank === 1 ? 'bg-amber-400 text-amber-900' : 
+                                    rank === 2 ? 'bg-gray-300 text-gray-800' : 
+                                    rank === 3 ? 'bg-[#CD7F32] text-white' : 
+                                    'bg-[#0B0D14] text-[#8F95A3] border border-white/10'}`}
+                                >
+                                   {rank}
+                                </div>
+                                <span className="text-xs font-medium text-white max-w-[120px] truncate">{user.userName || 'User'}</span>
+                             </div>
+                             <span className="text-xs font-bold text-[#8B5CF6]">{user.referralCount} Refs</span>
+                          </div>
+                        )
                       })
                     )}
-                  </tbody>
-                </table>
+                 </div>
               </div>
-            </div>
-          )}
 
-          {activeTab === 'history' && (
-            <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] overflow-hidden shadow-xl">
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse min-w-[800px]">
-                  <thead>
-                    <tr className="bg-white/[0.02] border-b border-white/[0.06]">
-                      <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider text-center">Claim ID</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider text-center">Date</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider text-center">Method</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider text-center">Amount</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-[#8D89A8] uppercase tracking-wider text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {claimHistory.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-16 text-center">
-                          <span className="text-sm font-medium text-[#8D89A8]">No claim history found</span>
-                        </td>
-                      </tr>
-                    ) : (
-                      claimHistory.map((claim, idx) => (
-                        <tr key={idx} className="border-b border-white/[0.06] hover:bg-white/[0.02]">
-                          <td className="px-6 py-4 text-center text-xs text-white">{claim._id || claim.id || claim.claimId || 'N/A'}</td>
-                          <td className="px-6 py-4 text-center text-xs text-[#8D89A8]">{claim.createdAt || claim.date ? new Date(claim.createdAt || claim.date).toLocaleDateString() : 'N/A'}</td>
-                          <td className="px-6 py-4 text-center text-xs text-white">{claim.method || 'N/A'}</td>
-                          <td className="px-6 py-4 text-center text-xs text-[#00E57A] font-bold">{formatPrice(Number(claim.amount || 0), currency)}</td>
-                          <td className="px-6 py-4 text-center text-xs text-white">{claim.status || 'Completed'}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+              {/* Promo Box */}
+              <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.5, delay: 0.1 }} whileHover={{ scale: 1.015 }} className="bg-gradient-to-br from-[#8B5CF6] via-[#7C3AED] to-[#4C1D95] rounded-[24px] p-6 shadow-[0_10px_30px_rgba(139,92,246,0.3)] relative overflow-hidden">
+                 <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.2, 0.3, 0.2] }} transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }} className="absolute -right-4 -bottom-4 w-32 h-32 pointer-events-none">
+                    <svg viewBox="0 0 24 24" fill="white"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12s4.477 10 10 10 10-4.477 10-10z"/></svg>
+                 </motion.div>
+                 
+                 <h3 className="text-lg font-black text-white mb-2 relative z-10">Get More, Earn More!</h3>
+                 <p className="text-xs text-white/80 mb-6 max-w-[80%] relative z-10">Invite more friends and unlock higher rewards.</p>
+                 
+                 <motion.button onClick={() => setIsLearnMoreOpen(true)} whileHover={{ scale: 1.03, x: 2 }} whileTap={{ scale: 0.97 }} className="w-full py-3 rounded-xl bg-white text-[#7C3AED] hover:bg-gray-100 font-bold text-sm shadow-md transition-colors flex justify-center items-center gap-2 relative z-10">
+                   Learn More <ArrowRight className="w-4 h-4" />
+                 </motion.button>
+                 
+                 <motion.div animate={{ y: [0, -6, 0], rotate: [0, -6, 6, 0] }} transition={{ duration: 2.8, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }} className="absolute right-2 top-1/2 -translate-y-1/2 text-5xl drop-shadow-xl z-0">
+                    🎁
+                 </motion.div>
+              </motion.div>
 
+           </div>
         </div>
-      </main>
+
+        {/* BOTTOM HELP BANNER */}
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.5 }} className="mt-8 bg-[#161821] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl hover:border-white/10 transition-colors">
+           <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                 <Headphones className="w-5 h-5 text-[#8B5CF6]" />
+              </div>
+              <div>
+                 <h3 className="text-sm font-bold text-white mb-0.5">Need Help?</h3>
+                 <p className="text-xs text-[#8F95A3]">Our support team is here to help you with any questions you have.</p>
+              </div>
+           </div>
+           
+           <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+             <Link href="/support" className="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs transition-colors flex items-center gap-2 cursor-pointer shrink-0">
+                <Headphones className="w-4 h-4" /> Contact Support <ArrowRight className="w-3.5 h-3.5" />
+             </Link>
+           </motion.div>
+        </motion.div>
+
+      </motion.main>
+
+      {/* --- LEARN MORE (BENEFITS) MODAL --- */}
+      <AnimatePresence>
+        {isLearnMoreOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsLearnMoreOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-sm cursor-pointer" />
+            
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-md bg-[#161821] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl z-10 overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#8B5CF6]/20 to-transparent pointer-events-none" />
+              
+              <motion.button onClick={() => setIsLearnMoreOpen(false)} whileHover={{ rotate: 90, scale: 1.1 }} whileTap={{ scale: 0.9 }} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
+                <X className="w-4 h-4" />
+              </motion.button>
+
+              <div className="relative z-10">
+                <motion.div initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.1 }} className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] flex items-center justify-center shadow-lg mb-5">
+                  <Star className="w-6 h-6 text-white fill-white" />
+                </motion.div>
+                
+                <h2 className="text-2xl font-black text-white mb-2 leading-tight">Maximize Your Earnings</h2>
+                <p className="text-[#8F95A3] text-sm mb-6">Invite friends, build your network, and earn a passive income with our structured level system.</p>
+
+                <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="space-y-4 mb-8">
+                  {[
+                    { icon: Percent, color: 'text-[#8B5CF6]', bg: 'bg-[#8B5CF6]/10', title: 'Level Up Commission', desc: 'Start earning at 3% and climb all the way to 10% commission on every payout your referral makes.' },
+                    { icon: Infinity, color: 'text-[#10B981]', bg: 'bg-[#10B981]/10', title: 'Lifetime Passive Income', desc: 'There is no time limit. As long as your referrals keep earning and withdrawing, you keep making money.' },
+                    { icon: Zap, color: 'text-[#F59E0B]', bg: 'bg-[#F59E0B]/10', title: 'Instant Crediting', desc: 'Once a referred user successfully cashes out, your commission is instantly added to your available balance.' }
+                  ].map((item, i) => (
+                    <motion.div variants={fadeUp} custom={i} key={i} className="flex gap-4">
+                       <div className={`w-8 h-8 rounded-full ${item.bg} flex items-center justify-center shrink-0 mt-0.5`}>
+                         <item.icon className={`w-4 h-4 ${item.color}`} />
+                       </div>
+                       <div>
+                         <h4 className="text-white font-bold text-sm">{item.title}</h4>
+                         <p className="text-xs text-[#8F95A3] mt-1">{item.desc}</p>
+                       </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+
+                <motion.button onClick={() => setIsLearnMoreOpen(false)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold shadow-[0_4px_15px_rgba(139,92,246,0.3)] transition-all cursor-pointer">
+                  Got it, let's earn!
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

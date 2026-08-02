@@ -307,7 +307,7 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
           <div className="w-full rounded-2xl overflow-hidden border border-white/10 bg-white/5 mt-4 mb-2">
             <img 
               src="/kyc.png" 
-              alt="KYC Instructions: Document and BINNYCASH note" 
+              alt="KYC Instructions" 
               className="w-full h-auto object-contain"
             />
           </div>
@@ -442,7 +442,7 @@ export default function ProfilePage() {
 
   const [userData, setUserData] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
-  const [affiliateStats, setAffiliateStats] = useState<any>(null); // Added Affiliate Stats State
+  const [affiliateStats, setAffiliateStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const [imgError, setImgError] = useState(false);
@@ -494,7 +494,6 @@ export default function ProfilePage() {
       const user = json?.data?.user || json?.data || json;
       setUserData(user);
 
-      // Populate form data accurately
       setFormData({
         firstName: user?.firstName || user?.name?.split(' ')[0] || '',
         lastName: user?.lastName || user?.name?.split(' ')[1] || '',
@@ -502,7 +501,7 @@ export default function ProfilePage() {
         education: user?.education || '',
         city: user?.city || '',
         address: user?.address || '',
-        mobileNumber: user?.mobileNumber || user?.mobileCode ? `${user?.mobileCode || ''}${user?.mobileNumber || ''}` : '',
+        mobileNumber: user?.mobileNumber || '',
         zipCode: user?.zipCode || '',
       });
 
@@ -512,7 +511,6 @@ export default function ProfilePage() {
       const statsJson = await resStats.json();
       setStats(statsJson?.data);
 
-      // 🔥 Fetch Affiliate Dashboard Stats for Referrals Count 🔥
       const resAffiliate = await fetch(`https://apitest.binnycash.com/api/user/affiliate_dashboard?userId=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -584,6 +582,7 @@ export default function ProfilePage() {
     fetchProfileData();
   }, [router]);
 
+  // 🔥 ACTUAL API INTEGRATION FOR EDIT PROFILE 🔥
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -592,26 +591,27 @@ export default function ProfilePage() {
     const userId = getUserId();
 
     try {
-      const data = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        data.append(key, value);
-      });
-
       const res = await fetch(`https://apitest.binnycash.com/api/user/editProfile?userId=${userId}`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: data
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({
+          ...formData,
+          name: `${formData.firstName} ${formData.lastName}`.trim() 
+        })
       });
 
       const json = await res.json();
       if (res.ok || json.code === 200 || json.responseCode === 0) {
         setMessage({ text: 'Profile updated successfully!', type: 'success' });
-        fetchProfileData();
+        fetchProfileData(); 
       } else {
         setMessage({ text: json.message || 'Failed to update profile', type: 'error' });
       }
     } catch (err) {
-      setMessage({ text: 'Something went wrong', type: 'error' });
+      setMessage({ text: 'Network error or server down', type: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -648,8 +648,6 @@ export default function ProfilePage() {
       if (json.code === 200 || json.responseCode === 0) {
         setMessage({ text: 'Avatar updated successfully!', type: 'success' });
         fetchProfileData();
-        
-        // 🔥 DISPATCH EVENT SO NAVBAR UPDATES INSTANTLY 🔥
         window.dispatchEvent(new CustomEvent('profileUpdated'));
       } else {
         setMessage({ text: json.message || 'Failed to upload image. Backend error.', type: 'error' });
@@ -687,7 +685,6 @@ export default function ProfilePage() {
     });
   };
 
-  // Basic Details require ALL fields from Settings to be filled
   const isBasicDetailsFilled = Boolean(
     userData?.firstName && 
     userData?.lastName && 
@@ -698,14 +695,15 @@ export default function ProfilePage() {
     userData?.zipCode
   );
 
+  // 🔥 CORRECTED KYC PERCENTAGE LOGIC 🔥
   const kycS = String(kycStatus).toUpperCase();
   const isKycVerified = kycS === 'VERIFIED' || kycS === 'APPROVED';
   const isKycSubmitted = kycS === 'PENDING' || kycS === 'PROCESSING' || kycS === 'IN PROGRESS';
 
   let kycProgressPercent = 0;
-  if (isKycVerified) kycProgressPercent = 100;
-  else if (isKycSubmitted) kycProgressPercent = 66;
-  else if (isBasicDetailsFilled) kycProgressPercent = 33;
+  if (isBasicDetailsFilled) kycProgressPercent += 34; // Basic Details complete
+  if (isKycVerified) kycProgressPercent += 66; // Total 100%
+  else if (isKycSubmitted) kycProgressPercent += 33; // Total 67% (In progress)
 
   const getKycSteps = () => {
     const step1 = isBasicDetailsFilled
@@ -894,7 +892,7 @@ export default function ProfilePage() {
                      initial={{ width: 0 }} 
                      animate={{ width: `${kycProgressPercent}%` }} 
                      transition={{ duration: 1 }}
-                     className={`h-full rounded-full ${kycProgressPercent === 100 ? 'bg-[#00E57A]' : kycProgressPercent === 66 ? 'bg-[#FFC94A]' : 'bg-[#A66CFF]'}`}
+                     className={`h-full rounded-full ${kycProgressPercent === 100 ? 'bg-[#00E57A]' : kycProgressPercent >= 66 ? 'bg-[#FFC94A]' : 'bg-[#A66CFF]'}`}
                    />
                 </div>
                 <div className="flex justify-end mt-2">

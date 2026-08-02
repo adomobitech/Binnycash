@@ -2,39 +2,28 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Bell, Loader2, Crown, ChevronRight, ChevronDown, ShieldCheck, User } from 'lucide-react';
+import { 
+  Trophy, Bell, Loader2, Crown, Calendar, Clock, Gift, Users, 
+  DollarSign, CheckCircle2, AlertOctagon, Ban, User
+} from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
-// --- UTILITY: Get User ID securely ---
+// --- UTILITY: Get User ID ---
 function getUserId(): string {
   if (typeof window === 'undefined') return '';
   const isNumeric = (v: any) => v !== null && v !== undefined && /^\d+$/.test(String(v));
   try {
-    const wrapperKeys = ['loginResponse', 'authResponse', 'loginData'];
-    for (const key of wrapperKeys) {
+    const keys = ['loginResponse', 'authResponse', 'loginData', 'userDetails', 'user', 'userData', 'profile', 'authUser', 'userId', 'user_id', 'uid', 'sid'];
+    for (const key of keys) {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
+      if (isNumeric(raw)) return String(raw);
       try {
         const parsed = JSON.parse(raw);
-        const id = parsed?.data?.userDetails?.id ?? parsed?.userDetails?.id;
-        if (isNumeric(id)) return String(id);
-      } catch {}
-    }
-    const objectKeys = ['userDetails', 'user', 'userData', 'profile', 'authUser'];
-    for (const key of objectKeys) {
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-      try {
-        const parsed = JSON.parse(raw);
-        const candidates = [parsed?.id, parsed?.userDetails?.id, parsed?._id, parsed?.userId, parsed?.user_id];
+        const candidates = [parsed?.id, parsed?.userDetails?.id, parsed?._id, parsed?.userId, parsed?.user_id, parsed?.data?.userDetails?.id];
         const numericMatch = candidates.find(isNumeric);
         if (numericMatch !== undefined) return String(numericMatch);
       } catch {}
-    }
-    const directKeys = ['userId', 'user_id', 'uid', 'sid', 'numericUserId'];
-    for (const key of directKeys) {
-      const val = localStorage.getItem(key);
-      if (isNumeric(val)) return String(val);
     }
   } catch (err) {}
   return '';
@@ -46,77 +35,504 @@ const resolveImage = (imgSrc: string | null | undefined) => {
   return imgSrc.startsWith('/') ? `https://apitest.binnycash.com${imgSrc}` : `https://apitest.binnycash.com/${imgSrc}`;
 };
 
-function AnimatedNumber({ value, prefix = '', suffix = '', decimals = 0, className = '' }: { value: number; prefix?: string; suffix?: string; decimals?: number; className?: string }) {
-  const [display, setDisplay] = useState(0);
+// --- CUSTOM COUNTDOWN HOOK ---
+function useCountdown(targetDateStr: string | null | undefined) {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
+
   useEffect(() => {
-    const target = Number(value) || 0;
-    const start = display;
-    const duration = 800;
-    const startTime = performance.now();
-    let raf: number;
-    const step = (now: number) => {
-      const progress = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(start + (target - start) * eased);
-      if (progress < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [value]);
-  return <span className={className}>{prefix}{display.toFixed(decimals)}{suffix}</span>;
+    if (!targetDateStr) return;
+    const target = new Date(targetDateStr).getTime();
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const difference = target - now;
+
+      if (difference <= 0) {
+        clearInterval(interval);
+        setTimeLeft({ days: 0, hours: 0, mins: 0, secs: 0 });
+      } else {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          mins: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+          secs: Math.floor((difference % (1000 * 60)) / 1000)
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [targetDateStr]);
+
+  return timeLeft;
 }
 
-const Particles = () => (
-  <>
-    {Array.from({ length: 10 }).map((_, i) => (
-      <motion.div
-        key={i}
-        className="absolute rounded-full"
-        style={{
-          left: `${8 + i * 9}%`,
-          width: 4 + (i % 3) * 2,
-          height: 4 + (i % 3) * 2,
-          background: i % 2 === 0 ? 'rgba(166,108,255,0.5)' : 'rgba(255,201,74,0.4)',
-          filter: 'blur(1px)',
-        }}
-        initial={{ y: '110vh', opacity: 0 }}
-        animate={{ y: '-10vh', opacity: [0, 1, 1, 0] }}
-        transition={{ duration: 10 + (i % 5), repeat: Infinity, delay: i * 1.3, ease: 'linear' }}
-      />
-    ))}
-  </>
-);
+const getPrizeForRank = (data: any, rank: number) => {
+  if (!data?.contest?.prizes) return 0;
+  const prizeObj = data.contest.prizes.find((p: any) => rank >= p.startRank && rank <= p.endRank);
+  return prizeObj ? prizeObj.Cash : 0;
+};
 
+// ==========================================
+// 1. UPCOMING CONTENT
+// ==========================================
+function UpcomingContent({ data }: { data: any }) {
+  const { currency, contest } = data;
+  const timer = useCountdown(contest?.startDate);
+
+  return (
+    <>
+      <div className="bg-[#0B0C10] rounded-2xl p-3 border border-white/5 flex flex-col items-center mb-4">
+        <span className="text-[9px] text-[#8F95A3] font-bold uppercase tracking-widest mb-2 flex items-center gap-1"><Clock className="w-3 h-3"/> Starts In</span>
+        <div className="flex items-center gap-3 text-center">
+          <div><div className="text-xl font-black text-white">{String(timer.days).padStart(2, '0')}</div><div className="text-[8px] text-[#8F95A3]">Days</div></div>
+          <div className="text-sm font-bold text-white/20 mb-2">:</div>
+          <div><div className="text-xl font-black text-white">{String(timer.hours).padStart(2, '0')}</div><div className="text-[8px] text-[#8F95A3]">Hours</div></div>
+          <div className="text-sm font-bold text-white/20 mb-2">:</div>
+          <div><div className="text-xl font-black text-white">{String(timer.mins).padStart(2, '0')}</div><div className="text-[8px] text-[#8F95A3]">Mins</div></div>
+          <div className="text-sm font-bold text-white/20 mb-2">:</div>
+          <div><div className="text-xl font-black text-[#3B82F6]">{String(timer.secs).padStart(2, '0')}</div><div className="text-[8px] text-[#8F95A3]">Secs</div></div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-[#0B0C10] rounded-xl p-3 flex items-center gap-3 border border-white/5">
+          <div className="w-8 h-8 rounded-full bg-[#A66CFF]/10 flex items-center justify-center shrink-0">
+            <Gift className="w-4 h-4 text-[#A66CFF]" />
+          </div>
+          <div>
+            <div className="text-[9px] text-[#8F95A3] font-bold">Prize Pool</div>
+            <div className="text-xs font-black text-white">{formatPrice(contest?.totalPrizePool || 0, currency)}</div>
+          </div>
+        </div>
+        <div className="bg-[#0B0C10] rounded-xl p-3 flex items-center gap-3 border border-white/5">
+          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+            <Users className="w-4 h-4 text-[#8F95A3]" />
+          </div>
+          <div>
+            <div className="text-[9px] text-[#8F95A3] font-bold">Participants</div>
+            <div className="text-xs font-black text-white">{data.totalUsers} <span className="text-[8px] text-[#8F95A3]">Joined</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center text-xs border-y border-white/5 py-2.5 mb-4 px-1">
+        <div className="flex flex-col">
+          <span className="text-[9px] text-[#8F95A3] font-bold"><Calendar className="w-3 h-3 inline"/> Starts On</span>
+          <span className="text-white font-bold text-[11px]">{contest?.startDate ? new Date(contest.startDate).toLocaleDateString() : 'TBD'}</span>
+        </div>
+        <div className="w-px h-6 bg-white/10" />
+        <div className="flex flex-col">
+          <span className="text-[9px] text-[#8F95A3] font-bold"><Calendar className="w-3 h-3 inline"/> Ends On</span>
+          <span className="text-white font-bold text-[11px]">{contest?.endDate ? new Date(contest.endDate).toLocaleDateString() : 'TBD'}</span>
+        </div>
+        <div className="w-px h-6 bg-white/10" />
+        <div className="flex flex-col items-end">
+          <span className="text-[9px] text-[#FFC94A] font-bold"><Trophy className="w-3 h-3 inline"/> Top Prize</span>
+          <span className="text-[#FFC94A] font-black text-[11px]">{formatPrice(getPrizeForRank(data, 1), currency)}</span>
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col justify-center items-center py-6 text-center bg-[#0B0C10] rounded-xl border border-dashed border-white/10 mb-4">
+        <Clock className="w-6 h-6 text-[#8F95A3] mb-2 opacity-50" />
+        <span className="text-xs font-bold text-white mb-0.5">No rankings yet</span>
+        <span className="text-[10px] text-[#8F95A3]">This contest hasn't started.</span>
+      </div>
+
+      <button className="w-full py-3 rounded-xl bg-gradient-to-r from-[#A66CFF] to-[#8B5CF6] text-white font-bold text-xs shadow-md hover:opacity-90 transition-opacity flex justify-center items-center gap-1.5 mt-auto">
+        <Bell className="w-3.5 h-3.5" /> Notify Me
+      </button>
+    </>
+  );
+}
+
+// ==========================================
+// 2. ACTIVE CONTENT
+// ==========================================
+function ActiveContent({ data }: { data: any }) {
+  const { currency, contest, winners, currentUserRank, userEarnings } = data;
+
+  const top1 = winners.find((w: any) => w.rank === 1);
+  const top2 = winners.find((w: any) => w.rank === 2);
+  const top3 = winners.find((w: any) => w.rank === 3);
+  const tableUsers = winners.filter((w: any) => w.rank > 3);
+
+  const getImg = (u: any) => {
+    if (!u) return null;
+    if (u.userId === getUserId()) return resolveImage(data.myProfilePic || u.image);
+    return resolveImage(u.image);
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-4 gap-1.5 mb-4 bg-[#0B0C10] p-2.5 rounded-xl border border-white/5 text-center">
+        <div className="border-r border-white/5">
+          <span className="text-[8px] text-[#8F95A3] font-bold block uppercase">Prize Pool</span>
+          <span className="text-[11px] font-black text-[#A66CFF]">{formatPrice(contest?.totalPrizePool || 0, currency)}</span>
+        </div>
+        <div className="border-r border-white/5">
+          <span className="text-[8px] text-[#8F95A3] font-bold block uppercase">Participants</span>
+          <span className="text-[11px] font-black text-white">{data.totalUsers}</span>
+        </div>
+        <div className="border-r border-white/5">
+          <span className="text-[8px] text-[#8F95A3] font-bold block uppercase">Your Rank</span>
+          <span className="text-[11px] font-black text-[#00E57A]">{currentUserRank ? `#${currentUserRank}` : '--'}</span>
+        </div>
+        <div>
+          <span className="text-[8px] text-[#8F95A3] font-bold block uppercase">Earnings</span>
+          <span className="text-[11px] font-black text-white">{formatPrice(userEarnings, currency)}</span>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-xs font-bold text-white flex items-center gap-1"><Trophy className="w-3.5 h-3.5 text-[#A66CFF]"/> Top 3 Leaderboard</h3>
+      </div>
+      
+      <div className="flex items-end justify-center gap-2 h-[110px] mb-4">
+        <div className="w-[30%] bg-[#1A1C25] rounded-t-xl flex flex-col items-center relative h-[80%] border border-white/5 border-b-0 pb-2">
+           <div className="absolute -top-5 w-9 h-9 rounded-full bg-[#2A2C38] border-2 border-[#E2E8F0] overflow-hidden flex items-center justify-center">
+             {getImg(top2) ? <img src={getImg(top2)!} className="w-full h-full object-cover" alt=""/> : <User className="w-4 h-4 text-[#8F95A3]"/>}
+           </div>
+           <div className="w-3.5 h-3.5 rounded-full bg-[#E2E8F0] text-black text-[8px] font-black absolute -top-6 flex items-center justify-center">2</div>
+           <span className="text-[10px] font-bold text-white mt-auto truncate w-full text-center px-1">{top2?.userName || '---'}</span>
+           <span className="text-[9px] text-[#00E57A] font-bold">{formatPrice(top2?.prize || 0, currency)}</span>
+           <span className="text-[8px] text-[#FFC94A] font-black">Prize {formatPrice(getPrizeForRank(data, 2), currency)}</span>
+        </div>
+        
+        <div className="w-[35%] bg-gradient-to-t from-[#A66CFF]/20 to-[#1A1C25] rounded-t-xl flex flex-col items-center relative h-full border border-[#A66CFF]/30 border-b-0 pb-2">
+           <Crown className="w-4 h-4 text-[#FFC94A] absolute -top-8 z-10" fill="#FFC94A" />
+           <div className="absolute -top-5 w-11 h-11 rounded-full bg-[#2A2C38] border-2 border-[#FFC94A] overflow-hidden flex items-center justify-center shadow-md">
+             {getImg(top1) ? <img src={getImg(top1)!} className="w-full h-full object-cover" alt=""/> : <User className="w-5 h-5 text-[#FFC94A]"/>}
+           </div>
+           <div className="w-3.5 h-3.5 rounded-full bg-[#FFC94A] text-black text-[8px] font-black absolute -top-6 flex items-center justify-center z-10">1</div>
+           <span className="text-xs font-black text-white mt-auto truncate w-full text-center px-1">{top1?.userName || '---'}</span>
+           <span className="text-[10px] text-[#00E57A] font-black">{formatPrice(top1?.prize || 0, currency)}</span>
+           <span className="text-[9px] text-[#FFC94A] font-black">Prize {formatPrice(getPrizeForRank(data, 1), currency)}</span>
+        </div>
+
+        <div className="w-[30%] bg-[#1A1C25] rounded-t-xl flex flex-col items-center relative h-[70%] border border-white/5 border-b-0 pb-2">
+           <div className="absolute -top-5 w-9 h-9 rounded-full bg-[#2A2C38] border-2 border-[#CD7F32] overflow-hidden flex items-center justify-center">
+             {getImg(top3) ? <img src={getImg(top3)!} className="w-full h-full object-cover" alt=""/> : <User className="w-4 h-4 text-[#8F95A3]"/>}
+           </div>
+           <div className="w-3.5 h-3.5 rounded-full bg-[#CD7F32] text-black text-[8px] font-black absolute -top-6 flex items-center justify-center">3</div>
+           <span className="text-[10px] font-bold text-white mt-auto truncate w-full text-center px-1">{top3?.userName || '---'}</span>
+           <span className="text-[9px] text-[#00E57A] font-bold">{formatPrice(top3?.prize || 0, currency)}</span>
+           <span className="text-[8px] text-[#FFC94A] font-black">Prize {formatPrice(getPrizeForRank(data, 3), currency)}</span>
+        </div>
+      </div>
+
+      <h3 className="text-xs font-bold text-white mb-2">Full Leaderboard</h3>
+      <div className="bg-[#0B0C10] rounded-xl border border-white/5 overflow-hidden mb-4">
+        <div className="grid grid-cols-[40px_1fr_80px_60px] gap-1 px-3 py-2 text-[8px] font-bold text-[#8F95A3] uppercase tracking-wider bg-white/[0.02] border-b border-white/5">
+          <div>RANK</div><div>USER</div><div className="text-right">PRIZE</div><div className="text-right">STATUS</div>
+        </div>
+        <div className="flex flex-col max-h-[160px] overflow-y-auto custom-scrollbar">
+          {tableUsers.length === 0 ? (
+            <div className="text-center py-6 text-xs text-[#8F95A3]">No other players ranked yet.</div>
+          ) : (
+            tableUsers.map((u: any, i: number) => (
+              <div key={i} className={`grid grid-cols-[40px_1fr_80px_60px] gap-1 px-3 py-2 items-center text-[10px] border-b border-white/5 last:border-0 ${u.userId === getUserId() ? 'bg-[#A66CFF]/15' : ''}`}>
+                <div className="text-[#8F95A3] font-bold">{u.rank}</div>
+                <div className="truncate font-bold text-white">{u.userName || 'Anonymous'}</div>
+                <div className="text-right text-[#FFC94A] font-bold">{formatPrice(u.prize || getPrizeForRank(data, u.rank), currency)}</div>
+                <div className="text-right text-[#00E57A] font-bold">Active</div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {data.rankMessage && (
+        <div className="text-xs text-[#8F95A3] bg-[#0B0C10] p-2.5 rounded-xl border border-white/5 text-center mt-auto">
+          {data.rankMessage}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ==========================================
+// 3. ENDED CONTENT
+// ==========================================
+function EndedContent({ data }: { data: any }) {
+  const { currency, contest, winners } = data;
+  const top1 = winners.find((w: any) => w.rank === 1);
+  const tableUsers = winners.filter((w: any) => w.rank > 1);
+
+  const getImg = (u: any) => {
+    if (!u) return null;
+    if (u.userId === getUserId()) return resolveImage(data.myProfilePic || u.image);
+    return resolveImage(u.image);
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-2 mb-4 bg-[#0B0C10] p-3 rounded-xl border border-white/5 text-center">
+        <div className="border-r border-white/5">
+          <span className="text-[9px] text-[#8F95A3] font-bold block uppercase">Prize Pool</span>
+          <span className="text-xs font-black text-[#A66CFF]">{formatPrice(contest?.totalPrizePool || 0, currency)}</span>
+        </div>
+        <div className="border-r border-white/5">
+          <span className="text-[9px] text-[#8F95A3] font-bold block uppercase">Participants</span>
+          <span className="text-xs font-black text-white">{data.totalUsers}</span>
+        </div>
+        <div>
+          <span className="text-[9px] text-[#8F95A3] font-bold block uppercase">Total Payout</span>
+          <span className="text-xs font-black text-[#00E57A]">{formatPrice(contest?.totalPrizePool || 0, currency)}</span>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <h3 className="text-xs font-bold text-white mb-2">Winner</h3>
+        {top1 ? (
+          <div className="bg-gradient-to-r from-[#FFC94A]/10 to-transparent border border-[#FFC94A]/20 rounded-xl p-3 flex items-center justify-between">
+             <div className="flex items-center gap-3">
+               <div className="w-8 h-8 rounded-full bg-[#12141D] border border-[#FFC94A] overflow-hidden flex items-center justify-center font-black text-xs text-[#FFC94A]">
+                 {getImg(top1) ? <img src={getImg(top1)!} className="w-full h-full object-cover" alt=""/> : '🥇'}
+               </div>
+               <span className="text-xs font-bold text-white">{top1.userName || 'Winner'}</span>
+             </div>
+             <div className="flex items-center gap-4 text-right">
+               <div><span className="text-[8px] text-[#8F95A3] block uppercase">Prize</span><span className="text-xs font-black text-[#FFC94A]">{formatPrice(top1.prize || getPrizeForRank(data, 1), currency)}</span></div>
+             </div>
+          </div>
+        ) : (
+          <div className="text-xs text-[#8F95A3] bg-[#0B0C10] p-3 rounded-xl border border-white/5 text-center">No winner recorded.</div>
+        )}
+      </div>
+
+      <h3 className="text-xs font-bold text-white mb-2">Full Leaderboard</h3>
+      <div className="bg-[#0B0C10] rounded-xl border border-white/5 overflow-hidden mb-4 max-h-[180px] overflow-y-auto custom-scrollbar">
+        <div className="grid grid-cols-[40px_1fr_70px_50px] gap-1 px-3 py-2 text-[8px] font-bold text-[#8F95A3] uppercase tracking-wider bg-white/[0.02] border-b border-white/5">
+          <div>RANK</div><div>USER</div><div className="text-right">PRIZE</div><div className="text-right">STATUS</div>
+        </div>
+        <div className="flex flex-col">
+          {tableUsers.length === 0 ? (
+            <div className="text-center py-6 text-xs text-[#8F95A3]">No other ranked users.</div>
+          ) : (
+            tableUsers.map((row: any, i: number) => (
+              <div key={i} className="grid grid-cols-[40px_1fr_70px_50px] gap-1 px-3 py-2 items-center text-[10px] border-b border-white/5 last:border-0">
+                <div className="text-white font-bold">{row.rank}</div>
+                <div className="truncate font-bold text-white">{row.userName || 'Anonymous'}</div>
+                <div className="text-right text-[#FFC94A] font-bold">{formatPrice(row.prize || getPrizeForRank(data, row.rank), currency)}</div>
+                <div className="text-right text-[#00E57A] font-bold">Ended</div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {data.rankMessage && (
+        <div className="text-xs text-[#8F95A3] bg-[#0B0C10] p-2.5 rounded-xl border border-white/5 text-center mb-3">
+          {data.rankMessage}
+        </div>
+      )}
+
+      <button className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs transition-colors mt-auto">
+        View All Results
+      </button>
+    </>
+  );
+}
+
+// ==========================================
+// 4. FINALIZED CONTENT
+// ==========================================
+function FinalizedContent({ data }: { data: any }) {
+  const { currency, contest, myPrize } = data;
+
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-2 mb-5 bg-[#0B0C10] p-3 rounded-xl border border-white/5 text-center">
+        <div className="border-r border-white/5">
+          <span className="text-[9px] text-[#8F95A3] font-bold block uppercase">Prize Pool</span>
+          <span className="text-xs font-black text-[#A66CFF]">{formatPrice(contest?.totalPrizePool || 0, currency)}</span>
+        </div>
+        <div className="border-r border-white/5">
+          <span className="text-[9px] text-[#8F95A3] font-bold block uppercase">Total Paid</span>
+          <span className="text-xs font-black text-[#00E57A]">{formatPrice(contest?.totalPrizePool || 0, currency)}</span>
+        </div>
+        <div>
+          <span className="text-[9px] text-[#8F95A3] font-bold block uppercase">Participants</span>
+          <span className="text-xs font-black text-white">{data.totalUsers}</span>
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col gap-4 mb-5">
+        <div className="bg-[#10B981]/10 border border-[#10B981]/20 rounded-xl p-3.5 flex items-center gap-3">
+           <CheckCircle2 className="w-5 h-5 text-[#10B981] shrink-0" />
+           <div>
+             <h4 className="text-white font-bold text-xs">Rewards Distributed!</h4>
+             <p className="text-[11px] text-[#8F95A3]">All eligible rewards have been sent to winners.</p>
+           </div>
+        </div>
+
+        <div className="bg-[#0B0C10] border border-white/5 rounded-xl p-5 flex flex-col items-center justify-center text-center">
+          <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Your Reward</span>
+          <div className="text-3xl font-black text-[#00E57A] mb-2">{formatPrice(myPrize, currency)}</div>
+          <span className="text-[10px] font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3"/> Paid Successfully
+          </span>
+        </div>
+      </div>
+
+      <button className="w-full py-3 rounded-xl bg-gradient-to-r from-[#A66CFF] to-[#7C3AED] text-white font-bold text-xs shadow-md hover:opacity-90 transition-opacity mt-auto">
+        View Payout Details
+      </button>
+    </>
+  );
+}
+
+// ==========================================
+// 5. CANCELLED CONTENT
+// ==========================================
+function CancelledContent() {
+  return (
+    <>
+      <div className="bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl p-4 flex flex-col gap-2 mb-5">
+         <div className="flex items-center gap-2">
+           <AlertOctagon className="w-4 h-4 text-[#EF4444]" />
+           <h4 className="text-[#EF4444] font-bold text-xs">Contest Cancelled</h4>
+         </div>
+         <p className="text-[11px] text-[#8F95A3]">Unfortunately, this contest has been cancelled.</p>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center py-8 border border-dashed border-white/10 rounded-xl bg-[#0B0C10] mb-5">
+        <Ban className="w-6 h-6 text-[#8F95A3] opacity-30 mb-2" />
+        <span className="text-xs font-bold text-white mb-0.5">No leaderboard available</span>
+        <span className="text-[10px] text-[#8F95A3]">This contest is cancelled.</span>
+      </div>
+
+      <button className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs transition-colors mt-auto">
+        Return to Dashboard
+      </button>
+    </>
+  );
+}
+
+// ==========================================
+// 6. INACTIVE CONTENT
+// ==========================================
+function InactiveContent() {
+  return (
+    <>
+      <div className="flex-1 flex flex-col items-center justify-center py-10 text-center bg-[#0B0C10] rounded-xl border border-white/5 mb-5">
+        <div className="relative mb-4">
+          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
+            <Calendar className="w-6 h-6 text-[#8F95A3] opacity-50" />
+          </div>
+          <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#12141D] border border-white/10 flex items-center justify-center">
+            <Clock className="w-3 h-3 text-[#8F95A3]" />
+          </div>
+        </div>
+        <h3 className="text-base font-black text-white mb-1">Check back later!</h3>
+        <p className="text-xs text-[#8F95A3] max-w-[80%] mx-auto">We are preparing something exciting for you.</p>
+      </div>
+
+      <button className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs transition-colors mt-auto flex justify-center items-center gap-1.5">
+        <Gift className="w-3.5 h-3.5 text-[#A66CFF]" /> Browse Offers
+      </button>
+    </>
+  );
+}
+
+// ==========================================
+// REUSABLE CARD WRAPPER FOR 6 GRIDS
+// ==========================================
+function ContestCard({ state, title, children }: { state: string, title: string, children: React.ReactNode }) {
+  const getBadgeStyle = () => {
+    switch (state) {
+      case 'UPCOMING': return 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/20';
+      case 'ACTIVE': return 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20';
+      case 'ENDED': return 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20';
+      case 'FINALIZED': return 'bg-[#A66CFF]/10 text-[#A66CFF] border-[#A66CFF]/20';
+      case 'CANCELLED': return 'bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20';
+      case 'INACTIVE': return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+      default: return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+    }
+  };
+
+  const getTrophyColor = () => {
+    switch (state) {
+      case 'UPCOMING': return { bg: 'from-[#3B82F6]/20 to-transparent', icon: 'text-[#3B82F6]', fill: '#3B82F6' };
+      case 'ACTIVE': return { bg: 'from-[#F59E0B]/20 to-[#F59E0B]/5', icon: 'text-[#F59E0B]', fill: '#F59E0B' };
+      case 'ENDED': return { bg: 'from-[#F59E0B]/20 to-transparent', icon: 'text-[#F59E0B]', fill: '#F59E0B' };
+      case 'FINALIZED': return { bg: 'from-[#A66CFF]/20 to-[#A66CFF]/5', icon: 'text-[#A66CFF]', fill: '#A66CFF' };
+      case 'CANCELLED': return { bg: 'from-[#EF4444]/20 to-transparent', icon: 'text-[#EF4444]', fill: '#EF4444' };
+      case 'INACTIVE': return { bg: 'from-gray-500/20 to-transparent', icon: 'text-gray-500', fill: '#6B7280' };
+      default: return { bg: '', icon: '', fill: '' };
+    }
+  };
+
+  const trophyStyle = getTrophyColor();
+
+  return (
+    <div className="bg-[#12141D] border border-white/5 rounded-[24px] p-6 shadow-xl flex flex-col hover:border-white/10 transition-colors relative overflow-hidden group">
+      <div className="text-[13px] font-black tracking-wider uppercase mb-4 text-[#8F95A3]">
+        {title}
+      </div>
+
+      <div className="flex gap-4 mb-6 relative z-10">
+        <div className={`w-16 h-16 rounded-[18px] bg-gradient-to-b ${trophyStyle.bg} border border-white/5 flex items-center justify-center shrink-0 shadow-lg relative`}>
+          {state === 'CANCELLED' ? (
+            <Ban className={`w-8 h-8 ${trophyStyle.icon}`} />
+          ) : (
+            <Trophy className={`w-8 h-8 ${trophyStyle.icon}`} fill={trophyStyle.fill} />
+          )}
+          {state === 'ACTIVE' && <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#10B981] rounded-full border-2 border-[#12141D] animate-pulse" />}
+        </div>
+        
+        <div className="flex-1 flex flex-col justify-center min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${getBadgeStyle()}`}>
+              {state === 'ACTIVE' ? 'ACTIVE' : state}
+            </span>
+          </div>
+          <h2 className="text-[16px] font-black text-white leading-tight mb-0.5 truncate">
+            {state === 'INACTIVE' ? 'No Active Contest' : 'Loot League Season 5'} <Trophy className="w-3 h-3 inline text-[#FFC94A] ml-0.5 mb-1" fill="#FFC94A"/>
+          </h2>
+          <p className="text-[11px] text-[#8F95A3] line-clamp-1">
+            {state === 'UPCOMING' && 'Get ready! The contest starts soon.'}
+            {state === 'ACTIVE' && 'Compete now and climb to the top!'}
+            {state === 'ENDED' && 'This contest has ended. Thank you for participating!'}
+            {state === 'FINALIZED' && 'Rewards have been distributed successfully.'}
+            {state === 'CANCELLED' && 'This contest has been cancelled.'}
+            {state === 'INACTIVE' && 'There is no active contest at the moment.'}
+          </p>
+        </div>
+      </div>
+      
+      <div className="flex-1 flex flex-col relative z-10">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// MAIN LEADERBOARD PAGE COMPONENT
+// ==========================================
 export default function LeaderboardPage() {
   const currency = useCurrency();
-  const isCoin = currency === 'Coin' || currency === 'COIN';
-  const multiplier = isCoin ? 1000 : 1;
-  const prefix = isCoin ? '' : '$';
-  const suffix = isCoin ? ' COINS' : '';
-  const decimals = isCoin ? 0 : 2;
-
   const [contestType, setContestType] = useState<'DAILY' | 'MONTHLY'>('DAILY');
   const [contestData, setContestData] = useState<any>(null);
   const [myProfilePic, setMyProfilePic] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch Profile Pic
   useEffect(() => {
     const fetchMyProfile = async () => {
       const token = localStorage.getItem('token');
       if (!token) return;
       try {
-        const res = await fetch('https://apitest.binnycash.com/api/user/viewData', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch('https://apitest.binnycash.com/api/user/viewData', { headers: { 'Authorization': `Bearer ${token}` } });
         const json = await res.json();
-        if (json.code === 200) {
-          setMyProfilePic(json.data?.user?.image || json.data?.user?.profilePic);
-        }
+        if (json.code === 200) setMyProfilePic(json.data?.user?.image || json.data?.user?.profilePic);
       } catch (e) {}
     };
     fetchMyProfile();
   }, []);
 
+  // Fetch Contest Data based on Daily/Monthly toggle
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setIsLoading(true);
@@ -125,9 +541,7 @@ export default function LeaderboardPage() {
 
       try {
         const url = `https://apitest.binnycash.com/api/user/userViewContest?contestType=${contestType}&page=1&limit=50${userId ? `&userId=${userId}` : ''}`;
-        const res = await fetch(url, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
         const json = await res.json();
 
         if (json.code === 200 && json.data) {
@@ -136,7 +550,6 @@ export default function LeaderboardPage() {
           setContestData(null);
         }
       } catch (error) {
-        console.error("Failed to fetch leaderboard:", error);
         setContestData(null);
       } finally {
         setIsLoading(false);
@@ -146,292 +559,111 @@ export default function LeaderboardPage() {
     fetchLeaderboard();
   }, [contestType]);
 
-  // Data mapping from Backend
-  const usersList = contestData?.winners || contestData?.topUsers || [];
-  const currentUser = contestData?.currentUserRank;
+  // Determine status from real API response
+  const status = contestData?.contest?.status || (isLoading ? '' : 'INACTIVE');
 
-  const top1 = usersList.find((u: any) => u.rank === 1);
-  const top2 = usersList.find((u: any) => u.rank === 2);
-  const top3 = usersList.find((u: any) => u.rank === 3);
-
-  // 🔥 Yahan Ranks 1,2,3 filter kar diye hain taaki sirf Rank 4 se dikhe 🔥
-  const tableUsers = usersList.filter((u: any) => u.rank > 3);
-
-  const userEarnings = contestData?.userEligibility?.contestEarnings || currentUser?.totalReward || 0;
-  const userRank = currentUser?.rank;
-  const isEnded = contestData?.contest?.status === 'ENDED';
-
-  const getUserImage = (u: any) => {
-    if (!u) return null;
-    const currentId = getUserId();
-    if (String(u.userId) === String(currentId) || String(u.userId) === String(currentUser?.userId)) {
-      return resolveImage(myProfilePic || currentUser?.image || u.image);
-    }
-    return resolveImage(u.image);
-  };
-
-  const getPrizeForRank = (rank: number) => {
-    if (!contestData?.contest?.prizes) return 0;
-    const prizeObj = contestData.contest.prizes.find((p: any) => rank >= p.startRank && rank <= p.endRank);
-    return prizeObj ? prizeObj.Cash : 0;
+  const cData = {
+    contest: contestData?.contest,
+    totalUsers: contestData?.totalUsers || 0,
+    winners: contestData?.winners || [],
+    currentUserRank: contestData?.currentUserRank,
+    myPrize: contestData?.myPrize || 0,
+    userEarnings: contestData?.userEligibility?.contestEarnings || 0,
+    rankMessage: contestData?.rankMessage || '',
+    myProfilePic,
+    currency
   };
 
   return (
-    <div className="min-h-screen bg-[#08070D] text-[#F5F3FF] relative overflow-x-hidden pb-16 font-sans">
+    <div className="min-h-screen bg-[#08090E] text-[#F5F3FF] pb-20 font-sans selection:bg-[#A66CFF]/30">
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(166,108,255,0.35); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(166,108,255,0.3); border-radius: 10px; }
       `}</style>
 
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <motion.div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[#A66CFF]/5 blur-[120px] rounded-full"
-          animate={{ opacity: [0.6, 1, 0.6], scale: [1, 1.08, 1] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <Particles />
+      {/* Background Glows */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[400px] bg-[#A66CFF]/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[300px] bg-[#FFC94A]/5 blur-[100px] rounded-full" />
       </div>
 
-      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8 relative z-10">
-
-        {/* --- HEADER --- */}
-        <div className="flex flex-col items-center justify-center text-center mb-10">
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-3xl sm:text-4xl font-black text-white mb-2"
-          >
-            Leaderboard
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-[#8D89A8] text-sm mb-6"
-          >
-            Compete. Earn More. Win Big.
-          </motion.p>
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
+        
+        {/* --- PAGE HEADER & TOGGLE --- */}
+        <div className="flex flex-col items-center justify-center text-center mb-12">
+          <h1 className="text-[32px] sm:text-[40px] font-black text-white mb-2 tracking-tight">Leaderboard</h1>
+          <p className="text-[#8F95A3] text-sm font-medium mb-8">Compete with others, climb the ranks, and win big prizes.</p>
           
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15 }} className="bg-[#120F1A] border border-white/10 p-1 rounded-full flex items-center w-fit mx-auto shadow-lg">
-            {(['DAILY', 'MONTHLY'] as const).map((type) => (
-              <button
-                key={type}
-                onClick={() => setContestType(type)}
-                className={`relative px-8 py-2.5 rounded-full text-sm font-bold transition-all cursor-pointer ${contestType === type ? 'text-white bg-[#A66CFF] shadow-[0_0_15px_rgba(166,108,255,0.4)]' : 'text-[#8D89A8] hover:text-white'}`}
-              >
-                {type.charAt(0) + type.slice(1).toLowerCase()}
-              </button>
-            ))}
-          </motion.div>
+          <div className="bg-[#12141D] border border-white/5 p-1.5 rounded-2xl flex items-center shadow-lg relative">
+            <div 
+              className="absolute h-[calc(100%-12px)] top-[6px] rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#A66CFF] shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all duration-300 ease-out"
+              style={{
+                width: 'calc(50% - 6px)',
+                left: contestType === 'DAILY' ? '6px' : 'calc(50%)'
+              }}
+            />
+            <button 
+              onClick={() => setContestType('DAILY')}
+              className={`relative z-10 w-32 sm:w-40 py-2.5 text-sm font-bold transition-colors ${contestType === 'DAILY' ? 'text-white' : 'text-[#8F95A3] hover:text-white'}`}
+            >
+              Daily
+            </button>
+            <button 
+              onClick={() => setContestType('MONTHLY')}
+              className={`relative z-10 w-32 sm:w-40 py-2.5 text-sm font-bold transition-colors ${contestType === 'MONTHLY' ? 'text-white' : 'text-[#8F95A3] hover:text-white'}`}
+            >
+              Monthly
+            </button>
+          </div>
         </div>
 
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-32">
               <Loader2 className="w-10 h-10 text-[#A66CFF] animate-spin mb-4" />
-              <p className="text-[#8D89A8] font-medium animate-pulse">Loading Leaderboard...</p>
+              <p className="text-[#8F95A3] font-medium">Loading Leaderboard...</p>
             </motion.div>
           ) : (
-            <motion.div key="content" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-
-              {/* --- BIG HERO BANNER --- */}
-              <div className="w-full bg-[#1A1235] border border-white/5 rounded-[32px] p-6 sm:p-8 mb-16 flex flex-col sm:flex-row items-center gap-6 shadow-2xl relative overflow-hidden">
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-[24px] bg-gradient-to-br from-[#A66CFF] to-[#8B5CF6] flex items-center justify-center shrink-0 shadow-[0_0_40px_rgba(166,108,255,0.4)] z-10">
-                  <Trophy className="w-12 h-12 sm:w-14 sm:h-14 text-[#FFD700]" fill="#FFD700" />
-                </div>
-                <div className="flex flex-col text-center sm:text-left z-10">
-                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
-                    <span className="text-[10px] font-black text-[#FFC94A] bg-[#120F1A]/50 px-2.5 py-1 rounded border border-[#FFC94A]/20 tracking-wider">
-                      {isEnded ? 'CONTEST ENDED' : 'CONTEST ACTIVE'}
-                    </span>
-                  </div>
-                  <h2 className="text-2xl sm:text-4xl font-black text-white mb-2 tracking-tight">
-                    {contestData?.contest?.contestName || `${contestType.charAt(0) + contestType.slice(1).toLowerCase()} Earnings Race`}
-                  </h2>
-                  <p className="text-[#A39EBD] text-sm font-medium">
-                    {isEnded ? 'This contest has ended. Here are the final results!' : (contestData?.contest?.description || 'Earn the most to win big prizes!')}
-                  </p>
-                </div>
+            <motion.div key={contestType + status} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+              
+              {/* --- 6 CONTEST CARDS GRID --- */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
                 
-                {/* Background decorative elements */}
-                <div className="absolute top-0 right-0 w-[40%] h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none" />
-                <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-[#120B29]/80 to-transparent pointer-events-none" />
-              </div>
+                {/* 1. UPCOMING CONTEST */}
+                <ContestCard state="UPCOMING" title="1. UPCOMING CONTEST">
+                  <UpcomingContent data={cData} />
+                </ContestCard>
 
-              {/* --- PODIUM (TOP 3) --- */}
-              <div className="flex items-end justify-center gap-3 sm:gap-6 px-2 mt-20 relative z-20">
-                
-                {/* 2nd Place */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="w-[30%] max-w-[200px] bg-[#161821] border border-white/5 rounded-[24px] p-4 flex flex-col items-center relative pt-12 shadow-xl h-[200px] justify-between">
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                    <div className="w-6 h-6 rounded-full bg-[#E2E8F0] text-[#120F1A] font-black text-[11px] flex items-center justify-center absolute -top-2 z-20 shadow-md">2</div>
-                    <div className="w-16 h-16 rounded-full border-[3px] border-[#E2E8F0] p-1 bg-[#120F1A] z-10 shadow-[0_0_15px_rgba(226,232,240,0.3)] overflow-hidden">
-                      {getUserImage(top2) ? (
-                        <img src={getUserImage(top2)!} alt="2nd" className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full rounded-full bg-white/10 flex items-center justify-center text-[#E2E8F0] font-black text-xl">{top2?.userName ? top2.userName.charAt(0).toUpperCase() : '?'}</div>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-white font-bold text-sm truncate w-full text-center mt-2">{top2 ? (top2.userName || 'Anonymous') : 'Waiting...'}</span>
-                  <span className="text-[#8D89A8] text-[10px] font-bold">2nd Place</span>
-                  <span className="text-xl font-black text-[#E2E8F0] mt-1">
-                    <AnimatedNumber value={Number(top2?.prize || getPrizeForRank(2)) * multiplier} prefix={prefix} decimals={decimals} suffix={suffix}/>
-                  </span>
-                </motion.div>
+                {/* 2. ACTIVE CONTEST */}
+                <ContestCard state="ACTIVE" title="2. ACTIVE CONTEST">
+                  <ActiveContent data={cData} />
+                </ContestCard>
 
-                {/* 1st Place */}
-                <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="w-[35%] max-w-[240px] bg-gradient-to-b from-[#1C182A] to-[#120F1A] border border-[#FFC94A]/40 rounded-[28px] p-5 flex flex-col items-center relative pt-14 shadow-[0_0_30px_rgba(255,201,74,0.15)] h-[240px] justify-between z-30">
-                  <div className="absolute -top-14 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                    <Crown className="w-6 h-6 text-[#FFC94A] mb-[-6px] z-30 drop-shadow-lg" fill="#FFC94A" />
-                    <div className="w-7 h-7 rounded-full bg-[#FFC94A] text-[#120F1A] font-black text-xs flex items-center justify-center absolute top-2 z-20 shadow-md">1</div>
-                    <div className="w-20 h-20 rounded-full border-[4px] border-[#FFC94A] p-1 bg-[#120F1A] z-10 shadow-[0_0_20px_rgba(255,201,74,0.4)] overflow-hidden">
-                      {getUserImage(top1) ? (
-                        <img src={getUserImage(top1)!} alt="1st" className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full rounded-full bg-white/10 flex items-center justify-center text-[#FFC94A] font-black text-2xl">{top1?.userName ? top1.userName.charAt(0).toUpperCase() : '?'}</div>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-white font-black text-base truncate w-full text-center mt-2">{top1 ? (top1.userName || 'Anonymous') : 'Waiting...'}</span>
-                  <span className="text-[#FFC94A] text-xs font-bold">1st Place</span>
-                  <span className="text-3xl font-black text-[#FFC94A] mt-1 drop-shadow-[0_0_10px_rgba(255,201,74,0.5)]">
-                    <AnimatedNumber value={Number(top1?.prize || getPrizeForRank(1)) * multiplier} prefix={prefix} decimals={decimals} suffix={suffix}/>
-                  </span>
-                </motion.div>
+                {/* 3. ENDED CONTEST */}
+                <ContestCard state="ENDED" title="3. ENDED CONTEST">
+                  <EndedContent data={cData} />
+                </ContestCard>
 
-                {/* 3rd Place */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="w-[30%] max-w-[200px] bg-[#161821] border border-[#CD7F32]/30 rounded-[24px] p-4 flex flex-col items-center relative pt-12 shadow-xl h-[180px] justify-between">
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                    <div className="w-6 h-6 rounded-full bg-[#CD7F32] text-[#120F1A] font-black text-[11px] flex items-center justify-center absolute -top-2 z-20 shadow-md">3</div>
-                    <div className="w-16 h-16 rounded-full border-[3px] border-[#CD7F32] p-1 bg-[#120F1A] z-10 shadow-[0_0_15px_rgba(205,127,50,0.3)] overflow-hidden">
-                      {getUserImage(top3) ? (
-                        <img src={getUserImage(top3)!} alt="3rd" className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full rounded-full bg-white/10 flex items-center justify-center text-[#CD7F32] font-black text-xl">{top3?.userName ? top3.userName.charAt(0).toUpperCase() : '?'}</div>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-white font-bold text-sm truncate w-full text-center mt-2">{top3 ? (top3.userName || 'Anonymous') : 'Waiting...'}</span>
-                  <span className="text-[#CD7F32] text-[10px] font-bold">3rd Place</span>
-                  <span className="text-xl font-black text-[#CD7F32] mt-1">
-                    <AnimatedNumber value={Number(top3?.prize || getPrizeForRank(3)) * multiplier} prefix={prefix} decimals={decimals} suffix={suffix}/>
-                  </span>
-                </motion.div>
+                {/* 4. FINALIZED CONTEST */}
+                <ContestCard state="FINALIZED" title="4. FINALIZED CONTEST">
+                  <FinalizedContent data={cData} />
+                </ContestCard>
 
-              </div>
+                {/* 5. CANCELLED CONTEST */}
+                <ContestCard state="CANCELLED" title="5. CANCELLED CONTEST">
+                  <CancelledContent />
+                </ContestCard>
 
-              {/* 🔥 YOUR EARNINGS NOTIFICATION BAR (WITH POSITIVE TOP MARGIN TO AVOID OVERLAP) 🔥 */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 }}
-                className="w-full max-w-3xl mx-auto bg-[#1C103F]/90 border border-[#A66CFF]/30 rounded-[20px] py-4 px-6 text-center mb-12 mt-6 shadow-[0_0_25px_rgba(166,108,255,0.2)] flex justify-center items-center gap-3 backdrop-blur-md relative z-10"
-              >
-                <motion.div animate={{ rotate: [0, -15, 15, -15, 0] }} transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 2 }}>
-                  <Trophy className="w-5 h-5 text-[#FFC94A] shrink-0" />
-                </motion.div>
-                <span className="text-sm font-bold text-white tracking-wide">
-                  You earned today <AnimatedNumber value={parseFloat(userEarnings) * multiplier} prefix={prefix} suffix={suffix} decimals={decimals} className="inline text-[#00E57A]" />, {userRank ? `your rank is #${userRank} 🚀` : "you are not ranked yet 🚀"}
-                </span>
-              </motion.div>
-
-              {/* --- BOTTOM SECTION (LIST + YOUR RANK) --- */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                
-                {/* Left Col: Leaderboard List */}
-                <div className="lg:col-span-2 bg-[#120F1A] border border-white/5 rounded-[24px] p-5 shadow-2xl flex flex-col h-fit">
-                  
-                  {/* 🔥 TODAY BUTTON REMOVED HERE 🔥 */}
-                  <div className="flex items-center mb-4 px-2">
-                    <h3 className="text-lg font-black text-white">Top Leaderboard</h3>
-                  </div>
-
-                  {/* Table Header */}
-                  <div className="grid grid-cols-[3.5rem_1fr_100px_80px] gap-2 px-4 py-3 text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider border-b border-white/[0.05] mb-2">
-                    <div className="text-center">Rank</div>
-                    <div>Player</div>
-                    <div className="text-right">Earnings</div>
-                    <div className="text-right">Prize</div>
-                  </div>
-
-                  {/* Table Rows (NOW STARTS FROM RANK 4) */}
-                  <div className="flex flex-col gap-1 overflow-hidden pb-2">
-                    {tableUsers.length === 0 ? (
-                      <div className="text-center py-10 text-[#8F95A3] text-sm font-medium">
-                        {usersList.length === 0 ? 'Waiting for leaderboard data...' : 'No other players ranked yet.'}
-                      </div>
-                    ) : (
-                      tableUsers.map((u: any, idx: number) => {
-                        const avatar = getUserImage(u);
-
-                        return (
-                          <div key={u._id || idx} className="grid grid-cols-[3.5rem_1fr_100px_80px] gap-2 px-4 py-3 items-center hover:bg-white/[0.03] rounded-xl transition-colors border-b border-white/[0.02] last:border-0 group">
-                            
-                            {/* Simple Sleek Badge for Rank 4+ */}
-                            <div className="flex justify-center">
-                              <div className="w-8 h-8 rounded-[10px] flex items-center justify-center border shadow-inner transition-transform group-hover:scale-105 bg-[#212431] border-white/10 text-[#8F95A3]">
-                                <span className="text-xs font-black">{u.rank}</span>
-                              </div>
-                            </div>
-
-                            {/* Player Column */}
-                            <div className="flex items-center gap-3 min-w-0 ml-2">
-                              <div className="w-9 h-9 rounded-full bg-[#1A1C23] border border-white/10 shrink-0 overflow-hidden flex items-center justify-center shadow-sm">
-                                {avatar ? <img src={avatar} className="w-full h-full object-cover" alt="" /> : <User className="w-4 h-4 text-[#8F95A3]" />}
-                              </div>
-                              <span className="text-sm font-bold text-white/90 truncate">{u.userName || 'Anonymous'}</span>
-                            </div>
-
-                            {/* Earnings Column */}
-                            <div className="text-right text-[13px] font-bold text-[#00E57A]">
-                              {formatPrice(parseFloat(u.totalReward || u.earnings || 0), currency)}
-                            </div>
-
-                            {/* Prize Column */}
-                            <div className="text-right text-[13px] font-black text-[#FFC94A]">
-                              {formatPrice(parseFloat(u.prize || getPrizeForRank(u.rank)), currency)}
-                            </div>
-
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-
-                {/* Right Col: Your Rank Card */}
-                <div className="lg:col-span-1 bg-[#1A1325] border border-[#A66CFF]/20 rounded-[24px] p-6 shadow-xl flex flex-col h-fit">
-                  <h3 className="text-sm font-bold text-white mb-6">Your Rank</h3>
-                  
-                  <div className="mb-8">
-                    <span className="text-5xl font-black text-[#A66CFF] drop-shadow-[0_0_15px_rgba(166,108,255,0.4)]">
-                      #{userRank || '--'}
-                    </span>
-                    <p className="text-xs text-[#8F95A3] mt-2 mb-3 font-medium">Keep going! You're in the top {userRank ? Math.max(1, Math.min(100, Math.ceil((userRank/100)*100))) : '--'}%</p>
-                    <div className="w-full h-1.5 bg-[#120F1A] rounded-full overflow-hidden border border-white/5">
-                      <div className="h-full bg-gradient-to-r from-[#A66CFF] to-[#7C3AED] rounded-full shadow-[0_0_10px_#A66CFF]" style={{ width: userRank ? `${Math.max(10, 100 - (userRank * 2))}%` : '0%' }} />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-5">
-                    <div className="bg-[#120F1A] border border-white/5 p-4 rounded-[16px]">
-                      <span className="text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider block mb-1">Today's Earnings</span>
-                      <span className="text-xl font-black text-[#00E57A]">{formatPrice(parseFloat(userEarnings), currency)}</span>
-                    </div>
-                    <div className="bg-[#120F1A] border border-white/5 p-4 rounded-[16px]">
-                      <span className="text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider block mb-1">Your Best</span>
-                      <span className="text-xl font-black text-white">{formatPrice(parseFloat(userEarnings), currency)}</span> 
-                    </div>
-                  </div>
-                </div>
+                {/* 6. INACTIVE CONTEST */}
+                <ContestCard state="INACTIVE" title="6. INACTIVE CONTEST">
+                  <InactiveContent />
+                </ContestCard>
 
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-
       </main>
     </div>
   );

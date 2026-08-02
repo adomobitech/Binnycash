@@ -6,7 +6,7 @@ import {
   Wallet, Coins, CreditCard, IndianRupee,
   Clock, ShieldCheck, ChevronRight, Zap, 
   Landmark, CircleDollarSign, User, Calendar, 
-  MapPin, Building, Hash, UploadCloud, X, ChevronDown, CheckCircle2, AlertCircle, Camera, Loader2, Smartphone, Mail
+  MapPin, Building, Hash, UploadCloud, X, ChevronDown, CheckCircle2, AlertCircle, Camera, Loader2, Smartphone, Mail, RefreshCw
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -66,11 +66,10 @@ const PayPalIcon = () => (
 
 // --- STATIC DATA ---
 const withdrawalMethods = [
-  { id: 'upi', name: 'UPI', desc: 'Withdraw to your UPI ID', time: 'Instant', icon: <UPIIcon />, speed: 'fast' },
   { id: 'phonepe', name: 'PhonePe', desc: 'Transfer to PhonePe', time: 'Instant', icon: <PhonePeIcon />, speed: 'fast' },
   { id: 'paytm', name: 'Paytm', desc: 'Withdraw to Paytm', time: 'Instant', icon: <PaytmIcon />, speed: 'fast' },
-  { id: 'bank', name: 'Bank Transfer', desc: 'Transfer to your bank', time: 'In 24h', icon: <BankIcon />, speed: 'slow' },
-  { id: 'paypal', name: 'PayPal', desc: 'Transfer to PayPal', time: '24-48h', icon: <PayPalIcon />, speed: 'slow' },
+  { id: 'bank', name: 'Bank Transfer', desc: 'Transfer to your bank', time: '1-3 Business Days', icon: <BankIcon />, speed: 'slow' },
+  { id: 'paypal', name: 'PayPal', desc: 'Transfer to PayPal', time: '1-2 Business Days', icon: <PayPalIcon />, speed: 'slow' },
 ];
 
 const features = [
@@ -350,6 +349,21 @@ function VerificationAlertModal({ isOpen, onClose, onVerifyNow, kycStatus }: { i
   );
 }
 
+// --- INSUFFICIENT BALANCE ALERT MODAL ---
+function InsufficientBalanceModal({ isOpen, onClose, minText }: { isOpen: boolean; onClose: () => void; minText: string }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#070913]/85 backdrop-blur-md p-4">
+      <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="relative w-full max-w-[440px] bg-[#0E111E] border border-[#8B5CF6]/30 rounded-[32px] p-6 sm:p-8 text-center text-white shadow-2xl">
+        <AlertCircle className="w-14 h-14 text-amber-400 mx-auto mb-4" />
+        <h3 className="text-2xl font-black mb-2.5">Minimum Balance Required</h3>
+        <p className="text-sm text-[#8F95A3] mb-8 px-2">Your available balance is below the minimum withdrawal limit. You need at least {minText} to request a withdrawal.</p>
+        <button onClick={onClose} className="w-full py-3.5 bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] rounded-2xl font-bold text-sm hover:opacity-90 cursor-pointer">Got it</button>
+      </motion.div>
+    </div>
+  );
+}
+
 // --- MAIN PAGE ---
 export default function CashoutPage() {
   const currency = useCurrency();
@@ -370,6 +384,7 @@ export default function CashoutPage() {
   // Modals visibility
   const [isKycOpen, setIsKycOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isBalanceAlertOpen, setIsBalanceAlertOpen] = useState(false);
 
   // PAYMENT REQUEST FORM STATES
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
@@ -448,15 +463,20 @@ export default function CashoutPage() {
     }
   };
 
-  // 🔥 2. HANDLE METHOD CARD CLICK (NO API CALL) 🔥
+  const minWithdrawLimit = isCoin ? 5000 : 5;
+
   const handleMethodCardClick = (methodId: string) => {
+    if (Number(totalEarning) < minWithdrawLimit) {
+      setIsBalanceAlertOpen(true);
+      return;
+    }
+
     const status = String(kycStatus).toLowerCase();
     if (status !== 'verified' && status !== 'approved') {
       setIsAlertOpen(true);
       return;
     }
-    
-    // If KYC verified, select method and show payment form directly
+
     const method = withdrawalMethods.find(m => m.id === methodId);
     setSelectedMethod(method);
     setAmount('');
@@ -464,7 +484,6 @@ export default function CashoutPage() {
     setMsg(null);
   };
 
-  // 🔥 3. SUBMIT FINAL REQUEST TO '/withdraw/request' 🔥
   const handleQuickSelect = (val: number) => setAmount(String(val));
   const feeAmount = amount ? (Number(amount) * 0.05).toFixed(2) : '0.00';
   const receiveAmount = amount ? (Number(amount) - Number(feeAmount)).toFixed(2) : '0.00';
@@ -476,12 +495,21 @@ export default function CashoutPage() {
       return;
     }
 
+    if (Number(amount) < minWithdrawLimit) {
+      setMsg({ text: `Minimum withdrawal amount is ${isCoin ? '5000 Coins' : '$5.00'}.`, type: 'error' });
+      return;
+    }
+
+    if (Number(amount) > Number(totalEarning)) {
+      setMsg({ text: 'Amount exceeds your available balance.', type: 'error' });
+      return;
+    }
+
     setIsSubmitting(true);
     setMsg(null);
 
     const token = localStorage.getItem('token');
 
-    // Generating URLSearchParams equivalent to Swagger's formData structure
     const payload = new URLSearchParams();
     payload.append('amount', amount);
     payload.append('method', selectedMethod.id);
@@ -524,7 +552,6 @@ export default function CashoutPage() {
     }
   };
 
-  // Helper for rendering dynamic non-bank fields
   const getMethodLabel = (id: string) => {
     if (id === 'upi') return 'UPI ID';
     if (id === 'paypal') return 'PayPal Email';
@@ -546,120 +573,117 @@ export default function CashoutPage() {
     return <Smartphone className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />;
   };
 
-  // KYC LOGIC
+  // KYC STATUS & 3-STEP CONFIGURATION BASED ON BACKEND
   const kycStatusLower = String(kycStatus).toLowerCase();
-  let statusText = 'KYC verification is required';
   
+  let kycDisplayStatus = 'Not Submitted';
+  let badgeColorClass = 'bg-white/5 text-[#8F95A3] border-white/10';
+
   if (kycStatusLower === 'verified' || kycStatusLower === 'approved') {
-    statusText = 'Account Verified Successfully';
+    kycDisplayStatus = 'Approved';
+    badgeColorClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
   } else if (kycStatusLower === 'pending' || kycStatusLower === 'processing' || kycStatusLower === 'submitted' || kycStatusLower === 'under_review') {
-    statusText = 'Verification under review';
+    kycDisplayStatus = 'Under Review';
+    badgeColorClass = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
   } else if (kycStatusLower === 'rejected' || kycStatusLower === 'failed' || kycStatusLower === 'reupload') {
-    statusText = 'Verification failed or requires re-upload';
+    kycDisplayStatus = 'Rejected';
+    badgeColorClass = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
   }
 
   const getKycButtonProps = () => {
     if (kycStatusLower === 'verified' || kycStatusLower === 'approved') {
-      return { text: 'Verified', disabled: true, className: 'w-full py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-bold text-sm cursor-not-allowed border border-emerald-500/40 shadow-inner' };
+      return { text: 'Approved', disabled: true, className: 'w-full py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-bold text-sm cursor-not-allowed border border-emerald-500/40 shadow-inner' };
     }
     if (kycStatusLower === 'pending' || kycStatusLower === 'processing' || kycStatusLower === 'submitted' || kycStatusLower === 'under_review') {
       return { text: 'Verification Pending', disabled: true, className: 'w-full py-3 rounded-xl bg-amber-500/20 text-amber-400 font-bold text-sm cursor-not-allowed border border-amber-500/40 shadow-inner' };
     }
     if (kycStatusLower === 'rejected' || kycStatusLower === 'failed' || kycStatusLower === 'reupload') {
-      return { text: 'Re-upload KYC', disabled: false, className: 'w-full py-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 font-bold text-sm cursor-pointer border border-rose-500/40' };
+      return { text: 'Verify KYC Again', disabled: false, className: 'w-full py-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 font-bold text-sm cursor-pointer border border-rose-500/40 flex items-center justify-center gap-2' };
     }
     return { text: 'Verify Now', disabled: false, className: 'w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold text-sm cursor-pointer hover:shadow-[0_4px_20px_rgba(139,92,246,0.5)] transition-all' };
   };
 
   const btnProps = getKycButtonProps();
 
+  const totalWithdrawnAmount = withdrawals.reduce((sum, w) => {
+    const s = String(w.status || '').toUpperCase();
+    return (s === 'COMPLETED' || s === 'APPROVED' || s === 'SUCCESS') ? sum + Number(w.amount || 0) : sum;
+  }, 0);
+  const totalWithdrawalsCount = withdrawals.length;
+
+  // STRICTLY 3 STEPS: Dynamic 3rd step label based on backend status
+  let thirdStepLabel = 'Approved';
+  if (kycStatusLower === 'rejected' || kycStatusLower === 'failed' || kycStatusLower === 'reupload') {
+    thirdStepLabel = 'Re-upload';
+  }
+
+  const kycSteps = ['Not Submitted', 'Under Review', thirdStepLabel];
+  type StepState = 'done' | 'active' | 'error' | 'pending';
+  let kycStepStates: StepState[] = ['active', 'pending', 'pending']; 
+
+  if (kycStatusLower === 'pending' || kycStatusLower === 'processing' || kycStatusLower === 'submitted' || kycStatusLower === 'under_review') {
+    kycStepStates = ['done', 'active', 'pending'];
+  } else if (kycStatusLower === 'verified' || kycStatusLower === 'approved') {
+    kycStepStates = ['done', 'done', 'done']; 
+  } else if (kycStatusLower === 'rejected' || kycStatusLower === 'failed' || kycStatusLower === 'reupload') {
+    kycStepStates = ['done', 'done', 'error']; 
+  }
+
   return (
     <div className="flex flex-col bg-[#0B0D19] min-h-[calc(100vh-80px)] text-white relative font-sans overflow-x-hidden">
-      {/* Background Blurs */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[#8B5CF6]/5 blur-[120px] rounded-full pointer-events-none" />
       <div className="fixed bottom-0 left-10 w-[350px] h-[350px] bg-[#EC4899]/5 blur-[110px] rounded-full pointer-events-none" />
 
       <main className="w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
-        
-        {/* Header Section */}
-        <div className="flex flex-col lg:flex-row justify-between items-center mb-12 gap-8">
-          <div className="max-w-xl">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase text-[#A78BFA] bg-[#8B5CF6]/10 px-3 py-1 rounded-full mb-4 border border-[#8B5CF6]/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Wallet Online
-            </span>
-            <h1 className="text-4xl md:text-5xl font-black text-white mb-3 tracking-tight">Cashout</h1>
-            <p className="text-[#8F95A3] text-[15px] font-medium leading-relaxed">Withdraw your BinnyCash earnings quickly via cash, crypto or gift cards.</p>
-            
-            {/* MINIMUM WARNING LINE */}
-            <div className="mt-5 inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl">
-              <AlertCircle className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-bold text-amber-400">Minimum {isCoin ? '5000 Coins' : '$5.00'} is required to withdraw</span>
-            </div>
-          </div>
+
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-black text-white mb-2 tracking-tight">Cashout Center</h1>
+          <p className="text-[#8F95A3] text-[15px] font-medium">Withdraw your earnings instantly and securely</p>
         </div>
 
         {/* Stats Cards Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
-          {/* 🔥 BIG WITHDRAW NOW BUTTON COMPLETELY REMOVED FROM THIS CARD 🔥 */}
-          <div className="bg-[#111319] border border-[#8B5CF6]/20 rounded-[20px] p-6 shadow-xl flex flex-col justify-center">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0 border border-[#8B5CF6]/20">
-                <Wallet className="w-5 h-5 text-[#8B5CF6]" />
-              </div>
-              <div className="flex flex-col">
-                <h3 className="text-white font-bold text-sm">Available Balance</h3>
-                <span className="text-3xl font-black mt-1 text-[#C4B5FD]">{loading ? '...' : formatPrice(Number(totalEarning), currency)}</span>
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+          <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
+            <div className="w-11 h-11 rounded-xl bg-[#8B5CF6]/10 flex items-center justify-center mb-4 border border-[#8B5CF6]/20">
+              <Wallet className="w-5 h-5 text-[#A78BFA]" />
             </div>
+            <h3 className="text-[#8F95A3] font-bold text-xs uppercase tracking-wide mb-1.5">Available Balance</h3>
+            <span className="text-2xl font-black text-emerald-400 block">{loading ? '...' : formatPrice(Number(totalEarning), currency)}</span>
+            <p className="text-[#8F95A3] text-[11px] mt-1.5">Minimum withdrawal: {isCoin ? '5000 Coins' : '$5.00'}</p>
           </div>
 
-          <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6 shadow-xl flex flex-col justify-center">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20">
-                <Clock className="w-5 h-5 text-amber-500" />
-              </div>
-              <div className="flex flex-col">
-                <h3 className="text-white font-bold text-sm">Pending Process</h3>
-                <p className="text-[#8F95A3] text-xs mt-0.5">Awaiting Completion</p>
-                <span className="text-3xl font-black text-amber-500 mt-1">{loading ? '...' : formatPrice(Number(pendingAmount), currency)}</span>
-              </div>
+          <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
+            <div className="w-11 h-11 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4 border border-amber-500/20">
+              <Clock className="w-5 h-5 text-amber-400" />
             </div>
+            <h3 className="text-[#8F95A3] font-bold text-xs uppercase tracking-wide mb-1.5">Pending Amount</h3>
+            <span className="text-2xl font-black text-amber-400 block">{loading ? '...' : formatPrice(Number(pendingAmount), currency)}</span>
+            <p className="text-[#8F95A3] text-[11px] mt-1.5">In process</p>
           </div>
 
-          <div className="bg-[#111319] border border-blue-500/10 rounded-[20px] p-6 shadow-xl flex flex-col justify-between">
-            <div className="flex flex-col mb-4">
-              <div className="flex items-start gap-4 mb-2">
-                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 border border-blue-500/20">
-                  <ShieldCheck className="w-4 h-4 text-blue-400" />
-                </div>
-                <div className="flex flex-col">
-                  <h3 className="text-blue-400 font-bold text-sm">Verify Your Account</h3>
-                  <p className="text-[#8F95A3] text-xs mt-0.5">{statusText}</p>
-                </div>
-              </div>
-              
-              {kycMessage && (
-                <div className={`mt-2 p-2.5 rounded-lg border text-[11px] font-medium leading-relaxed ${
-                  (kycStatusLower === 'rejected' || kycStatusLower === 'reupload' || kycStatusLower === 'failed') 
-                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' 
-                    : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                }`}>
-                   <span className="font-bold uppercase tracking-wider block mb-0.5 text-[9px] opacity-80">Admin Note</span> 
-                   {kycMessage}
-                </div>
-              )}
+          <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
+            <div className="w-11 h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4 border border-emerald-500/20">
+              <CircleDollarSign className="w-5 h-5 text-emerald-400" />
             </div>
+            <h3 className="text-[#8F95A3] font-bold text-xs uppercase tracking-wide mb-1.5">Total Withdrawn</h3>
+            <span className="text-2xl font-black text-white block">{withdrawalsLoading ? '...' : formatPrice(totalWithdrawnAmount, currency)}</span>
+            <p className="text-[#8F95A3] text-[11px] mt-1.5">All time</p>
+          </div>
 
-            <button onClick={() => !btnProps.disabled && setIsKycOpen(true)} disabled={btnProps.disabled} className={btnProps.className}>
-              {btnProps.text}
-            </button>
+          <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
+            <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4 border border-blue-500/20">
+              <ShieldCheck className="w-5 h-5 text-blue-400" />
+            </div>
+            <h3 className="text-[#8F95A3] font-bold text-xs uppercase tracking-wide mb-1.5">Total Withdrawals</h3>
+            <span className="text-2xl font-black text-white block">{withdrawalsLoading ? '...' : totalWithdrawalsCount}</span>
+            <p className="text-[#8F95A3] text-[11px] mt-1.5">All time</p>
           </div>
         </div>
 
-        {/* TABS (CASH / MY WITHDRAWALS) */}
+        {/* TABS */}
         <div className="flex items-center gap-8 border-b border-white/5 mb-8">
           <button onClick={() => setActiveTab('cash')} className={`pb-4 text-sm font-bold relative ${activeTab === 'cash' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`}>
-            Cash & Crypto
+            Cashout
             {activeTab === 'cash' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 w-full h-[2px] bg-[#8B5CF6]" />}
           </button>
           <button onClick={() => setActiveTab('history')} className={`pb-4 text-sm font-bold relative ${activeTab === 'history' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`}>
@@ -668,40 +692,225 @@ export default function CashoutPage() {
           </button>
         </div>
 
-        {/* TAB CONTENTS */}
         <AnimatePresence mode="wait">
         {activeTab === 'cash' ? (
           <motion.div key="cash" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mb-10">
-            <h2 className="text-xl font-bold text-white mb-1">Choose your withdrawal method</h2>
-            <p className="text-[#8F95A3] text-sm mb-6 font-medium">Fast, secure and convenient options</p>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {withdrawalMethods.map((method) => (
-                <div 
-                  key={method.id} 
-                  onClick={() => handleMethodCardClick(method.id)}
-                  className="bg-[#111319] border border-white/5 hover:border-[#8B5CF6]/40 rounded-[20px] p-6 cursor-pointer transition-colors duration-300 hover:shadow-[0_10px_35px_rgba(139,92,246,0.15)] group flex flex-col h-full"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="group-hover:-rotate-6 transition-transform duration-300">{method.icon}</div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+              {/* LEFT COLUMN */}
+              <div className="lg:col-span-2 flex flex-col gap-6">
+
+                {/* Document Verification Section (3 Steps) */}
+                <div className="bg-[#111319] border border-[#8B5CF6]/20 rounded-[20px] p-6">
+                  <div className="flex items-center justify-between mb-1 gap-3">
+                    <h2 className="text-lg font-bold text-white">Document Verification (Any Document)</h2>
+                    <span className={`shrink-0 px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${badgeColorClass}`}>
+                      {kycDisplayStatus}
+                    </span>
                   </div>
-                  <div className="flex flex-col flex-grow">
-                    <h3 className="text-white font-bold text-lg mb-2">{method.name}</h3>
-                    <div className="mb-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${method.speed === 'fast' ? 'bg-[#10B981]/10 text-[#10B981]' : 'bg-[#3B82F6]/10 text-[#3B82F6]'}`}>
-                        {method.speed === 'fast' ? <Zap className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                        {method.time}
-                      </span>
+                  <p className="text-[#8F95A3] text-xs mb-6">Submit any government issued document to enable withdrawals</p>
+
+                  {/* Stepper (3 Steps) */}
+                  <div className="flex items-start justify-between mb-6 px-1">
+                    {kycSteps.map((step, idx) => {
+                      const state = kycStepStates[idx];
+                      const isDone = state === 'done';
+                      const nodeColor = state === 'error' ? 'bg-rose-500/20 border-rose-500 text-rose-400'
+                        : state === 'active' ? 'bg-[#8B5CF6]/20 border-[#8B5CF6] text-[#A78BFA]'
+                        : state === 'done' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                        : 'bg-white/5 border-white/10 text-[#8F95A3]';
+                      const lineActive = kycStepStates[idx - 1] === 'done';
+                      return (
+                        <div key={step} className="flex-1 flex flex-col items-center text-center relative">
+                          {idx !== 0 && <div className={`absolute top-4 right-1/2 w-full h-[2px] -z-10 ${lineActive ? 'bg-[#8B5CF6]/40' : 'bg-white/5'}`} />}
+                          <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${nodeColor}`}>
+                            {isDone ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
+                          </div>
+                          <span className="text-[11px] font-bold text-white mt-2">{step}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="bg-[#15192C] border border-white/5 rounded-2xl p-4 flex items-start gap-3 mb-4">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-white mb-0.5">Accepted Documents (Any One)</p>
+                      <p className="text-[11px] text-[#8F95A3] leading-relaxed">Aadhaar Card, PAN Card, Driving License, Passport, Voter ID, Bank Passbook, Ration Card, Government ID etc.</p>
                     </div>
-                    <p className="text-[#8F95A3] text-[13px] font-medium leading-relaxed mb-6 flex-grow">{method.desc}</p>
-                    <div className="mt-auto flex justify-end">
-                      <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-[#8B5CF6] border border-white/5 flex items-center justify-center transition-colors">
-                        <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white" />
-                      </div>
+                  </div>
+
+                  {kycMessage && (
+                    <div className={`mb-4 p-2.5 rounded-lg border text-[11px] font-medium leading-relaxed ${
+                      (kycStatusLower === 'rejected' || kycStatusLower === 'reupload' || kycStatusLower === 'failed')
+                        ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                        : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                    }`}>
+                      <span className="font-bold uppercase tracking-wider block mb-0.5 text-[9px] opacity-80">Admin Note</span>
+                      {kycMessage}
                     </div>
+                  )}
+
+                  <button 
+                    onClick={() => !btnProps.disabled && setIsKycOpen(true)} 
+                    disabled={btnProps.disabled} 
+                    className={btnProps.className}
+                  >
+                    {kycStatusLower === 'rejected' || kycStatusLower === 'reupload' || kycStatusLower === 'failed' ? (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Verify KYC Again</span>
+                      </>
+                    ) : (
+                      btnProps.text
+                    )}
+                  </button>
+                </div>
+
+                {/* Choose Withdrawal Method */}
+                <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
+                  <h2 className="text-lg font-bold text-white mb-1">Choose Withdrawal Method</h2>
+                  <p className="text-[#8F95A3] text-sm mb-6 font-medium">Fast, secure and convenient options</p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {withdrawalMethods.map((method) => {
+                      const isSelected = selectedMethod?.id === method.id;
+                      return (
+                        <div
+                          key={method.id}
+                          onClick={() => handleMethodCardClick(method.id)}
+                          className={`relative bg-[#15192C] border rounded-2xl p-5 cursor-pointer transition-all duration-200 flex items-start gap-4 ${isSelected ? 'border-[#8B5CF6] shadow-[0_0_0_1px_rgba(139,92,246,0.4)]' : 'border-white/5 hover:border-[#8B5CF6]/40'}`}
+                        >
+                          {method.speed === 'fast' && (
+                            <span className="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md bg-[#10B981]/10 text-[#10B981]">Instant</span>
+                          )}
+                          <div className="shrink-0">{method.icon}</div>
+                          <div className="flex flex-col">
+                            <h3 className="text-white font-bold text-[15px]">{method.name}</h3>
+                            <p className="text-[#8F95A3] text-[12px] mt-0.5">{method.desc}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${method.speed === 'fast' ? 'text-[#10B981]' : 'text-[#3B82F6]'}`}>
+                                {method.speed === 'fast' ? <Zap className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                                {method.time}
+                              </span>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <div className="absolute bottom-3 right-3 w-5 h-5 rounded-full bg-[#8B5CF6] flex items-center justify-center">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* RIGHT COLUMN */}
+              <div className="bg-[#111319] border border-[#8B5CF6]/20 rounded-[20px] p-6 lg:sticky lg:top-6">
+                <h2 className="text-lg font-bold text-white mb-5">Withdrawal Details</h2>
+
+                {msg && (
+                  <div className={`mb-4 p-3 rounded-xl flex items-start gap-2 text-sm font-bold ${msg.type === 'success' ? 'bg-[#00E57A]/10 text-[#00E57A]' : 'bg-[#FF5D73]/10 text-[#FF5D73]'}`}>
+                    {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" /> : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />}
+                    <span>{msg.text}</span>
+                  </div>
+                )}
+
+                {!selectedMethod ? (
+                  <div className="py-10 text-center">
+                    <Wallet className="w-10 h-10 text-[#8F95A3] mx-auto mb-3 opacity-50" />
+                    <p className="text-[#8F95A3] text-sm font-medium">Select a withdrawal method from the left to continue.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleWithdrawRequest} className="flex flex-col gap-4">
+
+                    <div className="flex items-center gap-3 pb-4 border-b border-white/5">
+                      <div className="shrink-0">{selectedMethod.icon}</div>
+                      <div>
+                        <p className="text-white font-bold text-sm">{selectedMethod.name}</p>
+                        <p className="text-[#8F95A3] text-[11px]">{selectedMethod.time}</p>
+                      </div>
+                      <button type="button" onClick={() => setSelectedMethod(null)} className="ml-auto w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white cursor-pointer">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {selectedMethod.id === 'bank' ? (
+                      <>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">Bank Name</label>
+                          <div className="relative flex items-center">
+                            <Building className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
+                            <input type="text" required placeholder="Enter bank name" value={paymentDetails.bankName || ''} onChange={(e) => setPaymentDetails({...paymentDetails, bankName: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">Account Number</label>
+                          <div className="relative flex items-center">
+                            <Hash className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
+                            <input type="text" required placeholder="0000000000" value={paymentDetails.accountNumber || ''} onChange={(e) => setPaymentDetails({...paymentDetails, accountNumber: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">IFSC Code</label>
+                          <div className="relative flex items-center">
+                            <MapPin className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
+                            <input type="text" required placeholder="IFSC Code" value={paymentDetails.ifscCode || ''} onChange={(e) => setPaymentDetails({...paymentDetails, ifscCode: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white uppercase focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">{getMethodLabel(selectedMethod.id)}</label>
+                        <div className="relative flex items-center">
+                          {getMethodIconComponent(selectedMethod.id)}
+                          <input type={selectedMethod.id === 'paypal' ? 'email' : 'text'} required placeholder={getMethodPlaceholder(selectedMethod.id)} value={paymentDetails.paymentId || ''} onChange={(e) => setPaymentDetails({...paymentDetails, paymentId: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col gap-1.5 mt-1">
+                      <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">Amount ({isCoin ? 'Coins' : 'USD'})</label>
+                      <div className="relative flex items-center">
+                        <span className="absolute left-4 font-black text-[#8B5CF6]">{isCoin ? 'C' : '$'}</span>
+                        <input type="number" required min="0.01" step="0.01" placeholder="Enter amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-10 pr-16 py-3 text-sm text-white font-bold focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
+                        <button type="button" onClick={() => setAmount(String(totalEarning))} className="absolute right-2 text-[10px] font-bold text-[#A78BFA] bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-[#8B5CF6]/20">MAX</button>
+                      </div>
+                      <p className="text-[10px] text-[#8F95A3] ml-1">Min. {isCoin ? '5000 Coins' : '$5.00'} &middot; Available: {formatPrice(Number(totalEarning), currency)}</p>
+                    </div>
+
+                    <div className="bg-[#15192C] border border-[#8B5CF6]/20 rounded-2xl p-4 flex flex-col gap-2 shadow-inner mt-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-[#FF5D73]">Processing fee (5%)</span>
+                        <span className="text-xs font-bold text-[#FF5D73]">{isCoin ? 'C' : '$'}{feeAmount}</span>
+                      </div>
+                      <div className="flex justify-between items-center mt-1 pt-2 border-t border-white/5">
+                        <span className="text-sm font-black text-[#00E57A]">You will receive</span>
+                        <span className="text-sm font-black text-[#00E57A]">{isCoin ? 'C' : '$'}{receiveAmount}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-2 mt-1">
+                      {[10, 25, 50, 100].map((val) => (
+                        <button key={val} type="button" onClick={() => handleQuickSelect(val)} className="bg-[#15192C] hover:bg-[#8B5CF6]/20 border border-white/10 rounded-xl py-2.5 text-xs font-bold text-white transition-all cursor-pointer">$ {val}</button>
+                      ))}
+                    </div>
+
+                    <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-[#7C3AED] to-[#EC4899] hover:opacity-95 text-white font-black text-sm uppercase py-4 rounded-2xl mt-2 shadow-[0_4px_25px_rgba(139,92,246,0.4)] flex justify-center items-center gap-2 cursor-pointer">
+                      {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                      {isSubmitting ? 'Processing...' : 'Withdraw Now'}
+                    </button>
+
+                    <div className="flex items-center gap-2 justify-center mt-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-[10px] text-[#8F95A3]">Your transaction is secure and encrypted</span>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
           </motion.div>
         ) : (
@@ -759,102 +968,7 @@ export default function CashoutPage() {
 
       <KycModal isOpen={isKycOpen} onClose={() => setIsKycOpen(false)} onSuccess={() => { setKycStatus('pending'); fetchUserData(); }} />
       <VerificationAlertModal isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} onVerifyNow={() => { setIsAlertOpen(false); setIsKycOpen(true); }} kycStatus={kycStatus} />
-
-      {/* --- 🔥 PAYMENT REQUEST FORM MODAL 🔥 --- */}
-      <AnimatePresence>
-        {selectedMethod && (
-          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative w-full max-w-[480px] bg-[#0E111E] border border-[#8B5CF6]/30 rounded-[32px] p-6 sm:p-8 shadow-2xl my-auto">
-              <div className="flex justify-between items-start mb-6 border-b border-white/5 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/40 flex items-center justify-center">
-                    <Wallet className="w-6 h-6 text-[#A78BFA]" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-black text-white">Request Payment</h2>
-                    <p className="text-xs text-[#8F95A3] mt-0.5">Send payout to your {selectedMethod.name}</p>
-                  </div>
-                </div>
-                <button onClick={() => setSelectedMethod(null)} className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-white cursor-pointer"><X className="w-5 h-5" /></button>
-              </div>
-
-              {msg && (
-                <div className={`mb-5 p-3 rounded-xl flex items-start gap-2 text-sm font-bold ${msg.type === 'success' ? 'bg-[#00E57A]/10 text-[#00E57A]' : 'bg-[#FF5D73]/10 text-[#FF5D73]'}`}>
-                  {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" /> : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />}
-                  <span>{msg.text}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleWithdrawRequest} className="flex flex-col gap-4">
-                
-                {selectedMethod.id === 'bank' ? (
-                  <>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">Bank Name</label>
-                      <div className="relative flex items-center">
-                        <Building className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
-                        <input type="text" required placeholder="Enter bank name" value={paymentDetails.bankName || ''} onChange={(e) => setPaymentDetails({...paymentDetails, bankName: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">Account Number</label>
-                      <div className="relative flex items-center">
-                        <Hash className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
-                        <input type="text" required placeholder="0000000000" value={paymentDetails.accountNumber || ''} onChange={(e) => setPaymentDetails({...paymentDetails, accountNumber: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">IFSC Code</label>
-                      <div className="relative flex items-center">
-                        <MapPin className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
-                        <input type="text" required placeholder="IFSC Code" value={paymentDetails.ifscCode || ''} onChange={(e) => setPaymentDetails({...paymentDetails, ifscCode: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white uppercase focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">{getMethodLabel(selectedMethod.id)}</label>
-                    <div className="relative flex items-center">
-                      {getMethodIconComponent(selectedMethod.id)}
-                      <input type={selectedMethod.id === 'paypal' ? 'email' : 'text'} required placeholder={getMethodPlaceholder(selectedMethod.id)} value={paymentDetails.paymentId || ''} onChange={(e) => setPaymentDetails({...paymentDetails, paymentId: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-1.5 mt-1">
-                  <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">Amount</label>
-                  <div className="relative flex items-center">
-                    <span className="absolute left-4 font-black text-[#8B5CF6]">{isCoin ? 'C' : '$'}</span>
-                    <input type="number" required min="0.01" step="0.01" placeholder="Enter amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-10 pr-4 py-3 text-sm text-white font-bold focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
-                  </div>
-                </div>
-
-                <div className="bg-[#15192C] border border-[#8B5CF6]/20 rounded-2xl p-4 flex flex-col gap-2 shadow-inner mt-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-[#FF5D73]">Processing fee (5%)</span>
-                    <span className="text-xs font-bold text-[#FF5D73]">{isCoin ? 'C' : '$'}{(amount ? (Number(amount)*0.05).toFixed(2) : '0.00')}</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-1 pt-2 border-t border-white/5">
-                    <span className="text-sm font-black text-[#00E57A]">You will receive</span>
-                    <span className="text-sm font-black text-[#00E57A]">{isCoin ? 'C' : '$'}{(amount ? (Number(amount)*0.95).toFixed(2) : '0.00')}</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 gap-3 mt-1">
-                  {[10, 25, 50, 100].map((val) => (
-                    <button key={val} type="button" onClick={() => handleQuickSelect(val)} className="bg-[#15192C] hover:bg-[#8B5CF6]/20 border border-white/10 rounded-xl py-2.5 text-xs font-bold text-white transition-all cursor-pointer">$ {val}</button>
-                  ))}
-                </div>
-
-                <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-[#7C3AED] to-[#EC4899] hover:opacity-95 text-white font-black text-sm uppercase py-4 rounded-2xl mt-2 shadow-[0_4px_25px_rgba(139,92,246,0.4)] flex justify-center items-center gap-2 cursor-pointer">
-                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-                  {isSubmitting ? 'Processing...' : 'Submit Request'}
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <InsufficientBalanceModal isOpen={isBalanceAlertOpen} onClose={() => setIsBalanceAlertOpen(false)} minText={isCoin ? '5000 Coins' : '$5.00'} />
 
     </div>
   );

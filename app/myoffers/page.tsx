@@ -3,18 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, CheckCircle2, RotateCcw, Smartphone, ShieldCheck, Sparkles, AlertCircle, Info, ChevronRight } from 'lucide-react';
+import { Play, CheckCircle2, RotateCcw, Smartphone, ShieldCheck, Sparkles, AlertCircle, Info, ChevronRight, DollarSign, Clock, ListTodo, Headphones, ClipboardList, X } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 import Link from 'next/link';
 
 const AndroidIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[#A4C639]"><path d="M17.523 15.3414C17.523 15.3414 17.523 15.3414 17.523 15.3414C17.523 16.1432 16.8924 16.7738 16.0906 16.7738C15.2889 16.7738 14.6583 16.1432 14.6583 15.3414C14.6583 14.5397 15.2889 13.9091 16.0906 13.9091C16.8924 13.9091 17.523 14.5397 17.523 15.3414ZM9.34167 15.3414C9.34167 15.3414 9.34167 15.3414 9.34167 15.3414C9.34167 16.1432 8.71108 16.7738 7.90933 16.7738C7.10759 16.7738 6.47699 16.1432 6.47699 15.3414C6.47699 14.5397 7.10759 13.9091 7.90933 13.9091C8.71108 13.9091 9.34167 14.5397 9.34167 15.3414ZM17.9622 10.7416L19.8661 7.44426C19.9868 7.23517 19.915 6.96781 19.7059 6.84717C19.4968 6.72652 19.2295 6.79828 19.1088 7.00737L17.1706 10.3644C15.6171 9.64654 13.8631 9.24584 12.0003 9.24584C10.1374 9.24584 8.38338 9.64654 6.82998 10.3644L4.89173 7.00737C4.77109 6.79828 4.50373 6.72652 4.29464 6.84717C4.08554 6.96781 4.01379 7.23517 4.13444 7.44426L6.03831 10.7416C2.63935 12.6075 0.354181 16.166 0.0546875 20.315H23.9458C23.6463 16.166 21.3612 12.6075 17.9622 10.7416Z" /></svg>
+  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-[#A4C639]"><path d="M17.523 15.3414C17.523 15.3414 17.523 15.3414 17.523 15.3414C17.523 16.1432 16.8924 16.7738 16.0906 16.7738C15.2889 16.7738 14.6583 16.1432 14.6583 15.3414C14.6583 14.5397 15.2889 13.9091 16.0906 13.9091C16.8924 13.9091 17.523 14.5397 17.523 15.3414ZM9.34167 15.3414C9.34167 15.3414 9.34167 15.3414 9.34167 15.3414C9.34167 16.1432 8.71108 16.7738 7.90933 16.7738C7.10759 16.7738 6.47699 16.1432 6.47699 15.3414C6.47699 14.5397 7.10759 13.9091 7.90933 13.9091C8.71108 13.9091 9.34167 14.5397 9.34167 15.3414ZM17.9622 10.7416L19.8661 7.44426C19.9868 7.23517 19.915 6.96781 19.7059 6.84717C19.4968 6.72652 19.2295 6.79828 19.1088 7.00737L17.1706 10.3644C15.6171 9.64654 13.8631 9.24584 12.0003 9.24584C10.1374 9.24584 8.38338 9.64654 6.82998 10.3644L4.89173 7.00737C4.77109 6.79828 4.50373 6.72652 4.29464 6.84717C4.08554 6.96781 4.01379 7.23517 4.13444 7.44426L6.03831 10.7416C2.63935 12.6075 0.354181 16.166 0.0546875 20.315H23.9458C23.6463 16.166 21.3612 12.6075 17.9622 10.7416Z" /></svg>
 );
 const AppleIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
+  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
 );
 const WindowsIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-[#00A4EF]"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
+  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-[#00A4EF]"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
 );
 
 function getUserId(): string {
@@ -81,6 +81,20 @@ function resolveTargetPlatformsString(data: any): string {
   return parts.join(' ').toLowerCase();
 }
 
+export const DeviceIcon = ({ offer }: { offer: any }) => {
+  const rawBrowsers = resolveTargetPlatformsString(offer);
+  if (rawBrowsers === 'all' || rawBrowsers === 'global' || rawBrowsers === '') return <div className="flex gap-1"><AndroidIcon/><AppleIcon/><WindowsIcon/></div>;
+  
+  const isAndroid = rawBrowsers.includes('android');
+  const isWindows = rawBrowsers.includes('windows') || rawBrowsers.includes('win') || rawBrowsers.includes('pc') || rawBrowsers.includes('desktop');
+  const isIos = rawBrowsers.includes('ios') || rawBrowsers.includes('iphone') || rawBrowsers.includes('ipad');
+
+  if (isAndroid) return <AndroidIcon />;
+  if (isWindows) return <WindowsIcon />;
+  if (isIos) return <AppleIcon />;
+  return <div className="flex gap-1"><AndroidIcon/><AppleIcon/><WindowsIcon/></div>;
+};
+
 export default function MyOffersPage() {
   const router = useRouter();
   const currency = useCurrency();
@@ -99,6 +113,9 @@ export default function MyOffersPage() {
   const [targetDeviceName, setTargetDeviceName] = useState<string>('Android');
   const [currentOS, setCurrentOS] = useState<string>('Windows');
   const [apiError, setApiError] = useState<string | null>(null);
+  
+  // 🔥 New state for Payout Info Modal
+  const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -188,7 +205,6 @@ export default function MyOffersPage() {
     fetchData();
   }, [router]);
 
-  // 🔥 Update logic for Tab Change
   const handleTabChange = (tab: 'started' | 'completed') => {
     setActiveTab(tab);
     if (tab === 'started') {
@@ -209,9 +225,7 @@ export default function MyOffersPage() {
   };
 
   const handleSelectOffer = async (offer: any) => {
-    if (selectedOffer && isSameOffer(selectedOffer, offer)) {
-      return; 
-    }
+    if (selectedOffer && isSameOffer(selectedOffer, offer)) return; 
     loadOfferDetails(offer);
   };
 
@@ -283,14 +297,10 @@ export default function MyOffersPage() {
 
     try {
       const token = localStorage.getItem('token') || '';
-
-      const res = await fetch(
-        `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`,
-        {
-          method: 'GET',
-          headers: { 'Accept': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-        }
-      );
+      const res = await fetch(`https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+      });
 
       const responseText = await res.text();
       let finalRedirectUrl = '';
@@ -327,7 +337,6 @@ export default function MyOffersPage() {
       } else {
         window.open(finalRedirectUrl, '_blank');
       }
-
     } catch (err) {
       console.error("Error processing click URL:", err);
       if (newTab) {
@@ -348,43 +357,106 @@ export default function MyOffersPage() {
 
   const requirements = currentData?.offer_requirements || currentData?.requirements || "Install and Launch to earn reward";
   const description = currentData?.description || "Complete the task as instructed to receive your reward.";
+  
   const targetPlatforms = resolveTargetPlatformsString(currentData);
   const isIos = targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad');
   const isAndroidOffer = targetPlatforms.includes('android');
   const isWindowsOffer = targetPlatforms.includes('windows') || targetPlatforms.includes('desktop') || targetPlatforms.includes('pc') || targetPlatforms.includes('win');
 
+  const totalEarned = completedOffers.reduce((sum, offer) => {
+    const val = offer.userCredits ?? offer.reward ?? offer.payout ?? 0;
+    return sum + Number(val);
+  }, 0);
+
   return (
     <div className="flex flex-col bg-[#0B0D14] min-h-screen text-white relative">
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <main className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         
-        <div className="flex items-center gap-2 mb-4">
+        {/* 🚀 Header & 4 Stat Blocks 🚀 */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+          <div>
+            <h1 className="text-[28px] font-black text-white mb-1">My Offers</h1>
+            <p className="text-[#8F95A3] text-sm">Track your progress and earn more rewards</p>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
+            {/* Stat 1: Started Offers */}
+            <div className="bg-[#161821] border border-white/5 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                <ListTodo className="w-5 h-5 text-[#8B5CF6]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white font-black text-xl leading-none">{startedOffers.length}</span>
+                <span className="text-[#8F95A3] text-[11px] font-medium mt-1">Started Offers</span>
+              </div>
+            </div>
+
+            {/* Stat 2: Pending Verifications */}
+            <div className="bg-[#161821] border border-white/5 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 text-[#F59E0B]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white font-black text-xl leading-none">0</span>
+                <span className="text-[#8F95A3] text-[11px] font-medium mt-1">Pending Verifications</span>
+              </div>
+            </div>
+
+            {/* Stat 3: Earned */}
+            <div className="bg-[#161821] border border-white/5 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-[#10B981]/10 flex items-center justify-center shrink-0">
+                <DollarSign className="w-5 h-5 text-[#10B981]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white font-black text-xl leading-none">{formatPrice(totalEarned, currency)}</span>
+                <span className="text-[#8F95A3] text-[11px] font-medium mt-1">Earned</span>
+              </div>
+            </div>
+
+            {/* Stat 4: Completed */}
+            <div className="bg-[#161821] border border-white/5 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5 text-[#3B82F6]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white font-black text-xl leading-none">{completedOffers.length}</span>
+                <span className="text-[#8F95A3] text-[11px] font-medium mt-1">Completed</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 🚀 Tabs 🚀 */}
+        <div className="flex items-center gap-4 mb-6 border-b border-white/5 pb-1">
           <button 
             onClick={() => handleTabChange('started')}
-            className={`px-5 py-2.5 rounded-[14px] text-sm font-bold transition-all cursor-pointer ${activeTab === 'started' ? 'bg-[#A855F7] text-white shadow-lg' : 'bg-[#1A1C24] text-[#8F95A3] hover:text-white'}`}
+            className={`px-4 py-2.5 rounded-full text-sm font-bold transition-all cursor-pointer ${activeTab === 'started' ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'text-[#8F95A3] hover:text-white'}`}
           >
-            Started Offer
+            Started Offers
           </button>
           <button 
             onClick={() => handleTabChange('completed')}
-            className={`px-5 py-2.5 rounded-[14px] text-sm font-bold transition-all cursor-pointer ${activeTab === 'completed' ? 'bg-[#A855F7] text-white shadow-lg' : 'bg-[#1A1C24] text-[#8F95A3] hover:text-white'}`}
+            className={`px-4 py-2.5 rounded-full text-sm font-bold transition-all cursor-pointer ${activeTab === 'completed' ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'text-[#8F95A3] hover:text-white'}`}
           >
-            Completed Offer
+            Completed Offers
           </button>
         </div>
 
-        <p className="text-[13px] text-[#8F95A3] flex items-center gap-1.5 mb-8">
-          <Info className="w-4 h-4 text-white/50" /> 
-          Your {activeTab} offers from <span className="text-white font-bold">Featured Offers</span> will appear here.
-        </p>
+        {/* 🚀 Info Banner 🚀 */}
+        <div className="w-full bg-[#161821] border border-white/5 rounded-xl p-4 flex items-center gap-3 mb-8">
+          <Info className="w-5 h-5 text-[#8F95A3] shrink-0" />
+          <p className="text-sm text-[#8F95A3]">Your started offers from featured offers will appear here. Offers started from an offerwall will appear inside that specific offerwall's started offer list.</p>
+        </div>
 
         {/* 🔥 STARTED TAB VIEW 🔥 */}
         {activeTab === 'started' && (
           <>
-            <div className="flex items-start gap-3 overflow-x-auto no-scrollbar pb-6 mb-8 border-b border-white/5">
+            {/* 🚀 Horizontal Offer List (Fixed Border Clipping issue with generous Y-padding) 🚀 */}
+            <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-6 -my-6 px-2 -mx-2 mb-4">
               {isLoading ? (
-                <div className="text-[#8F95A3] text-sm animate-pulse">Loading offers...</div>
+                <div className="text-[#8F95A3] text-sm animate-pulse px-2">Loading offers...</div>
               ) : startedOffers.length === 0 ? (
-                <div className="text-[#8F95A3] text-sm">No started offers found.</div>
+                <div className="text-[#8F95A3] text-sm px-2">No started offers found.</div>
               ) : (
                 startedOffers.map((item, idx) => {
                   const hasSelection = selectedOffer !== null;
@@ -397,137 +469,166 @@ export default function MyOffersPage() {
                     <div 
                       key={idx} 
                       onClick={() => handleSelectOffer(item)}
-                      className={`flex flex-col items-center gap-2 cursor-pointer transition-all duration-300 w-24 shrink-0 opacity-100 ${isSelected ? 'scale-105' : 'hover:scale-105'}`}
+                      // 🚀 Perfected Selection Border without breaking bounds
+                      className={`relative flex flex-col justify-between w-[220px] h-[130px] shrink-0 rounded-[18px] overflow-hidden cursor-pointer transition-all duration-300 p-4 ${isSelected ? 'border-2 border-[#A855F7] shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-[1.02]' : 'border border-white/5 hover:border-white/20'}`}
                     >
-                      <div className={`w-24 h-24 bg-[#161821] rounded-2xl overflow-hidden transition-all border ${isSelected ? 'border-[3px] border-[#A855F7] shadow-[0_0_20px_rgba(168,85,247,0.4)]' : 'border-white/10'}`}>
-                        <img src={iconImg} alt="icon" className="w-full h-full object-cover" />
+                      {/* Background Image & Gradient */}
+                      <div className="absolute inset-0 z-0">
+                        <img src={iconImg} alt="bg" className="w-full h-full object-cover opacity-30" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#111319] via-[#111319]/80 to-transparent"></div>
                       </div>
-                      <span className={`text-xs font-semibold truncate w-full text-center px-1 ${isSelected ? 'text-[#A855F7]' : 'text-white'}`}>
-                        {item.offerName || item.offer_name || 'Offer'}
-                      </span>
+
+                      {/* Content */}
+                      <div className="relative z-10 flex flex-col h-full">
+                        <div className="flex justify-between items-start mb-2">
+                           <div className="w-10 h-10 rounded-lg overflow-hidden bg-white shrink-0">
+                              <img src={iconImg} alt="icon" className="w-full h-full object-cover" />
+                           </div>
+                           <span className="bg-[#A855F7] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">In Progress</span>
+                        </div>
+                        
+                        <div className="mt-auto flex flex-col gap-1">
+                           <span className="text-white text-sm font-bold truncate">{item.offerName || item.offer_name || 'Offer'}</span>
+                           <div className="flex justify-between items-center">
+                              <span className="text-white text-xs font-bold">{formatPrice(Number(item.userCredits || item.reward || 0), currency)}</span>
+                              {/* 🚀 Dynamic Device Icon properly attached here */}
+                              <div className="opacity-70 flex gap-1">
+                                 <DeviceIcon offer={item} />
+                              </div>
+                           </div>
+                           {/* Dummy Progress Bar */}
+                           <div className="w-full h-1.5 bg-white/10 rounded-full mt-1 overflow-hidden flex items-center justify-between">
+                              <div className="h-full bg-[#A855F7] w-[25%] rounded-full"></div>
+                           </div>
+                        </div>
+                      </div>
                     </div>
                   );
                 })
               )}
+
+              {/* View Featured Offers Card */}
+              {!isLoading && (
+                <Link href="/dashboard" className="w-[220px] h-[130px] shrink-0 border border-dashed border-white/20 rounded-[18px] flex flex-col items-center justify-center gap-2 hover:bg-white/5 transition-colors cursor-pointer">
+                  <ClipboardList className="w-8 h-8 text-[#8B5CF6]" />
+                  <span className="text-white font-bold text-sm">View Featured Offers</span>
+                  <span className="text-[#8B5CF6] text-xs font-medium hover:underline">Explore Now</span>
+                </Link>
+              )}
             </div>
 
             {selectedOffer && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="mt-6">
                 {isDetailsLoading ? (
                    <div className="flex flex-col items-center justify-center py-20 gap-4">
                       <div className="w-12 h-12 border-4 border-[#A855F7]/30 border-t-[#A855F7] rounded-full animate-spin"></div>
                    </div>
                 ) : (
-                  <div className="flex flex-col lg:flex-row gap-8 items-start">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                     
-                    <div className="w-full lg:w-[320px] shrink-0 flex flex-col gap-4">
-                      <div className="w-full aspect-[4/5] bg-[#161821] rounded-[28px] border border-white/5 relative overflow-hidden flex flex-col justify-end p-6 shadow-2xl group">
+                    {/* 🚀 LEFT COLUMN: Image & Support 🚀 */}
+                    <div className="lg:col-span-5 flex flex-col gap-4">
+                      <div className="w-full aspect-[4/3] bg-[#161821] rounded-3xl border border-white/5 relative overflow-hidden flex flex-col justify-end p-6 shadow-xl group">
+                        {/* Background Blur */}
                         <div className="absolute inset-0 z-0">
-                          <img src={rawImage} alt="bg-blur" className="w-full h-full object-cover opacity-20 blur-2xl group-hover:scale-110 transition-transform duration-700" />
+                          <img src={rawImage} alt="bg-blur" className="w-full h-full object-cover opacity-20 blur-2xl group-hover:scale-105 transition-transform duration-700" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#111319] to-transparent"></div>
                         </div>
                         
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-32 h-32 bg-white rounded-[32px] p-2 shadow-2xl">
-                          <img src={rawImage} alt={name} className="w-full h-full object-contain rounded-[24px]" />
+                        {/* Center Icon */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-36 h-36 bg-white rounded-3xl p-2 shadow-2xl">
+                          <img src={rawImage} alt={name} className="w-full h-full object-contain rounded-2xl" />
                         </div>
 
-                        <div className="absolute top-4 right-4 z-10">
+                        {/* Top Right Devices */}
+                        <div className="absolute top-4 right-4 z-10 flex gap-2 opacity-80">
                            {isIos ? <AppleIcon /> : isWindowsOffer ? <WindowsIcon /> : isAndroidOffer ? <AndroidIcon /> : null}
                         </div>
 
+                        {/* Bottom Info & Play */}
                         <div className="relative z-20 flex items-end justify-between w-full mt-auto">
                           <div className="flex flex-col w-[70%]">
-                            <span className="text-white font-bold text-sm mb-1">Offer Details</span>
-                            <h1 className="text-3xl font-black text-white leading-none">{formatPrice(Number(rewardAmount), currency)}</h1>
+                            <span className="text-white font-bold text-base truncate mb-1">{name}</span>
+                            <h1 className="text-2xl font-black text-white leading-none">{formatPrice(Number(rewardAmount), currency)}</h1>
                           </div>
 
                           <button 
                             onClick={handlePlayClick} 
                             disabled={isProcessingClick}
-                            className="w-14 h-14 rounded-full bg-[#A855F7] hover:bg-[#9333EA] flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.4)] cursor-pointer hover:scale-105 transition-all shrink-0"
+                            className="w-12 h-12 rounded-full bg-[#A855F7] hover:bg-[#9333EA] flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.4)] cursor-pointer hover:scale-105 transition-all shrink-0"
                           >
                             {isProcessingClick ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Play className="w-5 h-5 text-white fill-white ml-0.5" />}
                           </button>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                         <div className="flex-1 bg-[#161821] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                           <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Status</span>
-                           <span className={`text-sm font-black flex items-center gap-1.5 text-amber-400`}>
-                             <RotateCcw className="w-4 h-4"/>
-                             {currentData?.status || 'PENDING'}
-                           </span>
-                         </div>
-                         <div className="flex-1 bg-[#161821] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                           <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Retries</span>
-                           <span className="text-sm font-black text-white">
-                             {offerDetails?.retryAllow || 0} Left
-                           </span>
-                         </div>
-                      </div>
-
-                      {/* 🔥 NEW SLEEK SUPPORT BUTTON AS PER IMAGE 🔥 */}
+                      {/* 🚀 Red Premium Support Button 🚀 */}
                       <Link
                         href={`/support?category=${encodeURIComponent('Offer and Surveys')}&description=${encodeURIComponent(`Offer Name: ${name}\nOffer ID: ${offerIdForSupport}`)}`}
-                        className="bg-[#14151C] hover:bg-[#1A1C24] border border-white/5 rounded-2xl p-4 flex items-center justify-between transition-colors group cursor-pointer w-full mt-2"
+                        className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow-[0_0_20px_rgba(239,68,68,0.4)] border border-red-400/20 rounded-2xl p-4 flex items-center justify-center gap-2 transition-all cursor-pointer w-full hover:scale-[1.02]"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-[#FF5D73]/10 flex items-center justify-center shrink-0">
-                            <AlertCircle className="w-5 h-5 text-[#FF5D73]" />
-                          </div>
-                          <span className="text-white font-bold text-[15px]">Support</span>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors shrink-0" />
+                        <Headphones className="w-5 h-5 text-white" />
+                        <span className="text-white font-black text-[15px] tracking-wide">Support</span>
                       </Link>
 
                       {apiError && (
-                        <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-4 rounded-2xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)] mt-2">
+                        <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-4 rounded-2xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)]">
                           {apiError}
                         </div>
                       )}
                     </div>
 
-                    <div className="w-full flex-1 flex flex-col gap-6 pt-2 pb-6">
-                      <div className="flex flex-col">
-                        <h3 className="text-white font-black text-lg mb-3 flex items-center gap-2">
-                          <ShieldCheck className="w-5 h-5 text-[#8B5CF6]" /> Requirements
-                        </h3>
-                        <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 shadow-inner">
-                          <p className="text-[#8F95A3] text-[15px] leading-relaxed font-medium">{requirements}</p>
+                    {/* 🚀 RIGHT COLUMN: Details & Features 🚀 */}
+                    <div className="lg:col-span-7 flex flex-col gap-5 pb-8">
+                      
+                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-6">
+                         <h4 className="text-white font-bold text-sm mb-2">Requirements</h4>
+                         <p className="text-[#8F95A3] text-sm leading-relaxed">{requirements}</p>
+                      </div>
+
+                      <div className="border-b-2 border-[#8B5CF6] pb-2 mt-2 w-fit">
+                         <span className="text-[#8B5CF6] font-bold text-sm">Details</span>
+                      </div>
+
+                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-6">
+                         <h4 className="text-white font-bold text-sm mb-2">Description</h4>
+                         <p className="text-[#8F95A3] text-sm leading-relaxed whitespace-pre-wrap">{description}</p>
+                      </div>
+
+                      {/* Features List */}
+                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                          <RotateCcw className="w-5 h-5 text-[#8B5CF6]" />
+                        </div>
+                        <div className="flex flex-col">
+                          <h4 className="text-white font-bold text-sm">Task Order Flexibility</h4>
+                          <p className="text-[#8F95A3] text-xs mt-1">Tasks can be completed in any order. There is no fixed sequence.</p>
                         </div>
                       </div>
 
-                      <div className="flex flex-col mt-2">
-                        <div className="border-b-2 border-[#8B5CF6] pb-2 mb-4 w-fit">
-                          <h3 className="text-[#8B5CF6] font-bold text-sm tracking-wide">Details</h3>
+                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                           <Sparkles className="w-5 h-5 text-[#8B5CF6]" />
                         </div>
-                        
-                        <div className="bg-[#161821] border border-white/5 rounded-2xl p-6 shadow-inner mb-4">
-                          <h4 className="text-white font-bold text-base mb-3">Description</h4>
-                          <p className="text-[#8F95A3] text-sm leading-relaxed whitespace-pre-wrap">{description}</p>
+                        <div className="flex flex-col">
+                          <h4 className="text-white font-bold text-sm">New Users Only</h4>
+                          <p className="text-[#8F95A3] text-xs mt-1">This offer is valid only for users who have not installed the app before.</p>
                         </div>
+                      </div>
 
-                        <div className="flex flex-col gap-3 mt-2">
-                          <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 flex items-center gap-5">
-                            <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
-                              <RotateCcw className="w-5 h-5 text-[#8B5CF6]" />
-                            </div>
-                            <div className="flex flex-col">
-                              <h4 className="text-white font-bold text-[15px]">Task Order Flexibility</h4>
-                              <p className="text-[#8F95A3] text-sm mt-0.5">Tasks can be completed in any order. There is no fixed sequence.</p>
-                            </div>
-                          </div>
-
-                          <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 flex items-center gap-5">
-                            <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8B5CF6]"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            </div>
-                            <div className="flex flex-col">
-                              <h4 className="text-white font-bold text-[15px]">New Users Only</h4>
-                              <p className="text-[#8F95A3] text-sm mt-0.5">This offer is valid only for users who have not installed the app before.</p>
-                            </div>
-                          </div>
+                      {/* 🚀 Clickable Popup Trigger for "Why Does Payout Take Time" 🚀 */}
+                      <div 
+                        onClick={() => setIsPayoutModalOpen(true)}
+                        className="bg-[#161821] hover:bg-[#1A1C24] border border-white/5 rounded-2xl p-5 flex items-center gap-4 cursor-pointer transition-colors group"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                          <Clock className="w-5 h-5 text-[#8B5CF6]" />
                         </div>
+                        <div className="flex flex-col">
+                          <h4 className="text-white font-bold text-sm group-hover:text-[#8B5CF6] transition-colors">Why Does Payout Take Time?</h4>
+                          <p className="text-[#8F95A3] text-xs mt-1">Payouts are processed after the offer is verified by our team. It may take some time.</p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-[#8F95A3] ml-auto group-hover:text-white transition-colors" />
                       </div>
 
                     </div>
@@ -538,7 +639,7 @@ export default function MyOffersPage() {
           </>
         )}
 
-        {/* 🔥 COMPLETED TAB VIEW (HORIZONTAL LIST) WITH ROBUST IMAGE FETCHING 🔥 */}
+        {/* 🔥 COMPLETED TAB VIEW 🔥 */}
         {activeTab === 'completed' && (
           <div className="flex flex-col gap-3 w-full max-w-4xl">
             {isLoading ? (
@@ -547,13 +648,8 @@ export default function MyOffersPage() {
               <div className="text-[#8F95A3] text-sm">No completed offers found.</div>
             ) : (
               completedOffers.map((item, idx) => {
-                
-                // 🔥 SMART IMAGE FETCHING LOGIC 🔥
-                // Tries checking inside nested 'offer' or 'campaign' object if available
                 const nestedOffer = item.offer || item.campaign || item;
-                
                 let iconImg = nestedOffer.image_url || nestedOffer.offerImage || nestedOffer.logo || nestedOffer.image || nestedOffer.preview || item.image_url || item.offerImage || item.logo || item.image || item.preview;
-                
                 const offerName = nestedOffer.offerName || nestedOffer.offer_name || nestedOffer.title || item.offerName || item.offer_name || 'Completed Offer';
                 const providerName = nestedOffer.network || nestedOffer.provider || item.network || item.provider || 'Provider';
                 const rew = item.userCredits ?? item.reward ?? item.payout ?? nestedOffer.userCredits ?? nestedOffer.reward ?? nestedOffer.payout ?? 0;
@@ -598,6 +694,39 @@ export default function MyOffersPage() {
         )}
 
       </main>
+
+      {/* 🚀 MODAL: Why Does Payout Take Time 🚀 */}
+      <AnimatePresence>
+        {isPayoutModalOpen && (
+          <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsPayoutModalOpen(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm cursor-pointer"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ duration: 0.3 }}
+              className="relative w-full max-w-[500px] p-6 sm:p-8 flex flex-col bg-[#1A1C24] border border-white/10 rounded-[24px] shadow-2xl z-10 text-center"
+            >
+              <button onClick={() => setIsPayoutModalOpen(false)} className="absolute top-5 right-5 text-[#8F95A3] hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+              
+              <h2 className="text-[20px] font-black text-white mb-5">Why Does Payout Take Time??</h2>
+              
+              <p className="text-[#A0A5B1] text-[15px] leading-relaxed mb-8 text-left">
+                Payout time depends on the type of offer you complete. Some tasks need verification from our partners, which may take a little longer. We also review certain activities to make sure all terms are followed. We always try to process rewards quickly, but sometimes delays happen due to external checks beyond our control.
+              </p>
+              
+              <div className="flex justify-end w-full">
+                <button onClick={() => setIsPayoutModalOpen(false)} className="bg-[#A855F7] hover:bg-[#9333EA] text-white font-bold py-2.5 px-8 rounded-[12px] transition-colors shadow-lg cursor-pointer">
+                  Got it
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {qrCodeUrl && (
