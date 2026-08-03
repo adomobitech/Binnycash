@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Star, CheckCircle2, AlertCircle, Smartphone, ShieldCheck, Sparkles } from "lucide-react";
+import { X, Play, Star, CheckCircle2, AlertCircle, Smartphone, ShieldCheck, Sparkles, PlayCircle, RotateCcw } from "lucide-react";
 import SurveyModal from '@/components/surveys/SurveyModal';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency'; 
 
@@ -123,6 +123,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
           setDetails(offer);
         }
       } catch (err) {
+        console.error("Error fetching offer details:", err);
         setDetails(offer);
       } finally {
         setIsLoading(false);
@@ -262,12 +263,17 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   let rawImage = currentData?.image_url || currentData?.preview || currentData?.image || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop';
   if (rawImage && !rawImage.startsWith('http')) rawImage = `https://apitest.binnycash.com${rawImage}`;
 
+  let rawNetworkLogo = currentData?.networkImage || currentData?.network_image;
+  if (rawNetworkLogo && !rawNetworkLogo.startsWith('http')) rawNetworkLogo = `https://apitest.binnycash.com${rawNetworkLogo}`;
+
   const title = currentData?.offerName || currentData?.title || 'Offer Details';
-  const networkName = currentData?.network || currentData?.provider || 'App';
-  const category = currentData?.categories || currentData?.category || 'App';
   const rewardAmount = currentData?.userCredits ?? currentData?.reward ?? currentData?.payout ?? 0;
+  
   const formattedReward = formatPrice(rewardAmount, currency);
-  const requirements = currentData?.offer_requirements || currentData?.requirements || "Complete task to earn reward";
+
+  const networkName = currentData?.network || currentData?.provider || 'BinnyCash';
+  const category = currentData?.categories || currentData?.category || 'All';
+  const requirements = currentData?.offer_requirements || currentData?.requirements || "CPA offer";
   const description = currentData?.description || "Complete the task as instructed to receive your reward.";
   const events = currentData?.offer_events || [];
 
@@ -475,12 +481,15 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
         onMouseLeave={() => setIsHovered(false)}
         className="relative w-full h-full bg-[#161821] border border-white/5 rounded-[16px] p-2.5 sm:p-3 flex flex-col cursor-pointer overflow-hidden group transition-all duration-200 hover:border-[#8B5CF6]/50 shadow-sm hover:shadow-[0_8px_20px_rgba(139,92,246,0.15)]"
       >
-        {/* YEH RAHA 100% PERFECT BACKDROP BLUR FIX */}
+        {/* 🔥 EXTREME BLUR & COLOR BLEED LOGIC 🔥 */}
         <div className="w-full aspect-square bg-[#1A1C24] rounded-xl overflow-hidden mb-2.5 shrink-0 shadow-sm border border-white/5 relative">
+          
           <img 
             src={rawImage} 
             alt={title} 
-            className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ${isHovered ? 'scale-110' : 'scale-100'}`} 
+            className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-out ${
+              isHovered ? 'scale-[1.5] blur-[25px] opacity-80' : 'scale-100 blur-0 opacity-100'
+            }`} 
           />
           
           <AnimatePresence>
@@ -489,9 +498,8 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                /* CSS Native Backdrop Filter: Blur aayega, dark colors pure black nahi honge */
-                className="absolute inset-0 z-20 flex flex-col items-center justify-center overflow-hidden bg-black/20 backdrop-blur-md"
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 z-20 flex flex-col items-center justify-center overflow-hidden bg-black/20 backdrop-blur-[16px]"
               >
                 <motion.div 
                   initial={{ scale: 0.8, y: 5 }}
@@ -500,10 +508,10 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   className="relative z-30 flex flex-col items-center pointer-events-none"
                 >
-                  <div className="w-11 h-11 rounded-full bg-[#A855F7] flex items-center justify-center mb-2 shadow-[0_0_20px_rgba(168,85,247,0.8)]">
-                    <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                  <div className="w-14 h-14 rounded-full bg-[#A855F7] flex items-center justify-center mb-3 shadow-[0_0_30px_rgba(168,85,247,0.6)]">
+                    <Play className="w-6 h-6 text-white fill-white ml-1" />
                   </div>
-                  <span className="text-white font-extrabold text-[13px] sm:text-[14px] tracking-wide drop-shadow-lg">
+                  <span className="text-white font-black text-[16px] tracking-wide drop-shadow-md">
                     {isStrictlySurvey ? 'Start Survey' : 'Start Offer'}
                   </span>
                 </motion.div>

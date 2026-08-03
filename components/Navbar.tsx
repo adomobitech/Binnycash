@@ -8,13 +8,13 @@ import {
   Bell, Rocket, Trophy, Wallet, ChevronDown, User, 
   LogOut, MessageSquare, HelpCircle, Gift, 
   BarChart3, Users, X, CheckCheck, Loader2, Globe, ChevronRight,
-  Lock, ShieldCheck // 🔥 Added new icons for logout screen
+  Lock, ShieldCheck, Menu, ClipboardCheck, Flame, PlaySquare
 } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
 import ChatDrawer from '@/components/chat/ChatDrawer';
 
-// 🔥 DYNAMIC COLOR GENERATOR: Hashing logic to assign fixed color to names 🔥
+// 櫨 DYNAMIC COLOR GENERATOR: Hashing logic to assign fixed color to names 櫨
 const getDynamicColor = (name: string) => {
   const colors = [
     'bg-[#8B5CF6]', // Purple
@@ -134,6 +134,8 @@ export default function Navbar() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -158,7 +160,8 @@ export default function Navbar() {
          window.dispatchEvent(new CustomEvent('currencyChanged', { detail: 'Usd' }));
       }
     }
-  }, []);
+    setIsMobileMenuOpen(false); 
+  }, [pathname]);
 
   const handleForceLogout = () => {
     localStorage.removeItem('token');
@@ -209,7 +212,6 @@ export default function Navbar() {
     return `https://apitest.binnycash.com${imgSrc}`;
   };
 
-  // 🔥 USER DATA FETCH FUNCTION (Added real-time sync wrapper) 🔥
   const fetchUserData = () => {
     const token = localStorage.getItem('token');
     if (!token || token.includes('[object Object]')) return;
@@ -251,7 +253,6 @@ export default function Navbar() {
     if (isLoggedIn) {
       fetchUserData();
 
-      // 🔥 LISTEN FOR PROFILE UPDATES 🔥
       const handleProfileUpdate = () => {
         fetchUserData();
       };
@@ -452,7 +453,6 @@ export default function Navbar() {
         {isTransitioning && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#070913] overflow-hidden font-sans">
             
-            {/* Background Subtle Glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#8B5CF6]/15 blur-[120px] rounded-full pointer-events-none" />
             
             <motion.div
@@ -461,35 +461,29 @@ export default function Navbar() {
               transition={{ duration: 0.4, ease: "easeOut" }}
               className="relative flex flex-col items-center z-10"
             >
-               {/* Logo Container with Animations */}
                <div className="relative flex items-center justify-center mb-10 mt-[-50px]">
                   
-                  {/* Outer Spinning Ring (Gradient) */}
                   <motion.div 
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                     className="absolute w-32 h-32 rounded-full border-2 border-transparent border-t-[#8B5CF6] border-r-[#8B5CF6] opacity-80"
                   />
                   
-                  {/* Reverse Spinning Dashed Ring */}
                   <motion.div 
                     animate={{ rotate: -360 }}
                     transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
                     className="absolute w-36 h-36 rounded-full border border-dashed border-white/10"
                   />
                   
-                  {/* Inner Pulsing Glow */}
                   <motion.div 
                     animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
                     transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                     className="absolute w-24 h-24 rounded-full bg-[#00E57A]/30 blur-md"
                   />
 
-                  {/* Core Logo Box */}
                   <div className="w-20 h-20 bg-[#120F1A] border border-[#8B5CF6]/30 rounded-[20px] flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.2)] z-10 relative overflow-hidden backdrop-blur-xl">
                      <img src="/logo.png" alt="BinnyCash Logo" className="w-10 h-10 object-contain z-10" />
                      
-                     {/* Shimmer Effect Inside Logo Box */}
                      <motion.div 
                        animate={{ x: ['-150%', '250%'] }}
                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }}
@@ -497,7 +491,6 @@ export default function Navbar() {
                      />
                   </div>
 
-                  {/* Small Security Lock Badge */}
                   <motion.div 
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -508,7 +501,6 @@ export default function Navbar() {
                   </motion.div>
                </div>
 
-               {/* Animated Text */}
                <motion.h2 
                  animate={{ opacity: [0.5, 1, 0.5] }}
                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
@@ -541,15 +533,15 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      <nav ref={navRef} className="w-full bg-[#0E1015]/80 backdrop-blur-xl sticky top-0 z-50 border-b border-white/5 h-[80px] flex items-center shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+      <nav ref={navRef} className="w-full bg-[#0E1015]/80 backdrop-blur-xl sticky top-0 z-50 border-b border-white/5 h-[70px] md:h-[80px] flex items-center shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
         <div className="w-full px-4 lg:px-10 flex justify-between items-center relative">
           
           <div className="flex items-center shrink-0">
-            <Link href="/" className="flex items-center gap-3 cursor-pointer group">
-              <img src="/logo.png" alt="BinnyCash" className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" />
+            <Link href="/" className="flex items-center gap-2 md:gap-3 cursor-pointer group">
+              <img src="/logo.png" alt="BinnyCash" className="h-8 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" />
               <div className="flex flex-col justify-center">
-                <span className="font-black text-xl md:text-2xl tracking-wide text-white leading-none">Binny<span className="text-[#8B5CF6]">Cash</span></span>
-                <span className="text-[8px] md:text-[9px] text-[#00E57A] font-bold tracking-[0.2em] uppercase mt-1 drop-shadow-[0_0_5px_rgba(0,229,122,0.4)]">Play. Earn. Dominate.</span>
+                <span className="font-black text-lg md:text-2xl tracking-wide text-white leading-none">Binny<span className="text-[#8B5CF6]">Cash</span></span>
+                <span className="text-[7px] md:text-[9px] text-[#00E57A] font-bold tracking-[0.2em] uppercase mt-1 drop-shadow-[0_0_5px_rgba(0,229,122,0.4)] hidden md:block">Play. Earn. Dominate.</span>
               </div>
             </Link>
           </div>
@@ -572,17 +564,17 @@ export default function Navbar() {
             </div>
           )}
 
-          <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          <div className="flex items-center gap-2 md:gap-4 shrink-0 ml-auto md:ml-0">
             <div id="google_translate_element" style={{ display: 'none' }}></div>
             
             <div className="relative">
               <button 
                 onClick={() => setIsLangModalOpen(!isLangModalOpen)} 
-                className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 px-3 py-2 md:py-2.5 rounded-xl transition-all cursor-pointer shadow-sm group"
+                className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 px-2 md:px-3 py-1.5 md:py-2.5 rounded-xl transition-all cursor-pointer shadow-sm group"
               >
                 <Globe className="w-4 h-4 text-[#8B5CF6] group-hover:animate-spin-slow" />
-                <span className="hidden sm:inline text-white text-xs font-bold uppercase tracking-wider">{selectedLang.code.split('-')[0]}</span>
-                <ChevronDown className={`w-3 h-3 text-[#8F95A3] transition-transform ${isLangModalOpen ? 'rotate-180' : ''}`} />
+                <span className="hidden sm:inline text-white text-[11px] md:text-xs font-bold uppercase tracking-wider">{selectedLang.code.split('-')[0]}</span>
+                <ChevronDown className={`w-3 h-3 text-[#8F95A3] transition-transform hidden sm:block ${isLangModalOpen ? 'rotate-180' : ''}`} />
               </button>
 
               <AnimatePresence>
@@ -592,7 +584,7 @@ export default function Navbar() {
                     animate={{ opacity: 1, y: 0, scale: 1 }} 
                     exit={{ opacity: 0, y: 10, scale: 0.95 }} 
                     transition={{ duration: 0.2 }} 
-                    className="absolute right-0 mt-3 w-[300px] md:w-[340px] bg-[#12151C]/95 backdrop-blur-xl border border-[#8B5CF6]/20 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.5)] py-2 z-50 overflow-hidden"
+                    className="absolute right-0 mt-3 w-[260px] md:w-[340px] bg-[#12151C]/95 backdrop-blur-xl border border-[#8B5CF6]/20 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.5)] py-2 z-50 overflow-hidden"
                   >
                     <div className="px-4 py-2 border-b border-white/5 mb-2 flex items-center gap-2">
                       <Globe className="w-4 h-4 text-[#8B5CF6]" />
@@ -631,14 +623,14 @@ export default function Navbar() {
                   </span>
                 </div>
 
-                <div className="relative">
+                <div className="relative hidden sm:block">
                   <button 
                     onClick={() => setIsInboxOpen(!isInboxOpen)}
-                    className={`relative w-10 h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer border ${isInboxOpen ? 'bg-[#252836] border-white/10' : 'bg-[#1A1C24] hover:bg-[#252836] border-white/5'}`}
+                    className={`relative w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer border ${isInboxOpen ? 'bg-[#252836] border-white/10' : 'bg-[#1A1C24] hover:bg-[#252836] border-white/5'}`}
                   >
-                    <Bell className="w-[18px] h-[18px] text-[#8F95A3] fill-current" />
+                    <Bell className="w-4 h-4 md:w-[18px] md:h-[18px] text-[#8F95A3] fill-current" />
                     {unreadCount > 0 && (
-                      <span className="absolute top-2 right-2 w-2 h-2 bg-[#00E57A] rounded-full shadow-[0_0_10px_rgba(0,229,122,1)] animate-pulse"></span>
+                      <span className="absolute top-1.5 md:top-2 right-1.5 md:right-2 w-2 h-2 bg-[#00E57A] rounded-full shadow-[0_0_10px_rgba(0,229,122,1)] animate-pulse"></span>
                     )}
                   </button>
 
@@ -711,26 +703,22 @@ export default function Navbar() {
 
                 <button 
                   onClick={() => { setIsChatOpen(true); setUnreadChatCount(0); }}
-                  className="relative w-10 h-10 rounded-xl bg-[#1A1C24] hover:bg-[#252836] flex items-center justify-center transition-colors cursor-pointer border border-white/5"
+                  className="relative hidden sm:flex w-8 h-8 md:w-10 md:h-10 rounded-xl bg-[#1A1C24] hover:bg-[#252836] items-center justify-center transition-colors cursor-pointer border border-white/5"
                 >
-                  <MessageSquare className="w-[18px] h-[18px] text-[#8F95A3] fill-current" />
-                  <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[#00E57A] border-2 border-[#0E1015] rounded-full shadow-[0_0_8px_rgba(0,229,122,0.8)]"></span>
+                  <MessageSquare className="w-4 h-4 md:w-[18px] md:h-[18px] text-[#8F95A3] fill-current" />
+                  <span className="absolute -bottom-1 -right-1 w-3 h-3 md:w-3.5 md:h-3.5 bg-[#00E57A] border-2 border-[#0E1015] rounded-full shadow-[0_0_8px_rgba(0,229,122,0.8)]"></span>
                 </button>
 
-                {/* PROFILE BUTTON ME AVATAR/LETTER LOGIC LAG GAYA HAI */}
                 <div className="relative">
-                  <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2.5 bg-[#1A1C24] hover:bg-[#252836] pl-1.5 pr-3 py-1.5 rounded-xl transition-all cursor-pointer border border-white/5">
+                  <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] p-1 pr-2 rounded-xl transition-all cursor-pointer border border-white/5">
                     {userAvatar ? (
-                      <img src={userAvatar} alt="Profile" className="w-8 h-8 rounded-xl object-cover shadow-sm" />
+                      <img src={userAvatar} alt="Profile" className="w-6 h-6 md:w-8 md:h-8 rounded-lg object-cover shadow-sm" />
                     ) : (
-                      <div className={`w-8 h-8 rounded-xl ${getDynamicColor(userName)} flex items-center justify-center text-white text-[15px] font-black shadow-sm uppercase`}>
+                      <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg ${getDynamicColor(userName)} flex items-center justify-center text-white text-[12px] md:text-[15px] font-black shadow-sm uppercase`}>
                         {userName ? userName.charAt(0) : '?'}
                       </div>
                     )}
-                    <span className="text-[#8F95A3] text-sm font-bold max-w-[100px] truncate hidden md:block">
-                      {userName}
-                    </span>
-                    <ChevronDown className="w-4 h-4 text-[#A855F7] font-bold" strokeWidth={3} />
+                    <ChevronDown className="w-3 h-3 md:w-4 md:h-4 text-[#A855F7] font-bold" strokeWidth={3} />
                   </button>
 
                   <AnimatePresence>
@@ -743,6 +731,10 @@ export default function Navbar() {
                         className="absolute right-0 mt-4 w-[280px] bg-[#0E1015]/95 backdrop-blur-xl border border-white/10 rounded-[24px] shadow-[0_15px_50px_rgba(139,92,246,0.15)] p-3 z-50 flex flex-col gap-2"
                       >
                         <div className="absolute -top-2 right-6 w-4 h-4 bg-[#0E1015] border-t border-l border-white/10 rotate-45" />
+
+                        <div className="md:hidden flex items-center justify-center bg-white/[0.03] border border-white/5 rounded-2xl p-3.5 mb-1">
+                           <span className="text-white font-bold text-sm tracking-wide">{userName}</span>
+                        </div>
 
                         <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
                           <div className="flex items-center gap-3">
@@ -829,34 +821,102 @@ export default function Navbar() {
         <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       )}
 
+      {/* =========================================
+          MOBILE BOTTOM NAVIGATION (Fixed at Bottom)
+      ========================================= */}
       {isLoggedIn && (
-        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-[#111319]/90 backdrop-blur-xl border-t border-white/5 z-50 flex items-center justify-between px-2 pb-safe pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-          <Link href="/dashboard" className="flex flex-col items-center w-[16.6%] h-14">
-            <Rocket className={`w-5 h-5 mb-1 ${pathname === '/dashboard' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/dashboard' ? 'text-white' : 'text-[#8F95A3]'}`}>Earn</span>
+        <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0E111E]/95 backdrop-blur-xl border-t border-white/10 z-50 flex items-center justify-around px-2 py-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-[65px]">
+          <Link href="/myoffers" className="flex flex-col items-center gap-1 p-2 w-[20%]">
+            <PlaySquare className={`w-5 h-5 ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
+            <span className={`text-[10px] font-bold ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Started</span>
           </Link>
-          <Link href="/myoffers" className="flex flex-col items-center w-[16.6%] h-14">
-            <Trophy className={`w-5 h-5 mb-1 ${pathname === '/myoffers' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/myoffers' ? 'text-white' : 'text-[#8F95A3]'}`}>Offers</span>
+          
+          <Link href="/cashout" className="flex flex-col items-center gap-1 p-2 w-[20%]">
+            <Wallet className={`w-5 h-5 ${pathname === '/cashout' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
+            <span className={`text-[10px] font-bold ${pathname === '/cashout' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Cashout</span>
           </Link>
-          <Link href="/affiliate" className="flex flex-col items-center w-[16.6%] h-14">
-            <Users className={`w-5 h-5 mb-1 ${pathname === '/affiliate' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/affiliate' ? 'text-white' : 'text-[#8F95A3]'}`}>Affiliate</span>
+
+          <Link href="/dashboard" className="flex flex-col items-center -mt-6 p-2 w-[20%] relative group">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-r from-[#A66CFF] to-[#EC4899] p-[3px] shadow-[0_4px_20px_rgba(166,108,255,0.4)] relative z-10">
+              <div className="w-full h-full rounded-full bg-[#0E111E] flex items-center justify-center">
+                <Rocket className={`w-6 h-6 ${pathname === '/dashboard' ? 'text-white' : 'text-[#A66CFF]'}`} />
+              </div>
+            </div>
+            <span className={`text-[10px] font-bold mt-1 ${pathname === '/dashboard' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Earn</span>
           </Link>
-          <Link href="/leaderboard" className="flex flex-col items-center w-[16.6%] h-14">
-            <BarChart3 className={`w-5 h-5 mb-1 ${pathname === '/leaderboard' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/leaderboard' ? 'text-white' : 'text-[#8F95A3]'}`}>Leaders</span>
+
+          <Link href="/rewards" className="flex flex-col items-center gap-1 p-2 w-[20%]">
+            <Gift className={`w-5 h-5 ${pathname === '/rewards' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
+            <span className={`text-[10px] font-bold ${pathname === '/rewards' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Rewards</span>
           </Link>
-          <Link href="/cashout" className="flex flex-col items-center w-[16.6%] h-14">
-            <Wallet className={`w-5 h-5 mb-1 ${pathname === '/cashout' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/cashout' ? 'text-white' : 'text-[#8F95A3]'}`}>Cashout</span>
-          </Link>
-          <Link href="/rewards" className="flex flex-col items-center w-[16.6%] h-14">
-            <Gift className={`w-5 h-5 mb-1 ${pathname === '/rewards' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/rewards' ? 'text-white' : 'text-[#8F95A3]'}`}>Rewards</span>
-          </Link>
+
+          <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center gap-1 p-2 w-[20%]">
+            <Menu className="w-5 h-5 text-[#8D89A8]" />
+            <span className="text-[10px] font-bold text-[#8D89A8]">More</span>
+          </button>
         </div>
       )}
+
+      {/* =========================================
+          MOBILE SIDE DRAWER (Slides from Left)
+      ========================================= */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+            />
+            
+            <motion.div 
+              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="md:hidden fixed top-0 left-0 h-full w-[260px] bg-[#111319] border-r border-white/10 z-[70] flex flex-col shadow-2xl"
+            >
+              <div className="h-20 border-b border-white/5 flex items-center justify-between px-6 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-[#A66CFF] to-[#7C3AED] rounded-lg flex items-center justify-center font-black text-white">
+                    B
+                  </div>
+                  <span className="text-lg font-black text-white tracking-tight">
+                    Binny<span className="text-[#A66CFF]">Cash</span>
+                  </span>
+                </div>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="text-[#8F95A3] hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex flex-col py-6 px-4 gap-2 overflow-y-auto">
+                <Link href="/surveys" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-colors">
+                  <ClipboardCheck className="w-5 h-5" />
+                  <span className="text-sm font-bold">Surveys</span>
+                </Link>
+                <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-colors">
+                  <Flame className="w-5 h-5" />
+                  <span className="text-sm font-bold">Offers</span>
+                </Link>
+                <Link href="/leaderboard" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-colors">
+                  <BarChart3 className="w-5 h-5" />
+                  <span className="text-sm font-bold">Leaderboard</span>
+                </Link>
+                <Link href="/affiliate" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-colors">
+                  <Users className="w-5 h-5" />
+                  <span className="text-sm font-bold">Affiliates</span>
+                </Link>
+              </div>
+
+              <div className="mt-auto p-6 border-t border-white/5">
+                <div className="bg-[#1A1725] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center">
+                  <span className="text-xs font-bold text-[#8D89A8] mb-1">Available Balance</span>
+                  <span className="text-xl font-black text-[#3DE8A0]">{isCoin ? Number(balance) * 1000 : balance}</span>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }

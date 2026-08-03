@@ -2,7 +2,6 @@
 
 import React from 'react';
 import OfferCard from './OfferCard';
-import OfferFilters from './OfferFilters';
 import { filterOffersByDevice } from './OfferSlider';
 
 interface OfferGridProps {
@@ -21,7 +20,6 @@ export default function OfferGrid({ offers, isLoading, selectedDevices, onSelect
         <h1 className="text-xl font-black text-white flex items-center gap-2">
           <span className="text-[#8B5CF6]">🔥</span> All Offers
         </h1>
-        <OfferFilters selectedDevices={selectedDevices} onSelectDevice={onSelectDevice} />
       </div>
 
       {isLoading ? (
