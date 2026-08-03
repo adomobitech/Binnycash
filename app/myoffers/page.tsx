@@ -265,14 +265,12 @@ export default function MyOffersPage() {
       return; 
     }
     else if (isAndroid && isOfferIos && !isOfferAndroid && !isUniversal) {
-      setApiError('This offer is exclusively for iOS devices. Please open it on an iPhone/iPad.');
-      setIsProcessingClick(false);
-      return;
+      showQR = true;
+      generateQRFor = 'iOS';
     }
     else if (isIOS && isOfferAndroid && !isOfferIos && !isUniversal) {
-      setApiError('This offer is exclusively for Android devices. Please open it on an Android device.');
-      setIsProcessingClick(false);
-      return;
+      showQR = true;
+      generateQRFor = 'Android';
     }
 
     const targetId = offerDetails?.id ?? selectedOffer?.id ?? selectedOffer?.offerId ?? selectedOffer?._id;
@@ -491,14 +489,12 @@ export default function MyOffersPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                     
                     <div className="lg:col-span-5 flex flex-col gap-4">
-                      {/* 🔥 MOBILE RESPONSIVE PADDING AND LOGO FIXES APPLIED HERE 🔥 */}
                       <div className="w-full aspect-[4/3] bg-[#161821] rounded-2xl sm:rounded-3xl border border-white/5 relative overflow-hidden flex flex-col justify-end p-4 sm:p-6 shadow-xl group">
                         <div className="absolute inset-0 z-0">
                           <img src={rawImage} alt="bg-blur" className="w-full h-full object-cover opacity-20 blur-2xl group-hover:scale-105 transition-transform duration-700" />
                           <div className="absolute inset-0 bg-gradient-to-t from-[#111319] to-transparent"></div>
                         </div>
                         
-                        {/* MOBILE LOGO OVERLAP FIX: sm:w-36 sm:h-36 aur mobile me w-24 h-24 */}
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-28 h-28 sm:w-36 sm:h-36 bg-white rounded-2xl sm:rounded-3xl p-1.5 sm:p-2 shadow-2xl">
                           <img src={rawImage} alt={name} className="w-full h-full object-contain rounded-xl sm:rounded-2xl" />
                         </div>
@@ -509,9 +505,7 @@ export default function MyOffersPage() {
 
                         <div className="relative z-20 flex items-end justify-between w-full mt-auto">
                           <div className="flex flex-col w-[70%]">
-                            {/* MOBILE TITLE TEXT FIX */}
                             <span className="text-white font-bold text-sm sm:text-base truncate mb-1">{name}</span>
-                            {/* MOBILE PRICE TEXT FIX */}
                             <h1 className="text-xl sm:text-2xl font-black text-white leading-none">{formatPrice(Number(rewardAmount) || 0, currency)}</h1>
                           </div>
 
@@ -525,7 +519,6 @@ export default function MyOffersPage() {
                         </div>
                       </div>
 
-                      {/* MOBILE BUTTON PADDING FIX */}
                       <Link
                         href={`/support?category=${encodeURIComponent('Offer and Surveys')}&description=${encodeURIComponent(`Offer Name: ${name}\nOffer ID: ${offerIdForSupport}`)}`}
                         className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow-[0_0_20px_rgba(239,68,68,0.4)] border border-red-400/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-center gap-2 transition-all cursor-pointer w-full hover:scale-[1.02]"
@@ -561,7 +554,11 @@ export default function MyOffersPage() {
                          <p className="text-[#8F95A3] text-xs sm:text-sm leading-relaxed">{requirements}</p>
                       </div>
 
-                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-4 sm:p-6">
+                      <div className="border-b-2 border-[#8B5CF6] pb-2 mt-2 w-fit">
+                         <span className="text-[#8B5CF6] font-bold text-sm">Details</span>
+                      </div>
+
+                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-6">
                          <h4 className="text-white font-bold text-sm mb-2">Description</h4>
                          <p className="text-[#8F95A3] text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{description}</p>
                       </div>
