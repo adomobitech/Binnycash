@@ -64,19 +64,27 @@ const PayPalIcon = () => (
   </div>
 );
 
-// --- STATIC DATA ---
-const withdrawalMethods = [
-  { id: 'phonepe', name: 'PhonePe', desc: 'Transfer to PhonePe', time: 'Instant', icon: <PhonePeIcon />, speed: 'fast' },
-  { id: 'paytm', name: 'Paytm', desc: 'Withdraw to Paytm', time: 'Instant', icon: <PaytmIcon />, speed: 'fast' },
-  { id: 'bank', name: 'Bank Transfer', desc: 'Transfer to your bank', time: '1-3 Business Days', icon: <BankIcon />, speed: 'slow' },
-  { id: 'paypal', name: 'PayPal', desc: 'Transfer to PayPal', time: '1-2 Business Days', icon: <PayPalIcon />, speed: 'slow' },
-];
-
 const features = [
   { icon: <ShieldCheck className="w-5 h-5 text-[#8B5CF6]" />, title: '100% Secure', desc: 'Your transactions are safe with us' },
   { icon: <Zap className="w-5 h-5 text-[#8B5CF6]" />, title: 'Fast Processing', desc: 'Instant or quick withdrawals' },
   { icon: <CircleDollarSign className="w-5 h-5 text-[#8B5CF6]" />, title: 'Low Minimum', desc: 'Only minimum withdrawal limit' },
   { icon: <ShieldCheck className="w-5 h-5 text-[#8B5CF6]" />, title: '24/7 Support', desc: "We're here to help you anytime" },
+];
+
+// Database of major Indian cities for fallback checking
+const indianCities = [
+  'delhi', 'mumbai', 'bangalore', 'bengaluru', 'hyderabad', 'chennai', 'kolkata', 'pune', 'ahmedabad', 
+  'jaipur', 'surat', 'lucknow', 'kanpur', 'nagpur', 'indore', 'thane', 'bhopal', 'visakhapatnam', 
+  'patna', 'vadodara', 'ghaziabad', 'ludhiana', 'agra', 'nashik', 'faridabad', 'meerut', 'rajkot', 
+  'kalyan', 'vasai', 'varanasi', 'srinagar', 'aurangabad', 'dhanbad', 'amritsar', 'navi mumbai', 
+  'allahabad', 'howrah', 'ranchi', 'gwalior', 'jabalpur', 'coimbatore', 'vijayawada', 'jodhpur', 
+  'madurai', 'raipur', 'kota', 'guwahati', 'chandigarh', 'solapur', 'hubli', 'bareilly', 'moradabad', 
+  'mysore', 'gurgaon', 'aligarh', 'jalandhar', 'tiruchirappalli', 'bhubaneswar', 'salem', 'mira-bhayandar', 
+  'warangal', 'thiruvananthapuram', 'guntur', 'bhiwandi', 'saharanpur', 'gorakhpur', 'bikaner', 'amravati', 
+  'noida', 'jamshedpur', 'bhilai', 'cuttack', 'firozabad', 'kochi', 'nellore', 'bhavnagar', 'dehradun', 
+  'durgapur', 'asansol', 'rourkela', 'nanded', 'kolhapur', 'ajmer', 'akola', 'gulbarga', 'jamnagar', 
+  'ujjain', 'loni', 'siliguri', 'jhansi', 'ulhasnagar', 'jammu', 'sangli', 'mangalore', 'erode', 'belgaum', 
+  'ambattur', 'tirunelveli', 'malegaon', 'gaya', 'jalgaon', 'udaipur', 'maheshtala', 'davanagere', 'kozhikode'
 ];
 
 // --- KYC SUBMISSION MODAL ---
@@ -378,6 +386,9 @@ export default function CashoutPage() {
   const [kycStatus, setKycStatus] = useState('not_submited');
   const [kycMessage, setKycMessage] = useState<string | null>(null);
 
+  // Country Logic State
+  const [isIndianUser, setIsIndianUser] = useState<boolean>(true);
+
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [withdrawalsLoading, setWithdrawalsLoading] = useState(true);
 
@@ -409,10 +420,35 @@ export default function CashoutPage() {
       const resUserData = await fetch('https://apitest.binnycash.com/api/user/viewData', { method: 'GET', headers });
       const jsonUserData = await resUserData.json();
       
-      if (jsonUserData.code === 200 && jsonUserData.data?.user?.documents) {
-        const docs = jsonUserData.data.user.documents;
-        setKycStatus(docs.status || 'not_submited');
-        setKycMessage(docs.reason || docs.adminMessage || docs.message || docs.rejectReason || docs.remark || null);
+      if (jsonUserData.code === 200) {
+        const user = jsonUserData.data?.user || jsonUserData.data;
+        if (user) {
+          // Dynamic Country Verification for Withdrawal Options
+          const countryStr = String(user.country || '').toLowerCase().trim();
+          const cityStr = String(user.city || '').toLowerCase().trim();
+          
+          let isIndia = true; // Default
+
+          if (countryStr) {
+            if (countryStr === 'india' || countryStr === 'in' || countryStr === 'ind') {
+              isIndia = true;
+            } else {
+              // Not India, but cross check city just in case
+              isIndia = indianCities.includes(cityStr);
+            }
+          } else if (cityStr) {
+            // Only city exists
+            isIndia = indianCities.includes(cityStr);
+          }
+          
+          setIsIndianUser(isIndia);
+
+          if (user.documents) {
+            const docs = user.documents;
+            setKycStatus(docs.status || 'not_submited');
+            setKycMessage(docs.reason || docs.adminMessage || docs.message || docs.rejectReason || docs.remark || null);
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
@@ -442,6 +478,16 @@ export default function CashoutPage() {
   };
 
   useEffect(() => { fetchWithdrawals(); }, []);
+
+  // 🔥 DYNAMIC WITHDRAWAL METHODS BASED ON LOCATION 🔥
+  const availableMethods = isIndianUser ? [
+    { id: 'upi', name: 'UPI', desc: 'Transfer to UPI', time: 'Instant', icon: <UPIIcon />, speed: 'fast' },
+    { id: 'phonepe', name: 'PhonePe', desc: 'Transfer to PhonePe', time: 'Instant', icon: <PhonePeIcon />, speed: 'fast' },
+    { id: 'paytm', name: 'Paytm', desc: 'Withdraw to Paytm', time: 'Instant', icon: <PaytmIcon />, speed: 'fast' },
+    { id: 'bank', name: 'Bank Transfer', desc: 'Transfer to your bank', time: '1-3 Business Days', icon: <BankIcon />, speed: 'slow' },
+  ] : [
+    { id: 'paypal', name: 'PayPal', desc: 'Transfer to PayPal', time: '1-2 Business Days', icon: <PayPalIcon />, speed: 'slow' },
+  ];
 
   const getMethodIcon = (method: string | null) => {
     switch ((method || '').toLowerCase()) {
@@ -477,7 +523,7 @@ export default function CashoutPage() {
       return;
     }
 
-    const method = withdrawalMethods.find(m => m.id === methodId);
+    const method = availableMethods.find(m => m.id === methodId);
     setSelectedMethod(method);
     setAmount('');
     setPaymentDetails({});
@@ -573,7 +619,6 @@ export default function CashoutPage() {
     return <Smartphone className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />;
   };
 
-  // KYC STATUS & 3-STEP CONFIGURATION BASED ON BACKEND
   const kycStatusLower = String(kycStatus).toLowerCase();
   
   let kycDisplayStatus = 'Not Submitted';
@@ -586,7 +631,7 @@ export default function CashoutPage() {
     kycDisplayStatus = 'Under Review';
     badgeColorClass = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
   } else if (kycStatusLower === 'rejected' || kycStatusLower === 'failed' || kycStatusLower === 'reupload') {
-    kycDisplayStatus = 'Rejected';
+    kycDisplayStatus = 'Rejected / Re-upload';
     badgeColorClass = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
   }
 
@@ -611,13 +656,7 @@ export default function CashoutPage() {
   }, 0);
   const totalWithdrawalsCount = withdrawals.length;
 
-  // STRICTLY 3 STEPS: Dynamic 3rd step label based on backend status
-  let thirdStepLabel = 'Approved';
-  if (kycStatusLower === 'rejected' || kycStatusLower === 'failed' || kycStatusLower === 'reupload') {
-    thirdStepLabel = 'Re-upload';
-  }
-
-  const kycSteps = ['Not Submitted', 'Under Review', thirdStepLabel];
+  const kycSteps = ['Not Submitted', 'Under Review', 'Approved / Re-upload'];
   type StepState = 'done' | 'active' | 'error' | 'pending';
   let kycStepStates: StepState[] = ['active', 'pending', 'pending']; 
 
@@ -774,7 +813,7 @@ export default function CashoutPage() {
                   <p className="text-[#8F95A3] text-sm mb-6 font-medium">Fast, secure and convenient options</p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {withdrawalMethods.map((method) => {
+                    {availableMethods.map((method) => {
                       const isSelected = selectedMethod?.id === method.id;
                       return (
                         <div

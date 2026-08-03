@@ -116,20 +116,20 @@ export default function OfferSlider({
 
       <div className="relative group">
         {isLoading ? (
-          <div className="flex gap-4 overflow-hidden py-1">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-[210px] w-[140px] sm:w-[155px] bg-[#161821] animate-pulse rounded-[16px] shrink-0 border border-white/5"></div>
+          <div className="flex gap-3 sm:gap-4 overflow-hidden py-1">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="h-[210px] w-[145px] sm:w-[165px] lg:w-[175px] bg-[#161821] animate-pulse rounded-[16px] shrink-0 border border-white/5"></div>
             ))}
           </div>
         ) : filteredOffers.length > 0 ? (
           <div 
             ref={sliderRef} 
             onScroll={checkScroll} 
-            className="flex overflow-x-auto no-scrollbar gap-4 pb-2 snap-x scroll-smooth" 
+            className="flex overflow-x-auto no-scrollbar gap-3 sm:gap-4 pb-2 snap-x scroll-smooth" 
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {filteredOffers.map((offer: any, index: number) => (
-              <div key={offer._id || offer.id || index} className="snap-start shrink-0 w-[140px] sm:w-[155px]">
+              <div key={offer._id || offer.id || index} className="snap-start shrink-0 w-[145px] sm:w-[165px] lg:w-[175px]">
                 <OfferCard offer={offer} />
               </div>
             ))}

@@ -173,15 +173,15 @@ export default function AllSurveysPage() {
           </div>
         </div>
 
-        {/* GRID CONTENT (No Pagination) */}
+        {/* GRID CONTENT - REDUCED SIZES (Increased Columns) */}
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+          <div className="grid grid-cols-2 min-[450px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3 sm:gap-4 lg:gap-5">
+            {[...Array(16)].map((_, i) => (
               <div key={i} className="h-44 bg-[#111319] border border-white/5 animate-pulse rounded-2xl"></div>
             ))}
           </div>
         ) : processedSurveys.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4 lg:gap-5 pb-8">
+          <div className="grid grid-cols-2 min-[450px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3 sm:gap-4 lg:gap-5 pb-8">
             {processedSurveys.map((survey, index) => (
               <OfferCard key={survey._id || survey.id || index} offer={survey} isSurveyCard={true} />
             ))}

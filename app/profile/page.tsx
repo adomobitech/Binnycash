@@ -49,19 +49,20 @@ function getUserId(): string {
   return '';
 }
 
+// 🔥 PREMIUM 3D AI AVATARS (Local Paths) 🔥
 const AVATAR_LIBRARY = [
-  'https://api.dicebear.com/9.x/adventurer/png?seed=Nova&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/big-smile/png?seed=Blaze&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/adventurer/png?seed=Orbit&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/big-smile/png?seed=Karma&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/adventurer/png?seed=Phoenix&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/big-smile/png?seed=Ranger&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/adventurer/png?seed=Cipher&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/big-smile/png?seed=Storm&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/adventurer/png?seed=Vortex&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/big-smile/png?seed=Comet&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/adventurer/png?seed=Titan&backgroundColor=a66cff,7c3aed,4c1d95',
-  'https://api.dicebear.com/9.x/big-smile/png?seed=Raven&backgroundColor=a66cff,7c3aed,4c1d95'
+  '/avatars/1.png',
+  '/avatars/2.png',
+  '/avatars/3.png',
+  '/avatars/4.png',
+  '/avatars/5.png',
+  '/avatars/6.png',
+  '/avatars/7.png',
+  '/avatars/8.png',
+  '/avatars/9.png',
+  '/avatars/10.png',
+  '/avatars/11.png',
+  '/avatars/12.png'
 ];
 
 function CountUp({ value, prefix = '', suffix = '', decimals = 0 }: { value: number; prefix?: string; suffix?: string; decimals?: number }) {
@@ -464,12 +465,11 @@ export default function ProfilePage() {
   const [isKycOpen, setIsKycOpen] = useState(false);
   const [avatarMode, setAvatarMode] = useState<'library' | 'upload'>('library');
 
-  // Form State for Edit Profile
+  // Form State for Edit Profile (Education Removed)
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
-    education: '',
     city: '',
     address: '',
     mobileNumber: '',
@@ -498,7 +498,6 @@ export default function ProfilePage() {
         firstName: user?.firstName || user?.name?.split(' ')[0] || '',
         lastName: user?.lastName || user?.name?.split(' ')[1] || '',
         email: user?.email || '',
-        education: user?.education || '',
         city: user?.city || '',
         address: user?.address || '',
         mobileNumber: user?.mobileNumber || '',
@@ -582,7 +581,6 @@ export default function ProfilePage() {
     fetchProfileData();
   }, [router]);
 
-  // 🔥 ACTUAL API INTEGRATION FOR EDIT PROFILE 🔥
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -591,16 +589,22 @@ export default function ProfilePage() {
     const userId = getUserId();
 
     try {
+      const payload = new URLSearchParams();
+      payload.append('firstName', formData.firstName);
+      payload.append('lastName', formData.lastName);
+      payload.append('email', formData.email);
+      payload.append('city', formData.city);
+      payload.append('address', formData.address);
+      payload.append('mobileNumber', formData.mobileNumber);
+      payload.append('zipCode', formData.zipCode);
+
       const res = await fetch(`https://apitest.binnycash.com/api/user/editProfile?userId=${userId}`, {
         method: 'PUT',
         headers: { 
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/x-www-form-urlencoded' 
         },
-        body: JSON.stringify({
-          ...formData,
-          name: `${formData.firstName} ${formData.lastName}`.trim() 
-        })
+        body: payload
       });
 
       const json = await res.json();
@@ -695,15 +699,14 @@ export default function ProfilePage() {
     userData?.zipCode
   );
 
-  // 🔥 CORRECTED KYC PERCENTAGE LOGIC 🔥
   const kycS = String(kycStatus).toUpperCase();
   const isKycVerified = kycS === 'VERIFIED' || kycS === 'APPROVED';
   const isKycSubmitted = kycS === 'PENDING' || kycS === 'PROCESSING' || kycS === 'IN PROGRESS';
 
   let kycProgressPercent = 0;
-  if (isBasicDetailsFilled) kycProgressPercent += 34; // Basic Details complete
-  if (isKycVerified) kycProgressPercent += 66; // Total 100%
-  else if (isKycSubmitted) kycProgressPercent += 33; // Total 67% (In progress)
+  if (isBasicDetailsFilled) kycProgressPercent += 34; 
+  if (isKycVerified) kycProgressPercent += 66; 
+  else if (isKycSubmitted) kycProgressPercent += 33; 
 
   const getKycSteps = () => {
     const step1 = isBasicDetailsFilled
@@ -947,7 +950,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Personal Details Card */}
+              {/* Personal Details Card - PERFECT SYMMETRICAL LAYOUT */}
               <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl">
                  <h3 className="text-base font-bold text-white mb-4">Personal Details</h3>
                  <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4">
@@ -962,16 +965,12 @@ export default function ProfilePage() {
                      </span>
                    </div>
                    <div className="flex flex-col">
-                     <span className="text-xs text-[#8D89A8] mb-1">Education</span>
-                     <span className="text-sm text-white font-medium">{userData?.education || 'Not provided'}</span>
-                   </div>
-                   <div className="flex flex-col">
                      <span className="text-xs text-[#8D89A8] mb-1">City / Zip</span>
                      <span className="text-sm text-white font-medium">
                        {userData?.city || 'N/A'} {userData?.zipCode ? `- ${userData.zipCode}` : ''}
                      </span>
                    </div>
-                   <div className="flex flex-col sm:col-span-2">
+                   <div className="flex flex-col">
                      <span className="text-xs text-[#8D89A8] mb-1">Full Address</span>
                      <span className="text-sm text-white font-medium truncate">{userData?.address || 'Not provided'}</span>
                    </div>
@@ -1262,12 +1261,13 @@ export default function ProfilePage() {
                   <h3 className="text-lg font-bold text-white mb-5">Personal Details</h3>
                   <form onSubmit={handleUpdateProfile} className="flex flex-col gap-4">
                     
+                    {/* PERFECT 2-COLUMN GRID (First Name, Last Name, Phone, City) */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[
                         { key: 'firstName', label: 'First Name', type: 'text', icon: User, placeholder: 'Enter first name' },
                         { key: 'lastName', label: 'Last Name', type: 'text', icon: User, placeholder: 'Enter last name' },
                         { key: 'mobileNumber', label: 'Phone Number', type: 'tel', icon: Phone, placeholder: 'Enter mobile' },
-                        { key: 'education', label: 'Education', type: 'text', icon: BookOpen, placeholder: 'Highest degree' },
+                        { key: 'city', label: 'City', type: 'text', icon: MapPin, placeholder: 'Enter your city' },
                       ].map((f) => (
                         <div key={f.key} className="flex flex-col gap-1.5">
                            <label className="text-xs font-bold text-[#8D89A8] ml-1">{f.label}</label>
@@ -1286,6 +1286,7 @@ export default function ProfilePage() {
                       ))}
                     </div>
 
+                    {/* PERFECT 3-COLUMN GRID (Address spans 2 columns, Zip Code spans 1) */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
                        <div className="flex flex-col gap-1.5 sm:col-span-2">
                            <label className="text-xs font-bold text-[#8D89A8] ml-1">Full Address</label>
@@ -1314,21 +1315,6 @@ export default function ProfilePage() {
                                 className="w-full bg-[#1A1725] border border-white/5 focus:border-[#A66CFF]/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-medium focus:outline-none transition-colors"
                              />
                            </div>
-                       </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5 mt-2">
-                       <label className="text-xs font-bold text-[#8D89A8] ml-1">City</label>
-                       <div className="relative flex items-center">
-                         <MapPin className="absolute left-3.5 w-4 h-4 text-[#8D89A8]" />
-                         <input
-                            type="text"
-                            required
-                            placeholder="Enter your city"
-                            value={formData.city}
-                            onChange={e => setFormData({ ...formData, city: e.target.value })}
-                            className="w-full bg-[#1A1725] border border-white/5 focus:border-[#A66CFF]/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-medium focus:outline-none transition-colors"
-                         />
                        </div>
                     </div>
 

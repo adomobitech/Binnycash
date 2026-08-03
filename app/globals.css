@@ -2,18 +2,19 @@
 
 html, body {
   max-width: 100vw;
-  overflow-x: clip; /* 👈 Yahan hidden ki jagah clip kar diya hai */
+  overflow-x: hidden; /* 👈 Mobile ke liye clip se zyada safe hidden hota hai */
+  -webkit-text-size-adjust: 100%; /* 👈 iPhone/Mobile auto-zoom fix */
 }
 body {
   background-color: #0B0D19;
   color: #ffffff;
-  overflow-x: clip; /* 👈 Yahan hidden ki jagah clip kar diya hai */
+  overflow-x: hidden; 
 }
 /* Baaki ka tera scrollbar wala code waisa hi rahega */
 body {
   background-color: #0B0D19;
   color: #ffffff;
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 
 /* Custom Scrollbar for premium look */

@@ -473,53 +473,54 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
         onClick={handleCardClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="relative w-full h-full bg-[#161821] border border-white/5 rounded-[16px] p-2 sm:p-2.5 flex flex-col cursor-pointer overflow-hidden group transition-all duration-200 hover:border-[#8B5CF6]/50 shadow-sm hover:shadow-[0_8px_20px_rgba(139,92,246,0.15)]"
+        className="relative w-full h-full bg-[#161821] border border-white/5 rounded-[16px] p-2.5 sm:p-3 flex flex-col cursor-pointer overflow-hidden group transition-all duration-200 hover:border-[#8B5CF6]/50 shadow-sm hover:shadow-[0_8px_20px_rgba(139,92,246,0.15)]"
       >
-        <div className="w-full aspect-square bg-white rounded-xl overflow-hidden mb-2 shrink-0 shadow-sm border border-white/5 relative">
+        {/* YEH RAHA 100% PERFECT BACKDROP BLUR FIX */}
+        <div className="w-full aspect-square bg-[#1A1C24] rounded-xl overflow-hidden mb-2.5 shrink-0 shadow-sm border border-white/5 relative">
           <img 
             src={rawImage} 
             alt={title} 
-            className={`w-full h-full object-cover transition-transform duration-300 ${isHovered ? 'scale-105' : 'scale-100'}`} 
+            className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ${isHovered ? 'scale-110' : 'scale-100'}`} 
           />
+          
+          <AnimatePresence>
+            {isHovered && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                /* CSS Native Backdrop Filter: Blur aayega, dark colors pure black nahi honge */
+                className="absolute inset-0 z-20 flex flex-col items-center justify-center overflow-hidden bg-black/20 backdrop-blur-md"
+              >
+                <motion.div 
+                  initial={{ scale: 0.8, y: 5 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.8, y: 5 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  className="relative z-30 flex flex-col items-center pointer-events-none"
+                >
+                  <div className="w-11 h-11 rounded-full bg-[#A855F7] flex items-center justify-center mb-2 shadow-[0_0_20px_rgba(168,85,247,0.8)]">
+                    <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                  </div>
+                  <span className="text-white font-extrabold text-[13px] sm:text-[14px] tracking-wide drop-shadow-lg">
+                    {isStrictlySurvey ? 'Start Survey' : 'Start Offer'}
+                  </span>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        <div className="flex flex-col flex-1">
-          <h3 className="text-white font-bold text-[13px] sm:text-[14px] leading-tight line-clamp-1">{title}</h3>
+        <div className="flex flex-col flex-1 px-1">
+          <h3 className="text-white font-bold text-[14px] sm:text-[15px] leading-tight line-clamp-1">{title}</h3>
           <span className="text-[#9CA3AF] text-[11px] sm:text-[12px] font-medium truncate mt-0.5">{subtitle}</span>
           
-          <div className="mt-auto pt-3 pb-1 flex items-center justify-between">
-            <span className="text-[#A855F7] font-black text-[13px] sm:text-[14px] drop-shadow-sm">{formattedReward}</span>
+          <div className="mt-auto pt-3 pb-0.5 flex items-center justify-between">
+            <span className="text-[#A855F7] font-black text-[14px] sm:text-[15px] drop-shadow-sm">{formattedReward}</span>
             <div className="opacity-80"><DeviceIcon offer={offer} /></div>
           </div>
         </div>
-
-        {/* 🚀 FULL DARK OVERLAY WITH SOFT BLUR 🚀 */}
-        <AnimatePresence>
-          {isHovered && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#0B0D19]/60 backdrop-blur-[3px] rounded-[16px]"
-            >
-              <motion.div 
-                initial={{ scale: 0.6, y: 10 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.6, y: 10 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="flex flex-col items-center pointer-events-none"
-              >
-                <div className="w-11 h-11 rounded-full bg-[#9333EA] flex items-center justify-center mb-1.5 shadow-[0_0_20px_rgba(147,51,234,0.8)]">
-                  <Play className="w-5 h-5 text-white fill-white ml-0.5" />
-                </div>
-                <span className="text-white font-black text-[12px] tracking-wide drop-shadow-md">
-                  {isStrictlySurvey ? 'Start Survey' : 'Start Offer'}
-                </span>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {isStrictlySurvey ? (

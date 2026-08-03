@@ -27,13 +27,13 @@ export default function SurveySlider({ surveys = [], isLoading = false }: any) {
 
   const scrollLeft = () => {
     if (sliderRef.current) {
-      sliderRef.current.scrollBy({ left: -320, behavior: 'smooth' });
+      sliderRef.current.scrollBy({ left: -300, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
     if (sliderRef.current) {
-      sliderRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+      sliderRef.current.scrollBy({ left: 300, behavior: 'smooth' });
     }
   };
 
@@ -78,20 +78,20 @@ export default function SurveySlider({ surveys = [], isLoading = false }: any) {
 
       <div className="relative group">
         {isLoading ? (
-          <div className="flex gap-4 overflow-hidden py-1">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-[210px] w-[140px] sm:w-[155px] bg-[#161821] animate-pulse rounded-[16px] shrink-0 border border-white/5"></div>
+          <div className="flex gap-3 sm:gap-4 overflow-hidden py-1">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="h-[200px] w-[130px] sm:w-[145px] lg:w-[155px] bg-[#161821] animate-pulse rounded-[16px] shrink-0 border border-white/5"></div>
             ))}
           </div>
         ) : surveys.length > 0 ? (
           <div 
             ref={sliderRef} 
             onScroll={checkScroll} 
-            className="flex overflow-x-auto no-scrollbar gap-4 pb-2 snap-x scroll-smooth" 
+            className="flex overflow-x-auto no-scrollbar gap-3 sm:gap-4 pb-2 snap-x scroll-smooth" 
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {surveys.map((survey: any, index: number) => (
-              <div key={survey._id || survey.id || index} className="snap-start shrink-0 w-[140px] sm:w-[155px]">
+              <div key={survey._id || survey.id || index} className="snap-start shrink-0 w-[130px] sm:w-[145px] lg:w-[155px]">
                 <OfferCard offer={survey} isSurveyCard={true} />
               </div>
             ))}

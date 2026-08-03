@@ -1,6 +1,6 @@
 'use client';
 import { motion } from 'framer-motion';
-import { Wallet, DollarSign, Coins, Sparkles } from 'lucide-react';
+import { Wallet, DollarSign, Coins, Sparkles, Star } from 'lucide-react';
 import { useCurrency } from '@/hooks/useCurrency';
 
 export default function HeroWallet() {
@@ -8,47 +8,65 @@ export default function HeroWallet() {
   const isCoin = currency === 'Coin' || currency === 'COIN';
 
   return (
-    // 🚀 Scale fix kiya aur size thoda badhaya taaki clear dikhe
-    <div className="relative w-full h-[100px] flex items-center justify-center">
+    <div className="relative w-full h-[150px] flex items-center justify-center">
+      
+      {/* Background glowing orb */}
       <motion.div 
-        animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.6, 0.4] }}
-        transition={{ duration: 4, repeat: Infinity }}
-        className="absolute w-24 h-24 bg-[#8B5CF6] rounded-full blur-[35px]"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute w-[100px] h-[100px] bg-[#8B5CF6] rounded-full blur-[40px]"
       />
 
-      <motion.div animate={{ y: [0, -6, 0], opacity: [0.3, 1, 0.3] }} transition={{ duration: 3, repeat: Infinity }} className="absolute top-0 left-2">
-        <Sparkles className="w-4 h-4 text-yellow-400" />
+      {/* Twinkling Stars & Sparkles around the wallet */}
+      <motion.div animate={{ y: [0, -8, 0], opacity: [0.2, 1, 0.2], rotate: [0, 15, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute top-2 left-0">
+        <Sparkles className="w-5 h-5 text-yellow-400" />
       </motion.div>
-      <motion.div animate={{ y: [0, 6, 0], opacity: [0.3, 1, 0.3] }} transition={{ duration: 4, repeat: Infinity, delay: 1 }} className="absolute bottom-0 right-2">
-        <Sparkles className="w-4 h-4 text-[#00E57A]" />
+      <motion.div animate={{ y: [0, 8, 0], opacity: [0.2, 1, 0.2] }} transition={{ duration: 4, repeat: Infinity, delay: 1 }} className="absolute bottom-2 right-0">
+        <Star className="w-4 h-4 text-[#00E57A] fill-[#00E57A]" />
+      </motion.div>
+      <motion.div animate={{ scale: [0.8, 1.2, 0.8], opacity: [0, 0.8, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: 0.5 }} className="absolute top-6 right-4">
+        <Sparkles className="w-3 h-3 text-pink-400" />
       </motion.div>
 
-      {/* 🚀 Coins Visibility Theek Ki */}
+      {/* Floating Coins/Dollars popping out of the wallet */}
       {[1, 2, 3].map((i) => (
         <motion.div
           key={i}
-          initial={{ y: 8, opacity: 0 }}
-          animate={{ y: [-8, -30, -8], opacity: [0, 1, 0], scale: [0.7, 1, 0.7] }}
-          transition={{ duration: 3, repeat: Infinity, delay: i * 0.8, ease: "easeInOut" }}
-          className="absolute z-10 bg-[#00E57A] border border-white/20 w-12 h-6 rounded-[6px] flex items-center justify-center shadow-md transform -rotate-12"
+          initial={{ y: 20, opacity: 0, scale: 0.5 }}
+          animate={{ 
+            y: [-10, -50, -10], 
+            x: [0, i % 2 === 0 ? 20 : -20, 0],
+            opacity: [0, 1, 0], 
+            scale: [0.7, 1.1, 0.7],
+            rotate: [0, i % 2 === 0 ? 25 : -25, 0]
+          }}
+          transition={{ duration: 3.5, repeat: Infinity, delay: i * 0.9, ease: "easeInOut" }}
+          className="absolute z-10 bg-gradient-to-br from-[#00E57A] to-[#04B463] border border-white/30 w-[45px] h-[25px] rounded-[8px] flex items-center justify-center shadow-[0_5px_15px_rgba(0,229,122,0.4)]"
         >
           {isCoin ? (
-            <Coins className="w-3.5 h-3.5 text-white opacity-90" />
+            <Coins className="w-4 h-4 text-white drop-shadow-md" />
           ) : (
-            <DollarSign className="w-3.5 h-3.5 text-white opacity-90" />
+            <DollarSign className="w-4 h-4 text-white drop-shadow-md" />
           )}
         </motion.div>
       ))}
 
-      {/* 🚀 Main Wallet Size aur Style Enhance Kiya */}
+      {/* Main 3D Wallet Icon Container */}
       <motion.div 
-        animate={{ y: [-3, 3, -3] }} 
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        className="relative z-20 w-24 h-16 bg-gradient-to-br from-[#8B5CF6] to-[#6d28d9] rounded-[14px] border border-white/20 shadow-[0_8px_20px_rgba(139,92,246,0.4)] flex items-center justify-center backdrop-blur-lg"
+        animate={{ y: [-4, 4, -4], rotate: [-1, 1, -1] }} 
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="relative z-20 w-32 h-[85px] bg-gradient-to-br from-[#8B5CF6] via-[#7C3AED] to-[#5B21B6] rounded-[20px] border border-white/20 shadow-[0_15px_35px_rgba(139,92,246,0.4)] flex flex-col items-center justify-center backdrop-blur-xl overflow-hidden"
       >
-        <div className="absolute top-1.5 w-12 h-1 bg-black/20 rounded-full"></div>
-        <Wallet className="w-7 h-7 text-white drop-shadow-md" />
+        {/* Inner highlights for 3D effect */}
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
+        
+        {/* Wallet Flap Detail */}
+        <div className="absolute top-2 w-16 h-1.5 bg-black/20 rounded-full shadow-inner"></div>
+        
+        <Wallet className="w-10 h-10 text-white drop-shadow-[0_2px_5px_rgba(0,0,0,0.3)] mt-2" />
       </motion.div>
+      
     </div>
   );
 }

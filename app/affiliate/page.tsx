@@ -103,7 +103,6 @@ function getUserId(): string {
   return '';
 }
 
-// 🔥 DYNAMIC ACHIEVEMENT ICON SYSTEM 🔥
 const getAchievementIcon = (level: number) => {
   if (level <= 2) return <Shield className="w-4 h-4" />;
   if (level <= 4) return <ShieldCheck className="w-4 h-4" />;
@@ -117,7 +116,6 @@ export default function AffiliatePage() {
   const [activeTab, setActiveTab] = useState<'tier' | 'affiliate' | 'history' | 'payouts'>('tier');
   const [isLearnMoreOpen, setIsLearnMoreOpen] = useState(false);
 
-  // API States
   const [dashboardData, setDashboardData] = useState<any>({
     totalReferUsers: 0,
     totalReferEarning: 0,
@@ -138,7 +136,6 @@ export default function AffiliatePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  // Withdraw States
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawMessage, setWithdrawMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
@@ -173,7 +170,6 @@ export default function AffiliatePage() {
         if (historyJson.code === 200 && Array.isArray(historyJson.data)) setClaimHistory(historyJson.data);
         if (affiliateListJson.code === 200 && affiliateListJson.data?.users) setAffiliateUsers(affiliateListJson.data.users);
         
-        // 🔥 BULLETPROOF JSON EXTRACTION FOR TOP AFFILIATES 🔥
         if (topReferJson) {
           const topAffArr = topReferJson?.data?.data || topReferJson?.data || [];
           if (Array.isArray(topAffArr)) {
@@ -249,9 +245,6 @@ export default function AffiliatePage() {
           <div>
             <h1 className="text-[28px] font-black text-white tracking-tight leading-none mb-1">Affiliate Program</h1>
             <p className="text-[#8F95A3] text-sm font-medium">Refer friends, earn more, and grow your passive income.</p>
-            <motion.div whileHover={{ scale: 1.02 }} className="mt-3 inline-flex items-center gap-2 bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 px-3 py-1.5 rounded-full text-[#A78BFA] text-xs font-bold w-fit shadow-md">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Earn {currentBonusInfo.referalBonus} on every successful referral
-            </motion.div>
           </div>
           
           {/* STATS GRID - 4 CARDS */}
@@ -278,7 +271,7 @@ export default function AffiliatePage() {
           </div>
         </motion.div>
 
-        {/* MIDDLE 3 COLUMNS */}
+        {/* MIDDLE 3 COLUMNS: Balance, Referral Link, Share */}
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           
           {/* BALANCE CARD */}
@@ -311,7 +304,7 @@ export default function AffiliatePage() {
                 {isWithdrawing ? 'Processing...' : 'Withdraw Now'}
               </motion.button>
               <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#8F95A3] font-medium mt-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#8B5CF6]" /> Secure payout • Processed instantly
+                <ShieldCheck className="w-3.5 h-3.5 text-[#8B5CF6]" /> Secure payout 窶｢ Processed instantly
               </div>
             </div>
           </motion.div>
@@ -371,8 +364,274 @@ export default function AffiliatePage() {
           </motion.div>
         </motion.div>
 
+        {/* NEW 2-COLUMN SECTION: Top Affiliates & Promo Box */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          
+          {/* Top Affiliates Leaderboard */}
+          <div className="bg-[#161821] border border-white/5 rounded-[24px] p-6 shadow-xl flex flex-col h-full">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <Medal className="w-4 h-4 text-amber-500" />
+              </div>
+              <h3 className="text-sm font-bold text-white">Top Affiliates</h3>
+            </div>
+            
+            <div className="flex flex-col gap-4 flex-1 justify-center">
+              {topAffiliates.length === 0 ? (
+                <div className="text-center text-xs text-[#8F95A3] py-4">No top affiliates yet.</div>
+              ) : (
+                topAffiliates.map((user, idx) => {
+                  const rank = idx + 1;
+                  return (
+                    <div key={idx} className="flex items-center justify-between hover:translate-x-1 transition-transform cursor-default py-1">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm
+                          ${rank === 1 ? 'bg-amber-400 text-amber-900' : 
+                            rank === 2 ? 'bg-gray-300 text-gray-800' : 
+                            rank === 3 ? 'bg-[#CD7F32] text-white' : 
+                            'bg-[#0B0D14] text-[#8F95A3] border border-white/10'}`}
+                        >
+                          {rank}
+                        </div>
+                        <span className="text-sm font-medium text-white max-w-[200px] truncate">{user.userName || 'User'}</span>
+                      </div>
+                      <div className="flex-1 border-b border-dashed border-white/10 mx-4 relative top-1 hidden sm:block"></div>
+                      <span className="text-sm font-bold text-[#8B5CF6] shrink-0">{user.referralCount} Refs</span>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Promo Box with Native CSS 3D Gift Box */}
+          <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.5, delay: 0.1 }} whileHover={{ scale: 1.015 }} className="bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] rounded-[24px] p-6 sm:p-8 shadow-[0_10px_30px_rgba(139,92,246,0.3)] relative overflow-hidden flex flex-col justify-center h-full border border-white/10">
+            {/* Abstract Background Elements */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
+            <div className="absolute bottom-0 right-0 w-48 h-48 bg-black/10 rounded-full blur-2xl translate-y-1/4 translate-x-1/4"></div>
+            
+            <div className="relative z-10 md:w-[65%]">
+              <h3 className="text-[22px] sm:text-2xl font-black text-white mb-2 leading-tight drop-shadow-sm">Get More, Earn More!</h3>
+              <p className="text-[13px] sm:text-sm text-white/90 mb-6 leading-relaxed font-medium">Invite more friends and unlock higher rewards across all levels.</p>
+              
+              <motion.button onClick={() => setIsLearnMoreOpen(true)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-fit px-6 py-3 rounded-xl bg-white text-[#7C3AED] hover:bg-gray-50 font-black text-sm shadow-[0_4px_15px_rgba(0,0,0,0.1)] transition-colors flex justify-center items-center gap-2">
+                Learn More <ArrowRight className="w-4 h-4" />
+              </motion.button>
+            </div>
+            
+            {/* Awesome CSS 3D Gift Box Graphic */}
+            <motion.div 
+              animate={{ y: [0, -8, 0] }} 
+              transition={{ duration: 3.5, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }} 
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-0 hidden sm:block"
+            >
+              <div className="relative w-28 h-28">
+                <div className="absolute inset-0 bg-[#FCD34D]/30 blur-[30px] rounded-full"></div>
+                <div className="relative w-full h-full transform -rotate-12">
+                  {/* Main Box Base */}
+                  <div className="absolute bottom-2 left-3 w-20 h-14 bg-gradient-to-br from-[#FBBF24] to-[#D97706] rounded-md shadow-lg border-b-[3px] border-r-[3px] border-[#B45309]/40"></div>
+                  {/* Vertical Ribbon */}
+                  <div className="absolute bottom-2 left-[44px] w-4 h-14 bg-gradient-to-b from-[#F43F5E] to-[#BE123C] shadow-sm"></div>
+                  {/* Horizontal Ribbon */}
+                  <div className="absolute bottom-7 left-3 w-20 h-4 bg-gradient-to-r from-[#F43F5E] to-[#BE123C] shadow-sm opacity-50"></div>
+                  {/* Box Lid */}
+                  <div className="absolute bottom-16 left-1 w-[88px] h-[18px] bg-gradient-to-br from-[#FCD34D] to-[#F59E0B] rounded-[4px] shadow-md border-b-[3px] border-[#B45309]/30 z-10"></div>
+                  {/* Lid Ribbon */}
+                  <div className="absolute bottom-16 left-[44px] w-4 h-[18px] bg-gradient-to-b from-[#FB7185] to-[#E11D48] shadow-sm z-10"></div>
+                  {/* Bow Left Loop */}
+                  <div className="absolute bottom-[78px] left-[26px] w-6 h-6 border-[4px] border-[#F43F5E] rounded-full transform -rotate-45 skew-x-12 shadow-sm z-10"></div>
+                  {/* Bow Right Loop */}
+                  <div className="absolute bottom-[78px] left-[46px] w-6 h-6 border-[4px] border-[#F43F5E] rounded-full transform rotate-45 -skew-x-12 shadow-sm z-10"></div>
+                  {/* Center Knot */}
+                  <div className="absolute bottom-[76px] left-[42px] w-3 h-3 bg-[#E11D48] rounded-full z-20 shadow-sm"></div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+
+        </div>
+
+        {/* FULL WIDTH TABS SECTION (Levels & Affiliates) */}
+        <div className="w-full bg-[#161821] border border-white/5 rounded-[24px] p-6 shadow-xl">
+          <div className="flex flex-wrap items-center gap-6 border-b border-white/5 mb-6">
+            {[
+              { id: 'tier', label: 'Level Structure' },
+              { id: 'affiliate', label: 'Affiliate Stats' },
+              { id: 'history', label: 'Referral History' },
+              { id: 'payouts', label: 'Payout History' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`relative pb-3 text-[13px] font-bold transition-colors cursor-pointer ${activeTab === tab.id ? 'text-white' : 'text-[#8F95A3] hover:text-white'}`}
+              >
+                {tab.label}
+                {activeTab === tab.id && (
+                  <motion.div layoutId="affiliateTab" className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-[#8B5CF6] shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
+                )}
+              </button>
+            ))}
+          </div>
+
+          <AnimatePresence mode="wait">
+          {/* LEVEL TAB CONTENT */}
+          {activeTab === 'tier' && (
+            <motion.div key="tier" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
+              <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
+                {tierData?.levels?.map((tier: any, idx: number) => {
+                  const levelNum = tier.level;
+                  const isCurrent = levelNum === tierData.currentTier;
+                  const req = `${tier.referralAmount}+ Active Referrals`;
+                  const comm = tier.commissionPercent;
+
+                  return (
+                    <motion.div key={idx} variants={fadeUp} custom={idx} whileHover={{ y: -4, scale: 1.015 }} transition={{ type: 'spring', stiffness: 260, damping: 20 }} className={`relative bg-[#0B0D14] border ${isCurrent ? 'border-[#8B5CF6] shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'border-white/5'} rounded-2xl p-4 flex flex-col`}>
+                        {isCurrent && (
+                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.1 }} className="absolute -top-2 right-4 px-2 py-0.5 rounded text-[9px] font-black tracking-widest bg-[#c084fc] text-white uppercase shadow-md">
+                            Current
+                          </motion.div>
+                        )}
+                        
+                        <div className="flex justify-between items-center mb-5">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                              levelNum <= 2 ? 'bg-[#8B5CF6]/20 text-[#A855F7]' : 
+                              levelNum <= 4 ? 'bg-[#EC4899]/20 text-[#EC4899]' : 
+                              levelNum <= 6 ? 'bg-[#10B981]/20 text-[#10B981]' : 
+                              'bg-amber-500/20 text-amber-500'
+                            }`}>
+                              {getAchievementIcon(levelNum)}
+                            </div>
+                            <span className="font-bold text-white text-sm">Level {levelNum}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs font-bold text-[#8F95A3]">
+                            <Users className="w-3.5 h-3.5" /> {comm}%
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <span className="text-[10px] text-[#8F95A3] block mb-1">Requirements</span>
+                            <div className="flex items-center gap-1.5 text-xs text-white font-medium">
+                              <CheckCircle2 className={`w-3.5 h-3.5 ${isCurrent || levelNum < tierData.currentTier ? 'text-[#8B5CF6]' : 'text-white/20'}`} />
+                              {req}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#8F95A3] block mb-1">Commission</span>
+                            <span className="text-xs text-white font-medium">{comm}% on every payout</span>
+                          </div>
+                        </div>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+              
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="w-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 rounded-xl p-3 flex items-center gap-2">
+                <Info className="w-4 h-4 text-[#8B5CF6] shrink-0" />
+                <p className="text-xs text-[#8F95A3]">Levels are based on total active referrals. Once you reach a new level, the higher commission rate applies automatically.</p>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* AFFILIATE STATS TAB CONTENT */}
+          {activeTab === 'affiliate' && (
+            <motion.div key="affiliate" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">User</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Earn</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Pending</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Reversed</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Net Commission</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {affiliateUsers.length === 0 ? (
+                    <tr><td colSpan={5} className="py-10 text-center text-[#8F95A3] text-sm">No referrals found.</td></tr>
+                  ) : (
+                    affiliateUsers.map((user, idx) => (
+                      <motion.tr key={idx} custom={idx} initial="hidden" animate="visible" variants={rowFade} className="border-b border-white/5 hover:bg-white/[0.02]">
+                        <td className="py-3 px-4 text-xs font-bold text-white">{user.userName || 'User'}</td>
+                        <td className="py-3 px-4 text-xs font-bold text-white">{formatPrice(Number(user.totalEarning || 0), currency)}</td>
+                        <td className="py-3 px-4 text-xs font-bold text-amber-500">{formatPrice(Number(user.processingCommission || 0), currency)}</td>
+                        <td className="py-3 px-4 text-xs font-bold text-red-400">{formatPrice(Number(user.reverseCommission || 0), currency)}</td>
+                        <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(user.netCommission || 0), currency)}</td>
+                      </motion.tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </motion.div>
+          )}
+
+          {/* REFERRAL HISTORY TAB */}
+          {activeTab === 'history' && (
+            <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Date</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">User</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Amount Earned</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {referHistory.length === 0 ? (
+                    <tr><td colSpan={4} className="py-10 text-center text-[#8F95A3] text-sm">No referral earning rows found.</td></tr>
+                  ) : (
+                    referHistory.map((row, idx) => (
+                      <motion.tr key={idx} custom={idx} initial="hidden" animate="visible" variants={rowFade} className="border-b border-white/5 hover:bg-white/[0.02]">
+                        <td className="py-3 px-4 text-xs text-[#8F95A3]">{row.createdAt || row.date ? new Date(row.createdAt || row.date).toLocaleDateString() : 'N/A'}</td>
+                        <td className="py-3 px-4 text-xs text-white">{row.userName || row.referredUser || 'N/A'}</td>
+                        <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(row.amount || row.commission || 0), currency)}</td>
+                        <td className="py-3 px-4 text-xs text-white capitalize">{row.status || 'Completed'}</td>
+                      </motion.tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </motion.div>
+          )}
+
+          {/* PAYOUT HISTORY TAB */}
+          {activeTab === 'payouts' && (
+            <motion.div key="payouts" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Claim ID</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Date</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Method</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Amount</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {claimHistory.length === 0 ? (
+                    <tr><td colSpan={5} className="py-10 text-center text-[#8F95A3] text-sm">No payout history found.</td></tr>
+                  ) : (
+                    claimHistory.map((claim, idx) => (
+                      <motion.tr key={idx} custom={idx} initial="hidden" animate="visible" variants={rowFade} className="border-b border-white/5 hover:bg-white/[0.02]">
+                        <td className="py-3 px-4 text-xs text-white">{claim._id || claim.claimId || 'N/A'}</td>
+                        <td className="py-3 px-4 text-xs text-[#8F95A3]">{claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : 'N/A'}</td>
+                        <td className="py-3 px-4 text-xs text-white">{claim.method || 'N/A'}</td>
+                        <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(claim.amount || 0), currency)}</td>
+                        <td className="py-3 px-4 text-xs text-white">{claim.status || 'Completed'}</td>
+                      </motion.tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </motion.div>
+          )}
+          </AnimatePresence>
+        </div>
+
         {/* FEATURES BANNER */}
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.5 }} className="bg-[#161821] border border-white/5 rounded-[20px] p-6 shadow-xl mb-8 flex flex-col lg:flex-row items-start lg:items-center gap-6 lg:gap-10 hover:border-white/10 transition-colors">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.5 }} className="bg-[#161821] border border-white/5 rounded-[20px] p-6 shadow-xl mt-8 flex flex-col lg:flex-row items-start lg:items-center gap-6 lg:gap-10 hover:border-white/10 transition-colors">
            <div className="flex items-center gap-3 shrink-0">
              <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1.5 }} className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center">
                 <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
@@ -400,248 +659,6 @@ export default function AffiliatePage() {
               ))}
            </motion.div>
         </motion.div>
-
-        {/* BOTTOM SECTION: TABS & SIDEBAR */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-           
-           {/* LEFT CONTENT AREA */}
-           <div className="lg:col-span-8 xl:col-span-9 bg-[#161821] border border-white/5 rounded-[24px] p-6 shadow-xl">
-              <div className="flex items-center gap-6 border-b border-white/5 mb-6">
-                {[
-                  { id: 'tier', label: 'Level Structure' },
-                  { id: 'affiliate', label: 'Affiliate Stats' },
-                  { id: 'history', label: 'Referral History' },
-                  { id: 'payouts', label: 'Payout History' },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`relative pb-3 text-[13px] font-bold transition-colors cursor-pointer ${activeTab === tab.id ? 'text-white' : 'text-[#8F95A3] hover:text-white'}`}
-                  >
-                    {tab.label}
-                    {activeTab === tab.id && (
-                      <motion.div layoutId="affiliateTab" className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-[#8B5CF6] shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              <AnimatePresence mode="wait">
-              {/* LEVEL TAB CONTENT */}
-              {activeTab === 'tier' && (
-                <motion.div key="tier" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
-                  <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
-                    {tierData?.levels?.map((tier: any, idx: number) => {
-                      const levelNum = tier.level;
-                      const isCurrent = levelNum === tierData.currentTier;
-                      const req = `${tier.referralAmount}+ Active Referrals`;
-                      const comm = tier.commissionPercent;
-
-                      return (
-                        <motion.div key={idx} variants={fadeUp} custom={idx} whileHover={{ y: -4, scale: 1.015 }} transition={{ type: 'spring', stiffness: 260, damping: 20 }} className={`relative bg-[#0B0D14] border ${isCurrent ? 'border-[#8B5CF6] shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'border-white/5'} rounded-2xl p-4 flex flex-col`}>
-                           {isCurrent && (
-                             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.1 }} className="absolute -top-2 right-4 px-2 py-0.5 rounded text-[9px] font-black tracking-widest bg-[#c084fc] text-white uppercase shadow-md">
-                               Current
-                             </motion.div>
-                           )}
-                           
-                           <div className="flex justify-between items-center mb-5">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                                  levelNum <= 2 ? 'bg-[#8B5CF6]/20 text-[#A855F7]' : 
-                                  levelNum <= 4 ? 'bg-[#EC4899]/20 text-[#EC4899]' : 
-                                  levelNum <= 6 ? 'bg-[#10B981]/20 text-[#10B981]' : 
-                                  'bg-amber-500/20 text-amber-500'
-                                }`}>
-                                  {getAchievementIcon(levelNum)}
-                                </div>
-                                <span className="font-bold text-white text-sm">Level {levelNum}</span>
-                              </div>
-                              <div className="flex items-center gap-1 text-xs font-bold text-[#8F95A3]">
-                                <Users className="w-3.5 h-3.5" /> {comm}%
-                              </div>
-                           </div>
-
-                           <div className="space-y-3">
-                              <div>
-                                <span className="text-[10px] text-[#8F95A3] block mb-1">Requirements</span>
-                                <div className="flex items-center gap-1.5 text-xs text-white font-medium">
-                                  <CheckCircle2 className={`w-3.5 h-3.5 ${isCurrent || levelNum < tierData.currentTier ? 'text-[#8B5CF6]' : 'text-white/20'}`} />
-                                  {req}
-                                </div>
-                              </div>
-                              <div>
-                                <span className="text-[10px] text-[#8F95A3] block mb-1">Commission</span>
-                                <span className="text-xs text-white font-medium">{comm}% on every payout</span>
-                              </div>
-                           </div>
-                        </motion.div>
-                      );
-                    })}
-                  </motion.div>
-                  
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="w-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 rounded-xl p-3 flex items-center gap-2">
-                    <Info className="w-4 h-4 text-[#8B5CF6] shrink-0" />
-                    <p className="text-xs text-[#8F95A3]">Levels are based on total active referrals. Once you reach a new level, the higher commission rate applies automatically.</p>
-                  </motion.div>
-                </motion.div>
-              )}
-
-              {/* AFFILIATE STATS TAB CONTENT */}
-              {activeTab === 'affiliate' && (
-                <motion.div key="affiliate" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
-                  <table className="w-full text-left border-collapse min-w-[700px]">
-                    <thead>
-                      <tr className="border-b border-white/5">
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">User</th>
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Earn</th>
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Pending</th>
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Reversed</th>
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Net Commission</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {affiliateUsers.length === 0 ? (
-                        <tr><td colSpan={5} className="py-10 text-center text-[#8F95A3] text-sm">No referrals found.</td></tr>
-                      ) : (
-                        affiliateUsers.map((user, idx) => (
-                          <motion.tr key={idx} custom={idx} initial="hidden" animate="visible" variants={rowFade} className="border-b border-white/5 hover:bg-white/[0.02]">
-                            <td className="py-3 px-4 text-xs font-bold text-white">{user.userName || 'User'}</td>
-                            <td className="py-3 px-4 text-xs font-bold text-white">{formatPrice(Number(user.totalEarning || 0), currency)}</td>
-                            <td className="py-3 px-4 text-xs font-bold text-amber-500">{formatPrice(Number(user.processingCommission || 0), currency)}</td>
-                            <td className="py-3 px-4 text-xs font-bold text-red-400">{formatPrice(Number(user.reverseCommission || 0), currency)}</td>
-                            <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(user.netCommission || 0), currency)}</td>
-                          </motion.tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </motion.div>
-              )}
-
-              {/* REFERRAL HISTORY TAB */}
-              {activeTab === 'history' && (
-                <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
-                  <table className="w-full text-left border-collapse min-w-[700px]">
-                    <thead>
-                      <tr className="border-b border-white/5">
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Date</th>
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">User</th>
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Amount Earned</th>
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {referHistory.length === 0 ? (
-                        <tr><td colSpan={4} className="py-10 text-center text-[#8F95A3] text-sm">No referral earning rows found.</td></tr>
-                      ) : (
-                        referHistory.map((row, idx) => (
-                          <motion.tr key={idx} custom={idx} initial="hidden" animate="visible" variants={rowFade} className="border-b border-white/5 hover:bg-white/[0.02]">
-                            <td className="py-3 px-4 text-xs text-[#8F95A3]">{row.createdAt || row.date ? new Date(row.createdAt || row.date).toLocaleDateString() : 'N/A'}</td>
-                            <td className="py-3 px-4 text-xs text-white">{row.userName || row.referredUser || 'N/A'}</td>
-                            <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(row.amount || row.commission || 0), currency)}</td>
-                            <td className="py-3 px-4 text-xs text-white capitalize">{row.status || 'Completed'}</td>
-                          </motion.tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </motion.div>
-              )}
-
-              {/* PAYOUT HISTORY TAB */}
-              {activeTab === 'payouts' && (
-                <motion.div key="payouts" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
-                  <table className="w-full text-left border-collapse min-w-[700px]">
-                    <thead>
-                      <tr className="border-b border-white/5">
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Claim ID</th>
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Date</th>
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Method</th>
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Amount</th>
-                        <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {claimHistory.length === 0 ? (
-                        <tr><td colSpan={5} className="py-10 text-center text-[#8F95A3] text-sm">No payout history found.</td></tr>
-                      ) : (
-                        claimHistory.map((claim, idx) => (
-                          <motion.tr key={idx} custom={idx} initial="hidden" animate="visible" variants={rowFade} className="border-b border-white/5 hover:bg-white/[0.02]">
-                            <td className="py-3 px-4 text-xs text-white">{claim._id || claim.claimId || 'N/A'}</td>
-                            <td className="py-3 px-4 text-xs text-[#8F95A3]">{claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : 'N/A'}</td>
-                            <td className="py-3 px-4 text-xs text-white">{claim.method || 'N/A'}</td>
-                            <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(claim.amount || 0), currency)}</td>
-                            <td className="py-3 px-4 text-xs text-white">{claim.status || 'Completed'}</td>
-                          </motion.tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </motion.div>
-              )}
-              </AnimatePresence>
-           </div>
-
-           {/* RIGHT SIDEBAR */}
-           <div className="lg:col-span-4 xl:col-span-3 flex flex-col gap-6">
-              
-              {/* Top Affiliates Leaderboard (ANIMATIONS REMOVED FOR RELIABILITY) */}
-              <div className="bg-[#161821] border border-white/5 rounded-[24px] p-6 shadow-xl">
-                 <div className="flex items-center gap-2 mb-6">
-                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-                       <Medal className="w-4 h-4 text-amber-500" />
-                    </div>
-                    <h3 className="text-sm font-bold text-white">Top Affiliates</h3>
-                 </div>
-                 
-                 <div className="flex flex-col gap-4">
-                    {topAffiliates.length === 0 ? (
-                      <div className="text-center text-xs text-[#8F95A3] py-4">No top affiliates yet.</div>
-                    ) : (
-                      topAffiliates.map((user, idx) => {
-                        const rank = idx + 1;
-                        return (
-                          <div key={idx} className="flex items-center justify-between hover:translate-x-1 transition-transform cursor-default">
-                             <div className="flex items-center gap-3">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm
-                                  ${rank === 1 ? 'bg-amber-400 text-amber-900' : 
-                                    rank === 2 ? 'bg-gray-300 text-gray-800' : 
-                                    rank === 3 ? 'bg-[#CD7F32] text-white' : 
-                                    'bg-[#0B0D14] text-[#8F95A3] border border-white/10'}`}
-                                >
-                                   {rank}
-                                </div>
-                                <span className="text-xs font-medium text-white max-w-[120px] truncate">{user.userName || 'User'}</span>
-                             </div>
-                             <span className="text-xs font-bold text-[#8B5CF6]">{user.referralCount} Refs</span>
-                          </div>
-                        )
-                      })
-                    )}
-                 </div>
-              </div>
-
-              {/* Promo Box */}
-              <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.5, delay: 0.1 }} whileHover={{ scale: 1.015 }} className="bg-gradient-to-br from-[#8B5CF6] via-[#7C3AED] to-[#4C1D95] rounded-[24px] p-6 shadow-[0_10px_30px_rgba(139,92,246,0.3)] relative overflow-hidden">
-                 <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.2, 0.3, 0.2] }} transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }} className="absolute -right-4 -bottom-4 w-32 h-32 pointer-events-none">
-                    <svg viewBox="0 0 24 24" fill="white"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12s4.477 10 10 10 10-4.477 10-10z"/></svg>
-                 </motion.div>
-                 
-                 <h3 className="text-lg font-black text-white mb-2 relative z-10">Get More, Earn More!</h3>
-                 <p className="text-xs text-white/80 mb-6 max-w-[80%] relative z-10">Invite more friends and unlock higher rewards.</p>
-                 
-                 <motion.button onClick={() => setIsLearnMoreOpen(true)} whileHover={{ scale: 1.03, x: 2 }} whileTap={{ scale: 0.97 }} className="w-full py-3 rounded-xl bg-white text-[#7C3AED] hover:bg-gray-100 font-bold text-sm shadow-md transition-colors flex justify-center items-center gap-2 relative z-10">
-                   Learn More <ArrowRight className="w-4 h-4" />
-                 </motion.button>
-                 
-                 <motion.div animate={{ y: [0, -6, 0], rotate: [0, -6, 6, 0] }} transition={{ duration: 2.8, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }} className="absolute right-2 top-1/2 -translate-y-1/2 text-5xl drop-shadow-xl z-0">
-                    🎁
-                 </motion.div>
-              </motion.div>
-
-           </div>
-        </div>
 
         {/* BOTTOM HELP BANNER */}
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.5 }} className="mt-8 bg-[#161821] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl hover:border-white/10 transition-colors">

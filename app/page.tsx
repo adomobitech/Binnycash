@@ -33,7 +33,8 @@ export default function Home() {
   }
 
   return (
-    <main className="bg-[#111319] min-h-screen text-white">
+    // 👇 overflow-x-hidden aur w-full add kiya h fail-safe ke lie 👇
+    <main className="bg-[#111319] min-h-screen text-white overflow-x-hidden w-full">
       <HeroSection />
       <LowerHero />
       <TrustedFeatures />

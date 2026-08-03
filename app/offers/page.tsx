@@ -11,7 +11,6 @@ import {
   CreditCard, LogIn, ClipboardList, Hexagon, LayoutGrid
 } from "lucide-react"; 
 
-// 🔥 Categories mapped exactly to your screenshot 🔥
 const CATEGORIES = [
   { id: 'All', label: 'All Categories', icon: <Filter className="w-4 h-4" /> },
   { id: 'Apps', label: 'App', icon: <Smartphone className="w-4 h-4" /> },
@@ -32,15 +31,12 @@ export default function AllOffersPage() {
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // API Networks Data State
   const [apiNetworks, setApiNetworks] = useState<{name: string, count: number}[]>([]);
 
-  // States for Dropdowns
   const [sortBy, setSortBy] = useState('Sort By'); 
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [selectedNetwork, setSelectedNetwork] = useState('All Networks'); 
   
-  // Dropdown Toggle States
   const [isCatOpen, setIsCatOpen] = useState(false);
   const [isNetOpen, setIsNetOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -59,7 +55,6 @@ export default function AllOffersPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 🔥 FETCH NETWORKS (Added Auth Token) 🔥
   useEffect(() => {
     const fetchNetworks = async () => {
       try {
@@ -81,7 +76,6 @@ export default function AllOffersPage() {
         const sourceData = json?.data || [];
 
         if (Array.isArray(sourceData)) {
-           // Maps {"network": "gemiad", "count": 43} -> name, count
            networkArr = sourceData.map((item: any) => ({
              name: item.network || item.name || 'Unknown',
              count: Number(item.count || 0)
@@ -150,10 +144,8 @@ export default function AllOffersPage() {
     });
   };
 
-  // --- FILTERING LOGIC ---
   let processedOffers = filterOffersByDevice(offers, selectedDevices);
 
-  // Helper to safely parse strings or arrays for categories
   const parseCategoryString = (val: any) => {
     if (!val) return '';
     if (Array.isArray(val)) return val.join(' ').toLowerCase();
@@ -169,7 +161,6 @@ export default function AllOffersPage() {
     });
   }
 
-  // 🔥 Category Filter (Fixed for Arrays) 🔥
   if (selectedCategory !== 'All Categories') {
     const catMatch = CATEGORIES.find(c => c.label === selectedCategory)?.id.toLowerCase();
     if (catMatch && catMatch !== 'all') {
@@ -191,7 +182,6 @@ export default function AllOffersPage() {
     }
   }
 
-  // Network / Provider Filter
   if (selectedNetwork !== 'All Networks') {
     processedOffers = processedOffers.filter(offer => {
       const prov = offer.network || offer.provider || '';
@@ -199,7 +189,6 @@ export default function AllOffersPage() {
     });
   }
 
-  // Sorting
   if (sortBy === 'High Reward') {
     processedOffers.sort((a, b) => parseFloat(b.userCredits ?? b.reward ?? b.payout ?? 0) - parseFloat(a.userCredits ?? a.reward ?? a.payout ?? 0));
   } else if (sortBy === 'Low Reward') {
@@ -358,13 +347,13 @@ export default function AllOffersPage() {
 
         {/* OFFERS GRID */}
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
-              <div key={i} className="h-44 bg-[#111319] border border-white/5 animate-pulse rounded-2xl"></div>
+          <div className="grid grid-cols-2 min-[450px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3 sm:gap-4 lg:gap-5">
+            {[...Array(14)].map((_, i) => (
+              <div key={i} className="h-48 bg-[#111319] border border-white/5 animate-pulse rounded-[16px]"></div>
             ))}
           </div>
         ) : processedOffers.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6 gap-4 lg:gap-5">
+          <div className="grid grid-cols-2 min-[450px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3 sm:gap-4 lg:gap-5">
             {processedOffers.map((offer, index) => (
               <OfferCard key={offer._id || offer.id || index} offer={offer} />
             ))}
