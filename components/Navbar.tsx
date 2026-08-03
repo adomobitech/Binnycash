@@ -895,8 +895,8 @@ export default function Navbar() {
                   <span className="text-sm font-bold">Surveys</span>
                 </Link>
 
-                <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group ${pathname === '/dashboard' ? 'bg-[#8B5CF6]/10 text-[#A855F7] border border-[#8B5CF6]/30 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent'}`}>
-                  <Flame className={`w-5 h-5 ${pathname === '/dashboard' ? 'text-[#A855F7]' : 'text-[#8D89A8] group-hover:text-white'}`} />
+                <Link href="/offers" onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group ${pathname === '/offers' ? 'bg-[#8B5CF6]/10 text-[#A855F7] border border-[#8B5CF6]/30 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent'}`}>
+                  <Flame className={`w-5 h-5 ${pathname === '/offers' ? 'text-[#A855F7]' : 'text-[#8D89A8] group-hover:text-white'}`} />
                   <span className="text-sm font-bold">Offers</span>
                 </Link>
 
