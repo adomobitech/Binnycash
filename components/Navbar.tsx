@@ -825,7 +825,7 @@ export default function Navbar() {
           MOBILE BOTTOM NAVIGATION (Fixed at Bottom)
       ========================================= */}
       {isLoggedIn && (
-        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-[#0E111E]/95 backdrop-blur-xl border-t border-white/10 z-50 flex items-center justify-around px-2 py-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-[65px]">
+        <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0E111E]/95 backdrop-blur-xl border-t border-white/10 z-50 flex items-center justify-around px-2 py-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-[65px]">
           <Link href="/myoffers" className="flex flex-col items-center gap-1 p-2 w-[20%]">
             <PlaySquare className={`w-5 h-5 ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
             <span className={`text-[10px] font-bold ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>My Offers</span>
@@ -909,15 +909,28 @@ export default function Navbar() {
                   <Users className={`w-5 h-5 ${pathname === '/affiliate' ? 'text-[#A855F7]' : 'text-[#8D89A8] group-hover:text-white'}`} />
                   <span className="text-sm font-bold">Affiliates</span>
                 </Link>
+
+                {/* 🚀 CHAT ROOM OPTION ADDED HERE 🚀 */}
+                <button onClick={() => { setIsMobileMenuOpen(false); setIsChatOpen(true); }} className="flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent cursor-pointer w-full text-left">
+                  <div className="relative">
+                    <MessageSquare className="w-5 h-5 text-[#8D89A8] group-hover:text-white transition-colors" />
+                    {unreadChatCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#00E57A] border-2 border-[#111319] rounded-full"></span>
+                    )}
+                  </div>
+                  <span className="text-sm font-bold">Chat Room</span>
+                </button>
               </div>
 
-              {/* Bottom Balance Card (CRASH FIX: Removed Hook) */}
+              {/* Bottom Balance Card with Premium Glow */}
               <div className="mt-auto p-6 border-t border-white/5 bg-gradient-to-t from-black/20 to-transparent">
-                <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-5 flex flex-col items-center justify-center shadow-lg relative overflow-hidden">
+                <div className="bg-gradient-to-br from-[#1A1725] to-[#110E18] border border-white/5 rounded-2xl p-5 flex flex-col items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-[#00E57A]/10 rounded-bl-full pointer-events-none"></div>
-                  <span className="text-xs font-bold text-[#8D89A8] mb-1.5 uppercase tracking-wider">Available Balance</span>
-                  <span className="text-2xl font-black text-[#3DE8A0] drop-shadow-md">
-                    {/* 🚀 CRASH FIX: FormatPrice removed to safely match Desktop logic 🚀 */}
+                  <div className="absolute bottom-0 left-0 w-12 h-12 bg-[#8B5CF6]/10 rounded-tr-full pointer-events-none"></div>
+                  
+                  <span className="text-[10px] font-bold text-[#8D89A8] mb-1 uppercase tracking-widest relative z-10">Available Balance</span>
+                  <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00E57A] to-[#3DE8A0] drop-shadow-md relative z-10">
+                    {/* 🚀 CRASH FIX RETAINED 🚀 */}
                     {isCoin ? Number(balance) * 1000 : balance}
                   </span>
                 </div>

@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import OfferCard from '@/components/offers/OfferCard';
+import OfferFilters from '@/components/offers/OfferFilters'; 
 import { Sparkles, ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
 
 export function filterOffersByDevice(offers: any[], selectedDevices: string[]) {
@@ -62,6 +63,14 @@ export default function OfferSlider({
     }
   };
 
+  const handleDeviceSelect = (dev: string) => {
+    if (dev === 'all') {
+      onSelectDevice(''); 
+    } else {
+      onSelectDevice(dev);
+    }
+  };
+
   return (
     <div className="w-full flex flex-col gap-6 mt-6">
       
@@ -75,7 +84,10 @@ export default function OfferSlider({
           <p className="text-[#8F95A3] text-xs font-medium">Complete offers and earn exciting rewards.</p>
         </div>
 
-        <div className="flex-1 flex lg:justify-center"></div>
+        {/* 🔥 MOBILE PAR HIDE, DESKTOP PAR SHOW 🔥 */}
+        <div className="hidden lg:flex flex-1 justify-center">
+          <OfferFilters selectedDevices={selectedDevices} onSelectDevice={handleDeviceSelect} />
+        </div>
 
         <div className="hidden lg:flex items-center gap-4 shrink-0">
           <div className="flex items-center gap-1.5">

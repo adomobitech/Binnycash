@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import OfferCard from '@/components/offers/OfferCard';
+import OfferFilters from '@/components/offers/OfferFilters';
 import { filterOffersByDevice } from '@/components/offers/OfferSlider';
 import { 
   Search, ChevronLeft, ChevronDown, Filter, Flame, ArrowUp, ArrowDown, 
@@ -27,7 +28,6 @@ export default function AllOffersPage() {
   const [offers, setOffers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Logic still present but hidden from UI
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -137,6 +137,13 @@ export default function AllOffersPage() {
     fetchAllOffers();
   }, []);
 
+  const handleSelectDevice = (device: string) => {
+    setSelectedDevices((prev) => {
+      if (prev.includes(device)) return prev.filter((d) => d !== device);
+      return [...prev, device];
+    });
+  };
+
   let processedOffers = filterOffersByDevice(offers, selectedDevices);
 
   const parseCategoryString = (val: any) => {
@@ -229,7 +236,7 @@ export default function AllOffersPage() {
           </div>
         </div>
 
-        {/* FILTERS BAR - MOBILE OPTIMIZED (DEVICE TABS REMOVED) */}
+        {/* FILTERS BAR - MOBILE OPTIMIZED */}
         <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center gap-3 sm:gap-4 mb-6 bg-[#111319]/80 backdrop-blur-md p-3 sm:p-4 rounded-[20px] border border-white/5 shadow-lg relative z-20">
           
           {/* Search Bar */}
@@ -246,11 +253,15 @@ export default function AllOffersPage() {
             />
           </div>
 
-          {/* Filters (Categories, Network, Sort) */}
-          <div className="grid grid-cols-2 md:flex flex-wrap items-center gap-2 sm:gap-3 w-full xl:w-auto relative z-30">
+          <div className="flex flex-wrap items-center justify-start xl:justify-end gap-2 sm:gap-3 w-full xl:w-auto relative z-30">
             
+            {/* 🔥 DEVICE FILTER - HIDDEN ON MOBILE, SHOW ON DESKTOP 🔥 */}
+            <div className="hidden xl:flex shrink-0 items-center bg-[#1A1C24] p-1 rounded-[14px] border border-white/5">
+              <OfferFilters selectedDevices={selectedDevices} onSelectDevice={handleSelectDevice} />
+            </div>
+
             {/* 1. Category Dropdown */}
-            <div className="relative w-full md:w-auto" ref={catRef}>
+            <div className="relative w-[48%] md:w-auto" ref={catRef}>
               <button 
                 onClick={() => setIsCatOpen(!isCatOpen)}
                 className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11"
@@ -262,7 +273,7 @@ export default function AllOffersPage() {
                 <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A855F7] transition-transform ml-1 shrink-0 ${isCatOpen ? 'rotate-180' : ''}`} />
               </button>
               {isCatOpen && (
-                <div className="absolute left-0 top-full mt-2 w-[220px] bg-[#111319] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 z-[100]">
+                <div className="absolute left-0 top-full mt-2 w-full md:w-[220px] bg-[#111319] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 z-[100]">
                   {CATEGORIES.map(cat => (
                     <button 
                       key={cat.id} 
@@ -277,7 +288,7 @@ export default function AllOffersPage() {
             </div>
 
             {/* 2. Network Dropdown */}
-            <div className="relative w-full md:w-auto" ref={netRef}>
+            <div className="relative w-[48%] md:w-auto" ref={netRef}>
               <button 
                 onClick={() => setIsNetOpen(!isNetOpen)}
                 className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11"
@@ -289,7 +300,7 @@ export default function AllOffersPage() {
                 <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A855F7] transition-transform ml-1 shrink-0 ${isNetOpen ? 'rotate-180' : ''}`} />
               </button>
               {isNetOpen && (
-                <div className="absolute left-0 md:right-0 md:left-auto top-full mt-2 w-[240px] max-h-[300px] sm:max-h-[350px] overflow-y-auto custom-scrollbar bg-[#111319] border border-white/5 rounded-xl shadow-2xl flex flex-col py-2 z-[100]">
+                <div className="absolute right-0 md:left-auto top-full mt-2 w-[240px] max-h-[300px] sm:max-h-[350px] overflow-y-auto custom-scrollbar bg-[#111319] border border-white/5 rounded-xl shadow-2xl flex flex-col py-2 z-[100]">
                   <button 
                     onClick={() => {setSelectedNetwork('All Networks'); setIsNetOpen(false);}} 
                     className={`flex items-center justify-between px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors ${selectedNetwork === 'All Networks' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
@@ -311,7 +322,7 @@ export default function AllOffersPage() {
             </div>
 
             {/* 3. Sort By Dropdown */}
-            <div className="relative w-full md:w-auto col-span-2 md:col-span-1" ref={sortRef}>
+            <div className="relative w-full md:w-auto" ref={sortRef}>
               <button 
                 onClick={() => setIsSortOpen(!isSortOpen)}
                 className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11"
@@ -323,7 +334,7 @@ export default function AllOffersPage() {
                 <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A855F7] transition-transform ml-1 shrink-0 ${isSortOpen ? 'rotate-180' : ''}`} />
               </button>
               {isSortOpen && (
-                <div className="absolute left-0 md:right-0 md:left-auto top-full mt-2 w-full md:w-[180px] bg-[#111319] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 z-[100]">
+                <div className="absolute right-0 md:left-0 top-full mt-2 w-full md:w-[180px] bg-[#111319] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 z-[100]">
                   <button onClick={() => {setSortBy('Most Popular'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors ${sortBy === 'Most Popular' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
                     <Flame className="w-4 h-4 text-white" /> Most Popular
                   </button>
