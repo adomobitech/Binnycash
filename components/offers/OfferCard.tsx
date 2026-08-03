@@ -123,6 +123,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
           setDetails(offer);
         }
       } catch (err) {
+        console.error("Error fetching offer details:", err);
         setDetails(offer);
       } finally {
         setIsLoading(false);
@@ -199,6 +200,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
 
     try {
       const token = localStorage.getItem('token') || '';
+
       const res = await fetch(
         `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`,
         {
@@ -245,6 +247,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       onClose();
 
     } catch (err) {
+      console.error("Error processing click URL:", err);
       if (newTab) {
          newTab.location.href = offer?.click_url || offer?.link || offer?.url || 'https://binnycash.com';
       }
@@ -273,8 +276,6 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   const requirements = currentData?.offer_requirements || currentData?.requirements || "CPA offer";
   const description = currentData?.description || "Complete the task as instructed to receive your reward.";
   const events = currentData?.offer_events || [];
-  const clickAllowed = currentData ? currentData.clickAllowed : false;
-  const retries = currentData?.retryAllow || 0;
 
   return (
     <AnimatePresence>
@@ -329,7 +330,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                   </div>
                   <div className="flex flex-col text-left">
                     <span className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">
-                      Current Device
+                      Current device
                     </span>
                     <span className="text-white font-bold text-base leading-tight">
                       {currentOS}
@@ -410,13 +411,14 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                   </div>
                 )}
 
+                {/* 🔥 ACTION NOT ALLOWED REMOVED - BUTTON IS ALWAYS CLICKABLE 🔥 */}
                 <button 
-                  onClick={handlePlayClick} disabled={isProcessingClick || !clickAllowed}
+                  onClick={handlePlayClick} disabled={isProcessingClick}
                   className="w-full py-4 rounded-xl bg-[#A855F7] hover:bg-[#9333EA] shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-all flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isProcessingClick ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <>
                     <PlayCircle className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
-                    <span className="text-white font-black text-base">{clickAllowed ? `Play & Earn ${formattedReward}` : 'Action Not Allowed'}</span>
+                    <span className="text-white font-black text-base">Play & Earn {formattedReward}</span>
                   </>}
                 </button>
 

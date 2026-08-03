@@ -401,7 +401,6 @@ export default function MyOffersPage() {
 
         {activeTab === 'started' && (
           <>
-            {/* 100% ORIGINAL HORIZONTAL SCROLL DESKTOP LOGIC RESTORED */}
             <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-6 -my-6 px-2 -mx-2 mb-4">
               {isLoading ? (
                 <div className="text-[#8F95A3] text-sm animate-pulse px-2">Loading offers...</div>
@@ -509,10 +508,11 @@ export default function MyOffersPage() {
                             <h1 className="text-xl sm:text-2xl font-black text-white leading-none">{formatPrice(Number(rewardAmount) || 0, currency)}</h1>
                           </div>
 
+                          {/* 🔥 ACTION NOT ALLOWED REMOVED - BUTTON IS ALWAYS CLICKABLE 🔥 */}
                           <button 
                             onClick={handlePlayClick} 
-                            disabled={!clickAllowed || isProcessingClick}
-                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all shrink-0 ${!clickAllowed ? 'bg-gray-600 cursor-not-allowed opacity-50' : 'bg-[#A855F7] hover:bg-[#9333EA] cursor-pointer hover:scale-105'}`}
+                            disabled={isProcessingClick}
+                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all shrink-0 bg-[#A855F7] hover:bg-[#9333EA] cursor-pointer hover:scale-105`}
                           >
                             {isProcessingClick ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white ml-0.5" />}
                           </button>
@@ -570,7 +570,6 @@ export default function MyOffersPage() {
           </>
         )}
 
-        {/* 100% ORIGINAL COMPLETED OFFERS VERTICAL LIST */}
         {activeTab === 'completed' && (
           <div className="flex flex-col gap-3 w-full max-w-4xl">
             {isLoading ? (
