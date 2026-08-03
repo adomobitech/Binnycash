@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
 import ChatDrawer from '@/components/chat/ChatDrawer';
 
-// 櫨 DYNAMIC COLOR GENERATOR: Hashing logic to assign fixed color to names 櫨
+// 🚀 DYNAMIC COLOR GENERATOR: Hashing logic to assign fixed color to names 🚀
 const getDynamicColor = (name: string) => {
   const colors = [
     'bg-[#8B5CF6]', // Purple
@@ -134,7 +134,7 @@ export default function Navbar() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
 
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobile Menu State
 
   const navRef = useRef<HTMLElement>(null);
 
@@ -160,7 +160,7 @@ export default function Navbar() {
          window.dispatchEvent(new CustomEvent('currencyChanged', { detail: 'Usd' }));
       }
     }
-    setIsMobileMenuOpen(false); 
+    setIsMobileMenuOpen(false); // Route change hone par drawer bandh
   }, [pathname]);
 
   const handleForceLogout = () => {
@@ -212,6 +212,7 @@ export default function Navbar() {
     return `https://apitest.binnycash.com${imgSrc}`;
   };
 
+  // 🚀 USER DATA FETCH FUNCTION (Added real-time sync wrapper) 🚀
   const fetchUserData = () => {
     const token = localStorage.getItem('token');
     if (!token || token.includes('[object Object]')) return;
@@ -253,6 +254,7 @@ export default function Navbar() {
     if (isLoggedIn) {
       fetchUserData();
 
+      // 🚀 LISTEN FOR PROFILE UPDATES 🚀
       const handleProfileUpdate = () => {
         fetchUserData();
       };
@@ -732,9 +734,7 @@ export default function Navbar() {
                       >
                         <div className="absolute -top-2 right-6 w-4 h-4 bg-[#0E1015] border-t border-l border-white/10 rotate-45" />
 
-                        <div className="md:hidden flex items-center justify-center bg-white/[0.03] border border-white/5 rounded-2xl p-3.5 mb-1">
-                           <span className="text-white font-bold text-sm tracking-wide">{userName}</span>
-                        </div>
+                        {/* 🚀 OVERLAPPING PROFILE NAME REMOVED FROM HERE 🚀 */}
 
                         <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
                           <div className="flex items-center gap-3">
@@ -825,10 +825,10 @@ export default function Navbar() {
           MOBILE BOTTOM NAVIGATION (Fixed at Bottom)
       ========================================= */}
       {isLoggedIn && (
-        <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0E111E]/95 backdrop-blur-xl border-t border-white/10 z-50 flex items-center justify-around px-2 py-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-[65px]">
+        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-[#0E111E]/95 backdrop-blur-xl border-t border-white/10 z-50 flex items-center justify-around px-2 py-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-[65px]">
           <Link href="/myoffers" className="flex flex-col items-center gap-1 p-2 w-[20%]">
             <PlaySquare className={`w-5 h-5 ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Started</span>
+            <span className={`text-[10px] font-bold ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>My Offers</span>
           </Link>
           
           <Link href="/cashout" className="flex flex-col items-center gap-1 p-2 w-[20%]">
@@ -850,7 +850,7 @@ export default function Navbar() {
             <span className={`text-[10px] font-bold ${pathname === '/rewards' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Rewards</span>
           </Link>
 
-          <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center gap-1 p-2 w-[20%]">
+          <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center gap-1 p-2 w-[20%] cursor-pointer">
             <Menu className="w-5 h-5 text-[#8D89A8]" />
             <span className="text-[10px] font-bold text-[#8D89A8]">More</span>
           </button>
@@ -866,51 +866,60 @@ export default function Navbar() {
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+              className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] cursor-pointer"
             />
             
             <motion.div 
               initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="md:hidden fixed top-0 left-0 h-full w-[260px] bg-[#111319] border-r border-white/10 z-[70] flex flex-col shadow-2xl"
+              className="lg:hidden fixed top-0 left-0 h-full w-[280px] bg-[#111319] border-r border-white/10 z-[70] flex flex-col shadow-2xl"
             >
-              <div className="h-20 border-b border-white/5 flex items-center justify-between px-6 shrink-0">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-[#A66CFF] to-[#7C3AED] rounded-lg flex items-center justify-center font-black text-white">
-                    B
-                  </div>
-                  <span className="text-lg font-black text-white tracking-tight">
-                    Binny<span className="text-[#A66CFF]">Cash</span>
-                  </span>
+              {/* Premium Header */}
+              <div className="h-24 border-b border-white/5 flex items-center justify-between px-6 shrink-0 bg-gradient-to-b from-white/[0.02] to-transparent">
+                <div className="flex items-center gap-3">
+                   <img src="/logo.png" alt="BinnyCash" className="h-10 w-auto object-contain drop-shadow-md" />
+                   <div className="flex flex-col justify-center">
+                     <span className="font-black text-xl tracking-wide text-white leading-none">Binny<span className="text-[#8B5CF6]">Cash</span></span>
+                     <span className="text-[8px] text-[#00E57A] font-bold tracking-[0.2em] uppercase mt-1">Play. Earn. Dominate.</span>
+                   </div>
                 </div>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="text-[#8F95A3] hover:text-white">
-                  <X className="w-5 h-5" />
+                <button onClick={() => setIsMobileMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-[#8F95A3] hover:text-white transition-all cursor-pointer">
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
+              {/* Navigation Links */}
               <div className="flex flex-col py-6 px-4 gap-2 overflow-y-auto">
-                <Link href="/surveys" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-colors">
-                  <ClipboardCheck className="w-5 h-5" />
+                <Link href="/surveys" onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group ${pathname === '/surveys' ? 'bg-[#8B5CF6]/10 text-[#A855F7] border border-[#8B5CF6]/30 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent'}`}>
+                  <ClipboardCheck className={`w-5 h-5 ${pathname === '/surveys' ? 'text-[#A855F7]' : 'text-[#8D89A8] group-hover:text-white'}`} />
                   <span className="text-sm font-bold">Surveys</span>
                 </Link>
-                <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-colors">
-                  <Flame className="w-5 h-5" />
+
+                <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group ${pathname === '/dashboard' ? 'bg-[#8B5CF6]/10 text-[#A855F7] border border-[#8B5CF6]/30 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent'}`}>
+                  <Flame className={`w-5 h-5 ${pathname === '/dashboard' ? 'text-[#A855F7]' : 'text-[#8D89A8] group-hover:text-white'}`} />
                   <span className="text-sm font-bold">Offers</span>
                 </Link>
-                <Link href="/leaderboard" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-colors">
-                  <BarChart3 className="w-5 h-5" />
+
+                <Link href="/leaderboard" onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group ${pathname === '/leaderboard' ? 'bg-[#8B5CF6]/10 text-[#A855F7] border border-[#8B5CF6]/30 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent'}`}>
+                  <BarChart3 className={`w-5 h-5 ${pathname === '/leaderboard' ? 'text-[#A855F7]' : 'text-[#8D89A8] group-hover:text-white'}`} />
                   <span className="text-sm font-bold">Leaderboard</span>
                 </Link>
-                <Link href="/affiliate" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-colors">
-                  <Users className="w-5 h-5" />
+
+                <Link href="/affiliate" onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group ${pathname === '/affiliate' ? 'bg-[#8B5CF6]/10 text-[#A855F7] border border-[#8B5CF6]/30 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent'}`}>
+                  <Users className={`w-5 h-5 ${pathname === '/affiliate' ? 'text-[#A855F7]' : 'text-[#8D89A8] group-hover:text-white'}`} />
                   <span className="text-sm font-bold">Affiliates</span>
                 </Link>
               </div>
 
-              <div className="mt-auto p-6 border-t border-white/5">
-                <div className="bg-[#1A1725] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center">
-                  <span className="text-xs font-bold text-[#8D89A8] mb-1">Available Balance</span>
-                  <span className="text-xl font-black text-[#3DE8A0]">{isCoin ? Number(balance) * 1000 : balance}</span>
+              {/* Bottom Balance Card (CRASH FIX: Removed Hook) */}
+              <div className="mt-auto p-6 border-t border-white/5 bg-gradient-to-t from-black/20 to-transparent">
+                <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-5 flex flex-col items-center justify-center shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-[#00E57A]/10 rounded-bl-full pointer-events-none"></div>
+                  <span className="text-xs font-bold text-[#8D89A8] mb-1.5 uppercase tracking-wider">Available Balance</span>
+                  <span className="text-2xl font-black text-[#3DE8A0] drop-shadow-md">
+                    {/* 🚀 CRASH FIX: FormatPrice removed to safely match Desktop logic 🚀 */}
+                    {isCoin ? Number(balance) * 1000 : balance}
+                  </span>
                 </div>
               </div>
             </motion.div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, CheckCircle2, RotateCcw, Smartphone, ShieldCheck, Sparkles, AlertCircle, Info, ChevronRight, DollarSign, Clock, ListTodo, Headphones, ClipboardList, X } from 'lucide-react';
@@ -367,7 +367,6 @@ export default function MyOffersPage() {
     return sum + Number(val);
   }, 0);
 
-  // Parse API status & retries for details view
   const clickAllowed = offerDetails?.clickAllowed !== undefined ? offerDetails.clickAllowed : (selectedOffer?.clickAllowed !== undefined ? selectedOffer.clickAllowed : true);
   const retries = offerDetails?.retryAllow ?? selectedOffer?.retryAllow ?? 0;
 
@@ -404,6 +403,7 @@ export default function MyOffersPage() {
 
         {activeTab === 'started' && (
           <>
+            {/* 100% ORIGINAL HORIZONTAL SCROLL DESKTOP LOGIC RESTORED */}
             <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-6 -my-6 px-2 -mx-2 mb-4">
               {isLoading ? (
                 <div className="text-[#8F95A3] text-sm animate-pulse px-2">Loading offers...</div>
@@ -417,7 +417,6 @@ export default function MyOffersPage() {
                   let iconImg = item.image_url || item.offerImage || item.logo || item.preview || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.offerName || 'O')}&background=A855F7&color=fff`;
                   if (iconImg && !iconImg.startsWith('http')) iconImg = `https://apitest.binnycash.com${iconImg}`;
                   
-                  // 🔥 Random stable progress generation based on index (10% to 85%) if API value is missing
                   const progressVal = item.progress ?? item.completionPercentage ?? item.completion_percentage ?? ((idx * 37 + 23) % 75 + 10);
                   const apiStatus = item.status || 'In Progress';
                   
@@ -449,7 +448,6 @@ export default function MyOffersPage() {
                               <span className="text-white text-xs font-bold">{formatPrice(Number(item.userCredits || item.reward || 0), currency)}</span>
                               
                               <div className="flex items-center gap-1.5">
-                                {/* 🔥 Render Retries directly from API if present in list item 🔥 */}
                                 {item.retryAllow !== undefined && (
                                   <span className="text-amber-400 text-[9px] font-bold bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded flex items-center gap-1 backdrop-blur-sm">
                                     <RotateCcw className="w-2.5 h-2.5" /> {item.retryAllow} Retries
@@ -490,17 +488,19 @@ export default function MyOffersPage() {
                       <div className="w-12 h-12 border-4 border-[#A855F7]/30 border-t-[#A855F7] rounded-full animate-spin"></div>
                    </div>
                 ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                     
                     <div className="lg:col-span-5 flex flex-col gap-4">
-                      <div className="w-full aspect-[4/3] bg-[#161821] rounded-3xl border border-white/5 relative overflow-hidden flex flex-col justify-end p-6 shadow-xl group">
+                      {/* 🔥 MOBILE RESPONSIVE PADDING AND LOGO FIXES APPLIED HERE 🔥 */}
+                      <div className="w-full aspect-[4/3] bg-[#161821] rounded-2xl sm:rounded-3xl border border-white/5 relative overflow-hidden flex flex-col justify-end p-4 sm:p-6 shadow-xl group">
                         <div className="absolute inset-0 z-0">
                           <img src={rawImage} alt="bg-blur" className="w-full h-full object-cover opacity-20 blur-2xl group-hover:scale-105 transition-transform duration-700" />
                           <div className="absolute inset-0 bg-gradient-to-t from-[#111319] to-transparent"></div>
                         </div>
                         
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-36 h-36 bg-white rounded-3xl p-2 shadow-2xl">
-                          <img src={rawImage} alt={name} className="w-full h-full object-contain rounded-2xl" />
+                        {/* MOBILE LOGO OVERLAP FIX: sm:w-36 sm:h-36 aur mobile me w-24 h-24 */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-28 h-28 sm:w-36 sm:h-36 bg-white rounded-2xl sm:rounded-3xl p-1.5 sm:p-2 shadow-2xl">
+                          <img src={rawImage} alt={name} className="w-full h-full object-contain rounded-xl sm:rounded-2xl" />
                         </div>
 
                         <div className="absolute top-4 right-4 z-10 flex gap-2 opacity-80">
@@ -509,98 +509,62 @@ export default function MyOffersPage() {
 
                         <div className="relative z-20 flex items-end justify-between w-full mt-auto">
                           <div className="flex flex-col w-[70%]">
-                            <span className="text-white font-bold text-base truncate mb-1">{name}</span>
-                            <h1 className="text-2xl font-black text-white leading-none">{formatPrice(Number(rewardAmount), currency)}</h1>
+                            {/* MOBILE TITLE TEXT FIX */}
+                            <span className="text-white font-bold text-sm sm:text-base truncate mb-1">{name}</span>
+                            {/* MOBILE PRICE TEXT FIX */}
+                            <h1 className="text-xl sm:text-2xl font-black text-white leading-none">{formatPrice(Number(rewardAmount) || 0, currency)}</h1>
                           </div>
 
                           <button 
                             onClick={handlePlayClick} 
                             disabled={!clickAllowed || isProcessingClick}
-                            className={`w-12 h-12 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all shrink-0 ${!clickAllowed ? 'bg-gray-600 cursor-not-allowed opacity-50' : 'bg-[#A855F7] hover:bg-[#9333EA] cursor-pointer hover:scale-105'}`}
+                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all shrink-0 ${!clickAllowed ? 'bg-gray-600 cursor-not-allowed opacity-50' : 'bg-[#A855F7] hover:bg-[#9333EA] cursor-pointer hover:scale-105'}`}
                           >
-                            {isProcessingClick ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Play className="w-5 h-5 text-white fill-white ml-0.5" />}
+                            {isProcessingClick ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white ml-0.5" />}
                           </button>
                         </div>
                       </div>
 
+                      {/* MOBILE BUTTON PADDING FIX */}
                       <Link
                         href={`/support?category=${encodeURIComponent('Offer and Surveys')}&description=${encodeURIComponent(`Offer Name: ${name}\nOffer ID: ${offerIdForSupport}`)}`}
-                        className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow-[0_0_20px_rgba(239,68,68,0.4)] border border-red-400/20 rounded-2xl p-4 flex items-center justify-center gap-2 transition-all cursor-pointer w-full hover:scale-[1.02]"
+                        className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow-[0_0_20px_rgba(239,68,68,0.4)] border border-red-400/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-center gap-2 transition-all cursor-pointer w-full hover:scale-[1.02]"
                       >
                         <Headphones className="w-5 h-5 text-white" />
-                        <span className="text-white font-black text-[15px] tracking-wide">Support</span>
+                        <span className="text-white font-black text-[14px] sm:text-[15px] tracking-wide">Support</span>
                       </Link>
 
                       {apiError && (
-                        <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-4 rounded-2xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+                        <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-3 sm:p-4 rounded-xl sm:rounded-2xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)]">
                           {apiError}
                         </div>
                       )}
                     </div>
 
-                    <div className="lg:col-span-7 flex flex-col gap-5 pb-8">
+                    <div className="lg:col-span-7 flex flex-col gap-4 sm:gap-5 pb-8">
                       
-                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-sm">
                          <div className="flex flex-col items-center flex-1 border-r border-white/5">
-                            <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Click Status</span>
-                            <span className={`text-sm font-black ${clickAllowed ? 'text-[#00E57A]' : 'text-red-500'}`}>{clickAllowed ? 'Allowed' : 'Blocked'}</span>
+                            <span className="text-[9px] sm:text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Click Status</span>
+                            <span className={`text-xs sm:text-sm font-black ${clickAllowed ? 'text-[#00E57A]' : 'text-red-500'}`}>{clickAllowed ? 'Allowed' : 'Blocked'}</span>
                          </div>
                          <div className="flex flex-col items-center flex-1">
-                            <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Retries Left</span>
-                            <span className="text-sm font-black text-amber-400 flex items-center gap-1.5">
-                              <RotateCcw className="w-4 h-4" /> {retries}
+                            <span className="text-[9px] sm:text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Retries Left</span>
+                            <span className="text-xs sm:text-sm font-black text-amber-400 flex items-center gap-1.5">
+                              <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {retries}
                             </span>
                          </div>
                       </div>
 
-                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-6">
+                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-4 sm:p-6">
                          <h4 className="text-white font-bold text-sm mb-2">Requirements</h4>
-                         <p className="text-[#8F95A3] text-sm leading-relaxed">{requirements}</p>
+                         <p className="text-[#8F95A3] text-xs sm:text-sm leading-relaxed">{requirements}</p>
                       </div>
 
-                      <div className="border-b-2 border-[#8B5CF6] pb-2 mt-2 w-fit">
-                         <span className="text-[#8B5CF6] font-bold text-sm">Details</span>
-                      </div>
-
-                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-6">
+                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-4 sm:p-6">
                          <h4 className="text-white font-bold text-sm mb-2">Description</h4>
-                         <p className="text-[#8F95A3] text-sm leading-relaxed whitespace-pre-wrap">{description}</p>
+                         <p className="text-[#8F95A3] text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{description}</p>
                       </div>
-
-                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
-                          <RotateCcw className="w-5 h-5 text-[#8B5CF6]" />
-                        </div>
-                        <div className="flex flex-col">
-                          <h4 className="text-white font-bold text-sm">Task Order Flexibility</h4>
-                          <p className="text-[#8F95A3] text-xs mt-1">Tasks can be completed in any order. There is no fixed sequence.</p>
-                        </div>
-                      </div>
-
-                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
-                           <Sparkles className="w-5 h-5 text-[#8B5CF6]" />
-                        </div>
-                        <div className="flex flex-col">
-                          <h4 className="text-white font-bold text-sm">New Users Only</h4>
-                          <p className="text-[#8F95A3] text-xs mt-1">This offer is valid only for users who have not installed the app before.</p>
-                        </div>
-                      </div>
-
-                      <div 
-                        onClick={() => setIsPayoutModalOpen(true)}
-                        className="bg-[#161821] hover:bg-[#1A1C24] border border-white/5 rounded-2xl p-5 flex items-center gap-4 cursor-pointer transition-colors group"
-                      >
-                        <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
-                          <Clock className="w-5 h-5 text-[#8B5CF6]" />
-                        </div>
-                        <div className="flex flex-col">
-                          <h4 className="text-white font-bold text-sm group-hover:text-[#8B5CF6] transition-colors">Why Does Payout Take Time?</h4>
-                          <p className="text-[#8F95A3] text-xs mt-1">Payouts are processed after the offer is verified by our team. It may take some time.</p>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-[#8F95A3] ml-auto group-hover:text-white transition-colors" />
-                      </div>
-
                     </div>
                   </div>
                 )}
@@ -609,6 +573,7 @@ export default function MyOffersPage() {
           </>
         )}
 
+        {/* 100% ORIGINAL COMPLETED OFFERS VERTICAL LIST */}
         {activeTab === 'completed' && (
           <div className="flex flex-col gap-3 w-full max-w-4xl">
             {isLoading ? (
@@ -648,7 +613,7 @@ export default function MyOffersPage() {
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0 pl-4">
                       <span className="text-[#00E57A] font-black text-lg md:text-xl leading-none">
-                        {formatPrice(Number(rew), currency)}
+                        {formatPrice(Number(rew) || 0, currency)}
                       </span>
                       <div className="flex items-center gap-1 bg-[#00E57A]/10 border border-[#00E57A]/20 px-2 py-0.5 rounded-full">
                         <CheckCircle2 className="w-3 h-3 text-[#00E57A]" />

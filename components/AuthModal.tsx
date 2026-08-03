@@ -607,7 +607,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
               </p>
               <div className="text-[12px] leading-relaxed text-[#8F95A3]">
                 <p className="mb-2">
-                  By creating an account, you agree to our <a href="#" className="text-[#8B5CF6] hover:underline transition-colors">Terms of Service</a> and <a href="#" className="text-[#8B5CF6] hover:underline transition-colors">Privacy Policy</a>
+                  By creating an account, you agree to our <a href="/terms" className="text-[#8B5CF6] hover:underline transition-colors">Terms of Service</a> and <a href="/privacy" className="text-[#8B5CF6] hover:underline transition-colors">Privacy Policy</a>
                 </p>
                 <p>Creating multiple accounts, using VPNs, emulators, or misusing offers is strictly prohibited.</p>
               </div>
