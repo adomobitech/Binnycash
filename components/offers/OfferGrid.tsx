@@ -22,20 +22,20 @@ export default function OfferGrid({ offers, isLoading, selectedDevices, onSelect
           <span className="text-[#8B5CF6]">🔥</span> All Offers
         </h1>
         
-        {/* 🔥 MOBILE PAR HIDE, DESKTOP PAR SHOW 🔥 */}
         <div className="hidden md:block">
           <OfferFilters selectedDevices={selectedDevices} onSelectDevice={onSelectDevice} />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 min-[450px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3 sm:gap-4 lg:gap-5">
-          {[...Array(14)].map((_, i) => (
-            <div key={i} className="h-48 bg-[#111319] animate-pulse rounded-[16px] border border-white/5"></div>
+        <div className="grid grid-cols-3 min-[450px]:grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-8 xl:grid-cols-9 2xl:grid-cols-10 gap-2 sm:gap-3 lg:gap-3">
+          {/* 🔥 COMMENT MOVED INSIDE DIV 🔥 */}
+          {[...Array(20)].map((_, i) => (
+            <div key={i} className="aspect-[4/5] w-full bg-[#111319] animate-pulse rounded-[12px] border border-white/5"></div>
           ))}
         </div>
       ) : filtered.length > 0 ? (
-        <div className="grid grid-cols-2 min-[450px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3 sm:gap-4 lg:gap-5">
+        <div className="grid grid-cols-3 min-[450px]:grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-8 xl:grid-cols-9 2xl:grid-cols-10 gap-2 sm:gap-3 lg:gap-3">
           {filtered.map((offer, index) => (
             <OfferCard key={offer._id || offer.id || index} offer={offer} />
           ))}

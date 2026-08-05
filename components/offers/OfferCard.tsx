@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Star, CheckCircle2, AlertCircle, Smartphone, ShieldCheck, Sparkles, PlayCircle, RotateCcw } from "lucide-react";
+import { X, Play, Star, CheckCircle2, AlertCircle, Smartphone, ShieldCheck, Sparkles, PlayCircle, RotateCcw, Headphones, ChevronRight } from "lucide-react";
 import SurveyModal from '@/components/surveys/SurveyModal';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency'; 
+import Link from 'next/link';
 
 interface OfferCardProps {
   offer: any;
@@ -12,25 +13,16 @@ interface OfferCardProps {
   isSurveyCard?: boolean; 
 }
 
-const All5DevicesIcon = () => (
-  <div className="flex items-center gap-1 opacity-90 px-0.5">
-    <svg className="w-2.5 h-2.5 text-[#A4C639]" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
-    <svg className="w-2.5 h-2.5 text-zinc-200" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.87 6.18c.61-.75 1.02-1.8 0.91-2.85-.9 0-1.99.6-2.62 1.35-.57.67-1.07 1.74-.93 2.78 1.01.08 2.03-.53 2.64-1.28z"/></svg>
-    <svg className="w-[10px] h-[10px] text-[#00A4EF]" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
-    <svg className="w-2.5 h-2.5 text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="12" rx="2" ry="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line></svg>
-  </div>
-);
-
 const AndroidIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[13px] h-[13px] fill-[#A4C639]"><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
+  <svg viewBox="0 0 24 24" className="w-[11px] h-[11px] fill-[#A4C639]"><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
 );
 
 const AppleIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[13px] h-[13px] fill-white"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
+  <svg viewBox="0 0 24 24" className="w-[11px] h-[11px] fill-white"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
 );
 
 const WindowsIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[13px] h-[13px] fill-[#00A4EF]"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
+  <svg viewBox="0 0 24 24" className="w-[11px] h-[11px] fill-[#00A4EF]"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
 );
 
 function getUserId(): string {
@@ -52,22 +44,48 @@ function getUserId(): string {
   return '';
 }
 
+const getCleanString = (val: any) => {
+  const s = String(val || '').trim();
+  if (s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined' || s === '') return '';
+  return s;
+};
+
 export const DeviceIcon = ({ offer }: { offer: any }) => {
   const rawBrowsers = String(offer?.browsers || offer?.platform || offer?.os || offer?.device_type || '').toLowerCase();
-  if (rawBrowsers === 'all' || rawBrowsers === 'global' || rawBrowsers === '') return <All5DevicesIcon />;
+  
   const isAndroid = rawBrowsers.includes('android');
   const isWindows = rawBrowsers.includes('windows') || rawBrowsers.includes('win') || rawBrowsers.includes('pc') || rawBrowsers.includes('desktop');
-  const isMac = rawBrowsers.includes('mac') || rawBrowsers.includes('osx');
-  const isIpad = rawBrowsers.includes('ipad');
-  const isIos = rawBrowsers.includes('ios') || rawBrowsers.includes('iphone');
+  const isIos = rawBrowsers.includes('ios') || rawBrowsers.includes('iphone') || rawBrowsers.includes('ipad');
 
-  if (isAndroid) return <AndroidIcon />;
-  if (isWindows) return <WindowsIcon />;
-  if (isMac) return <svg className="w-[13px] h-[13px] text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="12" rx="2" ry="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line></svg>;
-  if (isIpad) return <svg className="w-[13px] h-[13px] text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>;
-  if (isIos) return <AppleIcon />;
-  return <All5DevicesIcon />;
+  if (isAndroid && !isWindows && !isIos) return <AndroidIcon />;
+  if (isWindows && !isAndroid && !isIos) return <WindowsIcon />;
+  if (isIos && !isAndroid && !isWindows) return <AppleIcon />;
+  
+  return (
+    <div className="flex items-center gap-0.5 opacity-90">
+      <AndroidIcon/>
+      <AppleIcon/>
+      <WindowsIcon/>
+    </div>
+  );
 };
+
+function resolveTargetPlatformsString(data: any): string {
+  if (!data) return '';
+  const candidateKeys = [
+    'browsers', 'platform', 'platforms', 'os', 'device_type', 'deviceType',
+    'devices', 'device', 'supported_os', 'supportedOS', 'target_os', 'targetOS',
+    'operating_system', 'operatingSystem', 'os_type', 'osType', 'os_name', 'osName'
+  ];
+  const parts: string[] = [];
+  for (const key of candidateKeys) {
+    const val = data?.[key];
+    if (val === undefined || val === null) continue;
+    if (Array.isArray(val)) parts.push(val.join(' '));
+    else parts.push(String(val));
+  }
+  return parts.join(' ').toLowerCase();
+}
 
 function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   const currency = useCurrency();
@@ -78,6 +96,9 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   const [targetDeviceName, setTargetDeviceName] = useState<string>('Android');
   const [currentOS, setCurrentOS] = useState<string>('Windows');
   const [apiError, setApiError] = useState<string | null>(null); 
+  
+  const [activeInnerTab, setActiveInnerTab] = useState<'rewards' | 'details'>('rewards');
+  const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -134,6 +155,12 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen, offer]);
 
+  useEffect(() => {
+    const evs = (details?.offer_events || offer?.offer_events || details?.events || offer?.events || []);
+    if (evs.length > 0) setActiveInnerTab('rewards');
+    else setActiveInnerTab('details');
+  }, [details, offer]);
+
   const handlePlayClick = async () => {
     setIsProcessingClick(true);
     setApiError(null);
@@ -151,10 +178,9 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     const isOfferAndroid = targetPlatforms.includes('android');
     const isOfferIos = targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad');
     const isOfferWindows = targetPlatforms.includes('windows') || targetPlatforms.includes('desktop') || targetPlatforms.includes('pc') || targetPlatforms.includes('win');
-    const isOfferMac = targetPlatforms.includes('mac') || targetPlatforms.includes('osx');
 
-    const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isOfferMac || isUniversal);
-    const isStrictlyDesktopOffer = (isOfferWindows || isOfferMac) && !(isOfferAndroid || isOfferIos || isUniversal);
+    const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isUniversal);
+    const isStrictlyDesktopOffer = isOfferWindows && !(isOfferAndroid || isOfferIos || isUniversal);
 
     let showQR = false;
     let generateQRFor = 'Mobile Device';
@@ -166,7 +192,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       else generateQRFor = 'Android or iOS';
     } 
     else if (isMobile && isStrictlyDesktopOffer) {
-      setApiError(`This offer is exclusively for ${isOfferWindows && !isOfferMac ? 'Windows' : isOfferMac && !isOfferWindows ? 'Mac' : 'Desktop'} PCs. Please complete this on your computer.`);
+      setApiError(`This offer is exclusively for Windows PCs. Please complete this on your computer.`);
       setIsProcessingClick(false);
       return; 
     }
@@ -267,15 +293,20 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   if (rawNetworkLogo && !rawNetworkLogo.startsWith('http')) rawNetworkLogo = `https://apitest.binnycash.com${rawNetworkLogo}`;
 
   const title = currentData?.offerName || currentData?.title || 'Offer Details';
-  
+  const offerIdForSupport = currentData?.id || currentData?._id || currentData?.offer_id || '';
   const rewardAmount = currentData?.userCredits ?? currentData?.reward ?? currentData?.payout ?? 0;
   const formattedReward = formatPrice(Number(rewardAmount) || 0, currency);
 
   const networkName = currentData?.network || currentData?.provider || 'BinnyCash';
   const category = currentData?.categories || currentData?.category || 'All';
-  const requirements = currentData?.offer_requirements || currentData?.requirements || "CPA offer";
-  const description = currentData?.description || "Complete the task as instructed to receive your reward.";
-  const events = currentData?.offer_events || [];
+  
+  const descCurrent = getCleanString(currentData?.description);
+  const description = descCurrent || "Complete the task as instructed to receive your reward.";
+
+  const reqCurrent = getCleanString(currentData?.offer_requirements) || getCleanString(currentData?.requirements);
+  const requirements = reqCurrent || "Install and Launch to earn reward.";
+
+  const events = currentData?.offer_events || currentData?.events || [];
 
   return (
     <AnimatePresence>
@@ -349,17 +380,16 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
             animate={{ opacity: 1, scale: 1, y: 0 }} 
             exit={{ opacity: 0, scale: 0.95, y: 20 }} 
             transition={{ duration: 0.2 }}
-            className={`w-full max-w-[500px] rounded-[28px] max-h-[90vh] overflow-y-auto no-scrollbar relative border border-white/10 shadow-2xl bg-[#111319]`}
+            className={`w-full max-w-[400px] rounded-[24px] max-h-[90vh] overflow-y-auto custom-scrollbar relative border border-white/10 shadow-2xl bg-[#0B0D14] flex flex-col`}
           >
-            <button 
-              onClick={onClose}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-[#8F95A3] hover:text-white transition-colors border border-white/5 cursor-pointer z-50"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="sticky top-0 bg-[#111319]/95 backdrop-blur-md z-20 flex items-center p-4 border-b border-white/5">
-              <h2 className="text-white font-black text-base truncate pr-10">{title}</h2>
+            <div className="sticky top-0 bg-[#0B0D14]/95 backdrop-blur-md z-20 px-5 pt-5 pb-3 flex items-center justify-between">
+              <h2 className="text-white font-black text-lg truncate pr-4">{title}</h2>
+              <button 
+                onClick={onClose}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-[#8F95A3] hover:text-white transition-colors cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             {isLoading ? (
@@ -368,96 +398,195 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                 <p className="text-[#8F95A3] text-sm font-bold">Loading offer details...</p>
               </div>
             ) : (
-              <div className="p-4 sm:p-5 flex flex-col gap-5">
-                <div className="w-full h-[180px] rounded-xl overflow-hidden relative flex items-center justify-center bg-[#1A1C24]">
-                  <img src={rawImage} alt="blur-bg" className="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110" />
-                  <img src={rawImage} alt={title} className="w-[100px] h-[100px] rounded-2xl relative z-10 shadow-2xl object-cover" />
-                  <div className="absolute top-3 right-3 z-10 w-8 h-8 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white">
+              <div className="px-5 pb-5 flex flex-col gap-4 mt-1">
+                
+                <div className="w-full h-[150px] rounded-2xl overflow-hidden relative flex items-center justify-center bg-[#1A1C24] shrink-0 border border-white/5">
+                  <img src={rawImage} className="absolute inset-0 w-full h-full object-cover blur-[30px] opacity-40 scale-110" alt="blur-bg" />
+                  
+                  <div className="absolute top-2.5 right-2.5 z-10 flex items-center justify-center text-white opacity-80">
                     <DeviceIcon offer={currentData} />
                   </div>
+                  
+                  <img src={rawImage} alt={title} className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl relative z-10 shadow-2xl object-cover" />
                 </div>
 
                 <div className="text-center">
-                  <h1 className="text-3xl font-black text-white drop-shadow-md">{formattedReward}</h1>
+                  <h1 className="text-2xl font-black text-[#A855F7] drop-shadow-md">{formattedReward}</h1>
                 </div>
 
-                <div className="grid grid-cols-4 divide-x divide-white/5 py-3 border-y border-white/5">
+                <div className="grid grid-cols-4 divide-x divide-white/5 py-1 mb-1">
                   <div className="flex flex-col items-center justify-center gap-1">
-                    <span className="text-white font-bold text-xs truncate max-w-[90px]">{currentData?.status || 'Active'}</span>
-                    <span className="text-[#8F95A3] text-[10px] font-medium uppercase tracking-wider">Status</span>
+                    <span className="text-white font-bold text-[10px] truncate max-w-[90px]">{currentData?.status || 'Not Started'}</span>
+                    <span className="text-[#8F95A3] text-[9px] font-medium uppercase tracking-wider">Status</span>
                   </div>
                   <div className="flex flex-col items-center justify-center gap-1">
                     <div className="flex items-center gap-0.5">
-                      {[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 text-amber-400 fill-amber-400" />)}
+                      {[1,2,3].map(i => <Star key={i} className="w-2 h-2 text-amber-400 fill-amber-400" />)}
+                      {[4,5].map(i => <Star key={i} className="w-2 h-2 text-gray-600 fill-gray-600" />)}
                     </div>
-                    <span className="text-[#8F95A3] text-[10px] font-medium uppercase tracking-wider">Popularity</span>
+                    <span className="text-[#8F95A3] text-[9px] font-medium uppercase tracking-wider">Popularity</span>
                   </div>
                   <div className="flex flex-col items-center justify-center gap-1">
-                    <span className="text-white font-bold text-xs truncate max-w-[90px] px-1 uppercase">{category}</span>
-                    <span className="text-[#8F95A3] text-[10px] font-medium uppercase tracking-wider">Category</span>
+                    <span className="text-white font-bold text-[10px] truncate max-w-[90px] px-1 capitalize">{category}</span>
+                    <span className="text-[#8F95A3] text-[9px] font-medium uppercase tracking-wider">Category</span>
                   </div>
                   <div className="flex flex-col items-center justify-center gap-1">
                     {rawNetworkLogo ? (
-                      <img src={rawNetworkLogo} alt={networkName} className="h-4 object-contain mb-0.5 max-w-[70px]" onError={(e: any) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'block'; }} />
+                      <img src={rawNetworkLogo} alt={networkName} className="h-3.5 object-contain mb-0.5 max-w-[70px]" onError={(e: any) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'block'; }} />
                     ) : null}
-                    <span className="text-white font-bold text-xs truncate max-w-[80px]" style={{ display: rawNetworkLogo ? 'none' : 'block' }}>{networkName}</span>
-                    <span className="text-[#8F95A3] text-[10px] font-medium uppercase tracking-wider">Provider</span>
+                    <span className="text-white font-bold text-[10px] truncate max-w-[80px]" style={{ display: rawNetworkLogo ? 'none' : 'block' }}>{networkName}</span>
+                    <span className="text-[#8F95A3] text-[9px] font-medium uppercase tracking-wider">Provider</span>
                   </div>
                 </div>
 
+                <button 
+                  onClick={handlePlayClick} disabled={isProcessingClick}
+                  className="w-full py-3 rounded-[12px] bg-[#A855F7] hover:bg-[#9333EA] shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-all flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-70"
+                >
+                  {isProcessingClick ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <>
+                    <Play className="w-4 h-4 text-white fill-white transition-transform" />
+                    <span className="text-white font-black text-[14px]">Play & Earn</span>
+                  </>}
+                </button>
+
                 {apiError && (
-                  <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-3 rounded-xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+                  <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-3 rounded-xl text-center animate-pulse">
                     {apiError}
                   </div>
                 )}
 
-                {/* 🔥 ACTION NOT ALLOWED REMOVED - BUTTON IS ALWAYS CLICKABLE 🔥 */}
-                <button 
-                  onClick={handlePlayClick} disabled={isProcessingClick}
-                  className="w-full py-4 rounded-xl bg-[#A855F7] hover:bg-[#9333EA] shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-all flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {isProcessingClick ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <>
-                    <PlayCircle className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
-                    <span className="text-white font-black text-base">Play & Earn {formattedReward}</span>
-                  </>}
-                </button>
-
-                <div className="bg-[#1A1C24] border border-white/5 rounded-xl p-4 flex flex-col gap-1">
-                  <h3 className="text-white font-bold text-sm">Requirements</h3>
-                  <p className="text-[#8F95A3] text-xs leading-relaxed">{requirements}</p>
+                <div className="bg-[#161821] border border-white/5 rounded-2xl p-4 mt-1">
+                   <h4 className="text-white font-bold text-[12px] mb-1">Requirements</h4>
+                   <p className="text-[#8F95A3] text-[11px] leading-relaxed">{requirements}</p>
                 </div>
 
-                <div className="flex flex-col gap-3 mt-1">
-                  <div className="flex flex-col">
-                    <h3 className="text-white font-black text-sm mb-1">Details</h3>
-                    <div className="w-8 h-0.5 bg-[#A855F7] rounded-full mb-3"></div>
-                    <div className="bg-[#1A1C24] border border-white/5 rounded-xl p-4 flex flex-col gap-4">
-                      <div className="flex flex-col gap-1">
-                        <h4 className="text-white font-bold text-sm">Description</h4>
-                        <p className="text-[#8F95A3] text-xs leading-relaxed whitespace-pre-wrap">{description}</p>
-                      </div>
-                      {events.length > 0 && (
-                        <div className="flex flex-col gap-2 pt-2 border-t border-white/5">
-                          <h4 className="text-white font-bold text-xs uppercase tracking-wider text-[#A855F7]">Milestone Events</h4>
-                          <div className="flex flex-col gap-2">
-                            {events.map((ev: any, idx: number) => (
-                              <div key={ev._id || idx} className="flex items-center justify-between bg-white/5 p-2.5 rounded-lg border border-white/5">
-                                <div className="flex items-center gap-2">
-                                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                                  <span className="text-white text-xs font-medium">{ev.event_name}</span>
-                                </div>
-                                <span className="text-emerald-400 font-black text-xs">+{formatPrice(Number(ev.event_payout) || 0, currency)}</span>
+                <div className="flex flex-col gap-3">
+                  {events && events.length > 0 && (
+                    <div className="flex items-center gap-5 border-b border-white/10 px-2 mt-1">
+                      <button
+                        onClick={() => setActiveInnerTab('rewards')}
+                        className={`pb-2.5 text-[12px] font-bold transition-all relative ${activeInnerTab === 'rewards' ? 'text-[#00E57A]' : 'text-[#8F95A3] hover:text-white'}`}
+                      >
+                        Rewards
+                        {activeInnerTab === 'rewards' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-[#00E57A] rounded-t-full shadow-[0_0_8px_rgba(0,229,122,0.5)]"></span>}
+                      </button>
+                      <button
+                        onClick={() => setActiveInnerTab('details')}
+                        className={`pb-2.5 text-[12px] font-bold transition-all relative ${activeInnerTab === 'details' ? 'text-[#8B5CF6]' : 'text-[#8F95A3] hover:text-white'}`}
+                      >
+                        Details
+                        {activeInnerTab === 'details' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-[#8B5CF6] rounded-t-full shadow-[0_0_8px_rgba(139,92,246,0.5)]"></span>}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="w-full">
+                    {/* Rewards Tab Content */}
+                    {activeInnerTab === 'rewards' && events && events.length > 0 && (
+                      <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+                        {events.map((ev: any, idx: number) => (
+                          <div key={ev._id || idx} className="flex items-center justify-between bg-[#1A1C24] p-3 rounded-xl border border-white/5">
+                            <div className="flex items-center gap-2.5 pr-2">
+                              <div className="w-4 h-4 rounded-full bg-[#00E57A]/10 flex items-center justify-center shrink-0">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-[#00E57A]" />
                               </div>
-                            ))}
+                              <span className="text-white text-[11px] font-medium leading-tight">{ev.event_name}</span>
+                            </div>
+                            <span className="text-[#00E57A] font-black text-[12px] shrink-0 pl-1">+{formatPrice(Number(ev.event_payout) || 0, currency)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Details Tab Content */}
+                    {activeInnerTab === 'details' && (
+                      <div className="flex flex-col gap-2.5 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
+                        <div className="bg-[#1A1C24] border border-white/5 rounded-2xl p-4">
+                           <h4 className="text-white font-bold text-[12px] mb-1">Description</h4>
+                           <p className="text-[#8F95A3] text-[11px] leading-relaxed whitespace-pre-wrap">{description}</p>
+                        </div>
+
+                        <div className="bg-[#1A1C24] border border-white/5 rounded-2xl p-3.5 flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                            <RotateCcw className="w-3.5 h-3.5 text-[#8B5CF6]" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-white font-bold text-[12px]">Task Order Flexibility</span>
+                            <span className="text-[#8F95A3] text-[10px] leading-tight mt-0.5">Tasks can be completed in any order.</span>
                           </div>
                         </div>
-                      )}
-                    </div>
+
+                        <div className="bg-[#1A1C24] border border-white/5 rounded-2xl p-3.5 flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                            <Smartphone className="w-3.5 h-3.5 text-[#8B5CF6]" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-white font-bold text-[12px]">New Users Only</span>
+                            <span className="text-[#8F95A3] text-[10px] leading-tight mt-0.5">Valid only for users who haven't installed this before.</span>
+                          </div>
+                        </div>
+
+                        <div onClick={() => setIsPayoutModalOpen(true)} className="bg-[#1A1C24] hover:bg-[#252836] transition-colors border border-white/5 rounded-2xl p-3.5 flex items-center justify-between cursor-pointer group mb-2">
+                          <div className="flex flex-col">
+                            <span className="text-white font-bold text-[12px]">Why Does Payout Take Time?</span>
+                            <span className="text-[#8F95A3] text-[10px] mt-0.5">Depends on offer type and checks...</span>
+                          </div>
+                          <ChevronRight className="w-3.5 h-3.5 text-[#8F95A3] group-hover:text-white transition-colors shrink-0" />
+                        </div>
+                        
+                        <Link
+                          href={`/support?category=${encodeURIComponent('Offer and Surveys')}&description=${encodeURIComponent(`Offer Name: ${title}\nOffer ID: ${offerIdForSupport}`)}`}
+                          className="bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-2xl p-3.5 flex items-center justify-center gap-2 transition-all cursor-pointer w-full hover:scale-[1.02] mt-1"
+                        >
+                          <Headphones className="w-4 h-4 text-[#8F95A3]" />
+                          <span className="text-white font-bold text-[13px] tracking-wide">Contact Support</span>
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
+
               </div>
             )}
+            
+            <style dangerouslySetInnerHTML={{__html: `
+              .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
+              .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+              .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+              .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
+            `}} />
           </motion.div>
+        )}
+
+        {/* 🔥 PAYOUT MODAL POPUP 🔥 */}
+        {isPayoutModalOpen && (
+          <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsPayoutModalOpen(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm cursor-pointer"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ duration: 0.3 }}
+              className="relative w-full max-w-[400px] p-6 flex flex-col bg-[#161821] border border-white/10 rounded-[20px] shadow-2xl z-10"
+            >
+              <button onClick={() => setIsPayoutModalOpen(false)} className="absolute top-4 right-4 text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+              
+              <h2 className="text-[17px] font-black text-white mb-3 text-center">Why Does Payout Take Time??</h2>
+              
+              <p className="text-[#A0A5B1] text-[13px] leading-relaxed mb-5 text-left">
+                Payout time depends on the type of offer you complete. Some tasks need verification from our partners, which may take a little longer. We also review certain activities to make sure all terms are followed. We always try to process rewards quickly, but sometimes delays happen due to external checks beyond our control.
+              </p>
+              
+              <div className="flex justify-end w-full">
+                <button onClick={() => setIsPayoutModalOpen(false)} className="bg-[#A855F7] hover:bg-[#9333EA] text-white text-[13px] font-bold py-2 px-6 rounded-[8px] transition-colors shadow-lg cursor-pointer">
+                  Got it
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </div>
     </AnimatePresence>
@@ -495,15 +624,25 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
         onClick={handleCardClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="relative w-full h-full bg-[#161821] border border-white/5 rounded-[16px] p-2.5 sm:p-3 flex flex-col cursor-pointer overflow-hidden group transition-all duration-200 hover:border-[#8B5CF6]/50 shadow-sm hover:shadow-[0_8px_20px_rgba(139,92,246,0.15)]"
+        // 🔥 COMPACT CARD DESIGN 🔥
+        className="relative w-full h-full bg-[#15171E] border border-white/5 rounded-[12px] p-2 flex flex-col cursor-pointer overflow-hidden group transition-all duration-200 hover:border-[#8B5CF6]/50 shadow-sm hover:shadow-[0_8px_20px_rgba(139,92,246,0.15)]"
       >
-        <div className="w-full aspect-square bg-[#1A1C24] rounded-xl overflow-hidden mb-2.5 shrink-0 shadow-sm border border-white/5 relative">
+        <div className="w-full aspect-square bg-[#1A1C24] rounded-[8px] overflow-hidden mb-2 relative shrink-0 shadow-inner">
           
           <img 
             src={rawImage} 
             alt={title} 
-            className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-out ${
-              isHovered ? 'scale-[1.5] blur-[25px] opacity-80' : 'scale-100 blur-0 opacity-100'
+            className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-out z-10 ${
+              isHovered ? 'opacity-0 scale-110' : 'opacity-100 scale-100'
+            }`} 
+          />
+          
+          {/* 🔥 HIGH BLUR IMAGE ON HOVER 🔥 */}
+          <img 
+            src={rawImage} 
+            alt={`${title}-blur`} 
+            className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-out z-0 ${
+              isHovered ? 'opacity-100 blur-[30px] scale-[1.5]' : 'opacity-0 blur-0 scale-100'
             }`} 
           />
           
@@ -513,8 +652,8 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="absolute inset-0 z-20 flex flex-col items-center justify-center overflow-hidden bg-black/20 backdrop-blur-[16px]"
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0 z-20 flex flex-col items-center justify-center overflow-hidden bg-black/40 backdrop-blur-[4px]"
               >
                 <motion.div 
                   initial={{ scale: 0.8, y: 5 }}
@@ -523,10 +662,11 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   className="relative z-30 flex flex-col items-center pointer-events-none"
                 >
-                  <div className="w-14 h-14 rounded-full bg-[#A855F7] flex items-center justify-center mb-3 shadow-[0_0_30px_rgba(168,85,247,0.6)]">
-                    <Play className="w-6 h-6 text-white fill-white ml-1" />
+                  <div className="w-8 h-8 rounded-full bg-[#A855F7] flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.6)]">
+                    <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
                   </div>
-                  <span className="text-white font-black text-[16px] tracking-wide drop-shadow-md">
+                  {/* 🔥 RESTORED "START OFFER" TEXT 🔥 */}
+                  <span className="text-white font-black text-[10px] tracking-wide mt-1.5 drop-shadow-md">
                     {isStrictlySurvey ? 'Start Survey' : 'Start Offer'}
                   </span>
                 </motion.div>
@@ -535,13 +675,13 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
           </AnimatePresence>
         </div>
 
-        <div className="flex flex-col flex-1 px-1">
-          <h3 className="text-white font-bold text-[14px] sm:text-[15px] leading-tight line-clamp-1">{title}</h3>
-          <span className="text-[#9CA3AF] text-[11px] sm:text-[12px] font-medium truncate mt-0.5">{subtitle}</span>
+        <div className="flex flex-col flex-1 px-0.5">
+          <h3 className="text-white font-bold text-[12px] leading-tight line-clamp-1">{title}</h3>
+          <span className="text-[#8F95A3] text-[10px] font-medium truncate mt-0.5 lowercase">{subtitle}</span>
           
-          <div className="mt-auto pt-3 pb-0.5 flex items-center justify-between">
-            <span className="text-[#A855F7] font-black text-[14px] sm:text-[15px] drop-shadow-sm">{formattedReward}</span>
-            <div className="opacity-80"><DeviceIcon offer={offer} /></div>
+          <div className="mt-auto pt-1.5 flex items-center justify-between">
+            <span className="text-[#A855F7] font-black text-[12px] sm:text-[13px] drop-shadow-sm">{formattedReward}</span>
+            <div className="opacity-70"><DeviceIcon offer={offer} /></div>
           </div>
         </div>
       </div>

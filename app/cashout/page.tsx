@@ -409,7 +409,7 @@ export default function CashoutPage() {
       const token = localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 
-      const resEarning = await fetch('https://apitest.binnycash.com/api/user/wallet/total-earning', { method: 'GET', headers });
+      const resEarning = await fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', { method: 'GET', headers });
       const jsonEarning = await resEarning.json();
       if (jsonEarning.code === 200 && jsonEarning.data) setTotalEarning(jsonEarning.data);
 

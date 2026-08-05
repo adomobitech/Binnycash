@@ -178,7 +178,7 @@ export default function Navbar() {
       const token = localStorage.getItem('token');
       if (token && token !== 'undefined' && !token.includes('[object Object]')) {
         setIsLoggedIn(true);
-        fetch('https://apitest.binnycash.com/api/user/wallet/total-earning', {
+        fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         })

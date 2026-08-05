@@ -175,7 +175,7 @@ export default function DashboardPage() {
       )}
 
       {/* 🚀 Page padding top/bottom reduced */}
-      <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10">
+      <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10 custom-scrollbar pb-24 sm:pb-8">
         
         {/* 🚀 Margin Bottom reduced */}
         <div className="w-full mb-4">
@@ -190,13 +190,24 @@ export default function DashboardPage() {
           transition={{ duration: 0.6 }}
           className="flex flex-col gap-8" /* 🚀 Gap between sliders reduced from 12 to 8 */
         >
-          <div id="featured-offers">
-            <OfferSlider offers={offers} isLoading={isLoadingOffers} selectedDevices={selectedDevices} onSelectDevice={handleSelectDevice} />
-          </div>
+          {/* 🔥 CONDITIONAL RENDERING ADDED 🔥 */}
+          {(isLoadingOffers || offers.length > 0) && (
+            <div id="featured-offers">
+              <OfferSlider offers={offers} isLoading={isLoadingOffers} selectedDevices={selectedDevices} onSelectDevice={handleSelectDevice} />
+            </div>
+          )}
           
-          <SurveySlider surveys={surveys} isLoading={isLoadingSurveys} />
-          <OfferwallSlider offerwalls={offerwalls} isLoading={isLoadingOfferwalls} />
-          <SurveywallSlider surveywalls={surveywalls} isLoading={isLoadingSurveywalls} />
+          {(isLoadingSurveys || surveys.length > 0) && (
+            <SurveySlider surveys={surveys} isLoading={isLoadingSurveys} />
+          )}
+
+          {(isLoadingOfferwalls || offerwalls.length > 0) && (
+            <OfferwallSlider offerwalls={offerwalls} isLoading={isLoadingOfferwalls} />
+          )}
+
+          {(isLoadingSurveywalls || surveywalls.length > 0) && (
+            <SurveywallSlider surveywalls={surveywalls} isLoading={isLoadingSurveywalls} />
+          )}
         </motion.div>
       </main>
     </div>

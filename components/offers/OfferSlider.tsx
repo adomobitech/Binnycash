@@ -84,7 +84,6 @@ export default function OfferSlider({
           <p className="text-[#8F95A3] text-xs font-medium">Complete offers and earn exciting rewards.</p>
         </div>
 
-        {/* 🔥 MOBILE PAR HIDE, DESKTOP PAR SHOW 🔥 */}
         <div className="hidden lg:flex flex-1 justify-center">
           <OfferFilters selectedDevices={selectedDevices} onSelectDevice={handleDeviceSelect} />
         </div>
@@ -117,20 +116,21 @@ export default function OfferSlider({
 
       <div className="relative group">
         {isLoading ? (
-          <div className="flex gap-3 sm:gap-4 overflow-hidden py-1">
-            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <div key={i} className="h-[210px] w-[145px] sm:w-[165px] lg:w-[175px] bg-[#161821] animate-pulse rounded-[16px] shrink-0 border border-white/5"></div>
+          <div className="flex gap-2.5 sm:gap-3 overflow-hidden py-1">
+            {/* 🔥 WIDTH REDUCED TO MATCH SCREENSHOT 🔥 */}
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+              <div key={i} className="aspect-[4/5] w-[110px] sm:w-[125px] lg:w-[135px] bg-[#161821] animate-pulse rounded-[12px] shrink-0 border border-white/5"></div>
             ))}
           </div>
         ) : filteredOffers.length > 0 ? (
           <div 
             ref={sliderRef} 
             onScroll={checkScroll} 
-            className="flex overflow-x-auto no-scrollbar gap-3 sm:gap-4 pb-2 snap-x scroll-smooth" 
+            className="flex overflow-x-auto no-scrollbar gap-2.5 sm:gap-3 pb-2 snap-x scroll-smooth" 
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {filteredOffers.map((offer: any, index: number) => (
-              <div key={offer._id || offer.id || index} className="snap-start shrink-0 w-[145px] sm:w-[165px] lg:w-[175px]">
+              <div key={offer._id || offer.id || index} className="snap-start shrink-0 w-[110px] sm:w-[125px] lg:w-[135px]">
                 <OfferCard offer={offer} />
               </div>
             ))}

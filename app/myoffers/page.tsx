@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, CheckCircle2, RotateCcw, Smartphone, ShieldCheck, Sparkles, AlertCircle, Info, ChevronRight, DollarSign, Clock, ListTodo, Headphones, ClipboardList, X } from 'lucide-react';
@@ -52,7 +52,7 @@ function getUserId(): string {
 }
 
 function getOfferKey(item: any): string {
-  const raw = item?.offerId ?? item?._id ?? item?.id;
+  const raw = item?.offerId ?? item?._id ?? item?.id ?? item?.offer_id;
   if (raw !== undefined && raw !== null && raw !== '') return String(raw);
   return '';
 }
@@ -81,18 +81,31 @@ function resolveTargetPlatformsString(data: any): string {
   return parts.join(' ').toLowerCase();
 }
 
+const getCleanString = (val: any) => {
+  const s = String(val || '').trim();
+  if (s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined' || s === '') return '';
+  return s;
+};
+
+// 🔥 FALLBACK ICON SET 🔥
 export const DeviceIcon = ({ offer }: { offer: any }) => {
   const rawBrowsers = resolveTargetPlatformsString(offer);
-  if (rawBrowsers === 'all' || rawBrowsers === 'global' || rawBrowsers === '') return <div className="flex gap-1"><AndroidIcon/><AppleIcon/><WindowsIcon/></div>;
   
   const isAndroid = rawBrowsers.includes('android');
   const isWindows = rawBrowsers.includes('windows') || rawBrowsers.includes('win') || rawBrowsers.includes('pc') || rawBrowsers.includes('desktop');
   const isIos = rawBrowsers.includes('ios') || rawBrowsers.includes('iphone') || rawBrowsers.includes('ipad');
 
-  if (isAndroid) return <AndroidIcon />;
-  if (isWindows) return <WindowsIcon />;
-  if (isIos) return <AppleIcon />;
-  return <div className="flex gap-1"><AndroidIcon/><AppleIcon/><WindowsIcon/></div>;
+  if (isAndroid && !isWindows && !isIos) return <AndroidIcon />;
+  if (isWindows && !isAndroid && !isIos) return <WindowsIcon />;
+  if (isIos && !isAndroid && !isWindows) return <AppleIcon />;
+  
+  return (
+    <div className="flex items-center gap-1 opacity-90 px-1">
+      <AndroidIcon/>
+      <AppleIcon/>
+      <WindowsIcon/>
+    </div>
+  );
 };
 
 export default function MyOffersPage() {
@@ -105,8 +118,6 @@ export default function MyOffersPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [selectedOffer, setSelectedOffer] = useState<any>(null);
-  const [offerDetails, setOfferDetails] = useState<any>(null);
-  const [isDetailsLoading, setIsDetailsLoading] = useState(false);
 
   const [isProcessingClick, setIsProcessingClick] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
@@ -114,6 +125,7 @@ export default function MyOffersPage() {
   const [currentOS, setCurrentOS] = useState<string>('Windows');
   const [apiError, setApiError] = useState<string | null>(null);
   
+  const [activeInnerTab, setActiveInnerTab] = useState<'rewards' | 'details'>('rewards');
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
 
   useEffect(() => {
@@ -129,36 +141,10 @@ export default function MyOffersPage() {
     }
   }, []);
 
-  const loadOfferDetails = async (offer: any) => {
+  const loadOfferDetails = (offer: any) => {
     setSelectedOffer(offer);
     setQrCodeUrl(null);
     setApiError(null);
-    setIsDetailsLoading(true);
-    
-    const token = localStorage.getItem('token') || '';
-    const targetId = offer.offerId || offer._id || offer.id;
-
-    try {
-      let res = await fetch(`https://apitest.binnycash.com/api/user/tracking/getSingleClickOffer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ offerId: targetId }) 
-      });
-
-      if (res.status === 404 || res.status === 405) {
-        res = await fetch(`https://apitest.binnycash.com/api/user/tracking/getSingleClickOffer?offerId=${targetId}`, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-      }
-
-      const resData = await res.json();
-      setOfferDetails(resData?.data || null);
-    } catch (err) {
-      console.error("Failed to fetch offer status:", err);
-    } finally {
-      setIsDetailsLoading(false);
-    }
   };
 
   useEffect(() => {
@@ -192,7 +178,6 @@ export default function MyOffersPage() {
           loadOfferDetails(finalStartedList[0]);
         } else {
           setSelectedOffer(null);
-          setOfferDetails(null);
         }
       } catch (err) {
         console.error("Failed to fetch tracking data:", err);
@@ -204,6 +189,36 @@ export default function MyOffersPage() {
     fetchData();
   }, [router]);
 
+  const baseData = selectedOffer || {};
+  const nestedData = selectedOffer?.offer || selectedOffer?.campaign || {};
+  const currentData = { ...nestedData, ...baseData };
+
+  const descCurrent = getCleanString(currentData?.description);
+  const description = descCurrent || "Complete the task as instructed to receive your reward.";
+
+  const reqCurrent = getCleanString(currentData?.offer_requirements) || getCleanString(currentData?.requirements);
+  const requirements = reqCurrent || "Install and Launch to earn reward.";
+
+  const events = currentData?.offer_events || currentData?.events || [];
+
+  const name = currentData?.offerName || currentData?.offer_name || currentData?.title || 'Offer Details';
+  const offerIdForSupport = currentData?.id || currentData?._id || currentData?.offerId || '';
+  const rewardAmount = currentData?.userCredits ?? currentData?.reward ?? currentData?.payout ?? 0;
+  const formattedReward = formatPrice(Number(rewardAmount) || 0, currency);
+  
+  let rawImage = currentData?.image_url || currentData?.offerImage || currentData?.logo || currentData?.preview || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=A855F7&color=fff`;
+  if (rawImage && !rawImage.startsWith('http')) rawImage = `https://apitest.binnycash.com${rawImage}`;
+
+  const targetPlatforms = resolveTargetPlatformsString(currentData);
+  const isIos = targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad');
+  const isAndroidOffer = targetPlatforms.includes('android');
+  const isWindowsOffer = targetPlatforms.includes('windows') || targetPlatforms.includes('desktop') || targetPlatforms.includes('pc') || targetPlatforms.includes('win');
+
+  useEffect(() => {
+    if (events.length > 0) setActiveInnerTab('rewards');
+    else setActiveInnerTab('details');
+  }, [selectedOffer]);
+
   const handleTabChange = (tab: 'started' | 'completed') => {
     setActiveTab(tab);
     if (tab === 'started') {
@@ -211,19 +226,17 @@ export default function MyOffersPage() {
         loadOfferDetails(startedOffers[0]);
       } else {
         setSelectedOffer(null);
-        setOfferDetails(null);
         setQrCodeUrl(null);
         setApiError(null);
       }
     } else {
       setSelectedOffer(null);
-      setOfferDetails(null);
       setQrCodeUrl(null);
       setApiError(null);
     }
   };
 
-  const handleSelectOffer = async (offer: any) => {
+  const handleSelectOffer = (offer: any) => {
     if (selectedOffer && isSameOffer(selectedOffer, offer)) return; 
     loadOfferDetails(offer);
   };
@@ -238,42 +251,35 @@ export default function MyOffersPage() {
     const isMobile = isIOS || isAndroid || /Mobi|Tablet/i.test(ua);
     const isDesktop = !isMobile;
 
-    const currentData = { ...selectedOffer, ...offerDetails };
-    const targetPlatforms = resolveTargetPlatformsString(currentData);
     const isUniversal = targetPlatforms === 'all' || targetPlatforms === 'global' || targetPlatforms === '';
     
-    const isOfferAndroid = targetPlatforms.includes('android');
-    const isOfferIos = targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad');
-    const isOfferWindows = targetPlatforms.includes('windows') || targetPlatforms.includes('desktop') || targetPlatforms.includes('pc') || targetPlatforms.includes('win');
-    const isOfferMac = targetPlatforms.includes('mac') || targetPlatforms.includes('osx');
-
-    const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isOfferMac || isUniversal);
-    const isStrictlyDesktopOffer = (isOfferWindows || isOfferMac) && !(isOfferAndroid || isOfferIos || isUniversal);
+    const isStrictlyMobileOffer = (isAndroidOffer || isIos) && !(isWindowsOffer || isUniversal);
+    const isStrictlyDesktopOffer = isWindowsOffer && !(isAndroidOffer || isIos || isUniversal);
 
     let showQR = false;
     let generateQRFor = 'Mobile Device';
 
     if (isDesktop && isStrictlyMobileOffer) {
       showQR = true;
-      if (isOfferAndroid && !isOfferIos) generateQRFor = 'Android';
-      else if (isOfferIos && !isOfferAndroid) generateQRFor = 'iOS';
+      if (isAndroidOffer && !isIos) generateQRFor = 'Android';
+      else if (isIos && !isAndroidOffer) generateQRFor = 'iOS';
       else generateQRFor = 'Android or iOS';
     } 
     else if (isMobile && isStrictlyDesktopOffer) {
-      setApiError(`This offer is exclusively for ${isOfferWindows && !isOfferMac ? 'Windows' : isOfferMac && !isOfferWindows ? 'Mac' : 'Desktop'} PCs. Please complete this on your computer.`);
+      setApiError(`This offer is exclusively for Windows PCs. Please complete this on your computer.`);
       setIsProcessingClick(false);
       return; 
     }
-    else if (isAndroid && isOfferIos && !isOfferAndroid && !isUniversal) {
+    else if (isAndroid && isIos && !isAndroidOffer && !isUniversal) {
       showQR = true;
       generateQRFor = 'iOS';
     }
-    else if (isIOS && isOfferAndroid && !isOfferIos && !isUniversal) {
+    else if (isIOS && isAndroidOffer && !isIos && !isUniversal) {
       showQR = true;
       generateQRFor = 'Android';
     }
 
-    const targetId = offerDetails?.id ?? selectedOffer?.id ?? selectedOffer?.offerId ?? selectedOffer?._id;
+    const targetId = currentData?.id ?? currentData?._id ?? currentData?.offerId;
     const userId = getUserId();
 
     if (!userId) {
@@ -294,6 +300,7 @@ export default function MyOffersPage() {
 
     try {
       const token = localStorage.getItem('token') || '';
+      
       const res = await fetch(`https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`, {
         method: 'GET',
         headers: { 'Accept': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
@@ -326,7 +333,7 @@ export default function MyOffersPage() {
       }
 
       if (!finalRedirectUrl || finalRedirectUrl === '#') {
-        finalRedirectUrl = selectedOffer?.click_url || selectedOffer?.link || selectedOffer?.url;
+        finalRedirectUrl = currentData?.click_url || currentData?.link || currentData?.url;
       }
 
       if (newTab) {
@@ -337,36 +344,12 @@ export default function MyOffersPage() {
     } catch (err) {
       console.error("Error processing click URL:", err);
       if (newTab) {
-         newTab.location.href = selectedOffer?.click_url || selectedOffer?.link || selectedOffer?.url || 'https://binnycash.com';
+         newTab.location.href = currentData?.click_url || currentData?.link || currentData?.url || 'https://binnycash.com';
       }
     } finally {
       setIsProcessingClick(false);
     }
   };
-
-  const currentData = { ...selectedOffer, ...offerDetails };
-  const name = currentData?.offerName || currentData?.offer_name || currentData?.title || 'Offer Details';
-  const offerIdForSupport = currentData?.offerId || currentData?._id || currentData?.id || '';
-  const rewardAmount = currentData?.userCredits ?? currentData?.reward ?? currentData?.payout ?? 0;
-  
-  let rawImage = currentData?.image_url || currentData?.offerImage || currentData?.logo || currentData?.preview || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=A855F7&color=fff`;
-  if (rawImage && !rawImage.startsWith('http')) rawImage = `https://apitest.binnycash.com${rawImage}`;
-
-  const requirements = currentData?.offer_requirements || currentData?.requirements || "Install and Launch to earn reward";
-  const description = currentData?.description || "Complete the task as instructed to receive your reward.";
-  
-  const targetPlatforms = resolveTargetPlatformsString(currentData);
-  const isIos = targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad');
-  const isAndroidOffer = targetPlatforms.includes('android');
-  const isWindowsOffer = targetPlatforms.includes('windows') || targetPlatforms.includes('desktop') || targetPlatforms.includes('pc') || targetPlatforms.includes('win');
-
-  const totalEarned = completedOffers.reduce((sum, offer) => {
-    const val = offer.userCredits ?? offer.reward ?? offer.payout ?? 0;
-    return sum + Number(val);
-  }, 0);
-
-  const clickAllowed = offerDetails?.clickAllowed !== undefined ? offerDetails.clickAllowed : (selectedOffer?.clickAllowed !== undefined ? selectedOffer.clickAllowed : true);
-  const retries = offerDetails?.retryAllow ?? selectedOffer?.retryAllow ?? 0;
 
   return (
     <div className="flex flex-col bg-[#0B0D14] min-h-screen text-white relative">
@@ -401,7 +384,8 @@ export default function MyOffersPage() {
 
         {activeTab === 'started' && (
           <>
-            <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-6 -my-6 px-2 -mx-2 mb-4">
+            {/* HORIZONTAL SCROLL DESKTOP */}
+            <div className="hidden sm:flex items-center gap-4 overflow-x-auto no-scrollbar py-6 -my-6 px-2 -mx-2 mb-4">
               {isLoading ? (
                 <div className="text-[#8F95A3] text-sm animate-pulse px-2">Loading offers...</div>
               ) : startedOffers.length === 0 ? (
@@ -411,17 +395,15 @@ export default function MyOffersPage() {
                   const hasSelection = selectedOffer !== null;
                   const isSelected = hasSelection && isSameOffer(selectedOffer, item);
                   
-                  let iconImg = item.image_url || item.offerImage || item.logo || item.preview || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.offerName || 'O')}&background=A855F7&color=fff`;
+                  let iconImg = item.image_url || item.offerImage || item.logo || item.preview || item.offer?.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.offerName || 'O')}&background=A855F7&color=fff`;
                   if (iconImg && !iconImg.startsWith('http')) iconImg = `https://apitest.binnycash.com${iconImg}`;
-                  
-                  const progressVal = item.progress ?? item.completionPercentage ?? item.completion_percentage ?? ((idx * 37 + 23) % 75 + 10);
                   const apiStatus = item.status || 'In Progress';
                   
                   return (
                     <div 
                       key={idx} 
                       onClick={() => handleSelectOffer(item)}
-                      className={`relative flex flex-col justify-between w-[230px] h-[140px] shrink-0 rounded-[18px] overflow-hidden cursor-pointer transition-all duration-300 p-4 ${isSelected ? 'border-2 border-[#A855F7] shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-[1.02]' : 'border border-white/5 hover:border-white/20'}`}
+                      className={`relative flex flex-col justify-between w-[210px] h-[130px] shrink-0 rounded-[18px] overflow-hidden cursor-pointer transition-all duration-300 p-4 ${isSelected ? 'border-2 border-[#A855F7] shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-[1.02]' : 'border border-white/5 hover:border-white/20'}`}
                     >
                       <div className="absolute inset-0 z-0">
                         <img src={iconImg} alt="bg" className="w-full h-full object-cover opacity-30 blur-md" />
@@ -441,26 +423,14 @@ export default function MyOffersPage() {
                         <div className="mt-auto flex flex-col gap-1.5">
                            <span className="text-white text-sm font-bold truncate drop-shadow-md">{item.offerName || item.offer_name || 'Offer'}</span>
                            
-                           <div className="flex justify-between items-center">
+                           <div className="flex justify-between items-center mt-1">
                               <span className="text-white text-xs font-bold">{formatPrice(Number(item.userCredits || item.reward || 0), currency)}</span>
                               
                               <div className="flex items-center gap-1.5">
-                                {item.retryAllow !== undefined && (
-                                  <span className="text-amber-400 text-[9px] font-bold bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded flex items-center gap-1 backdrop-blur-sm">
-                                    <RotateCcw className="w-2.5 h-2.5" /> {item.retryAllow} Retries
-                                  </span>
-                                )}
                                 <div className="opacity-80 flex gap-1 bg-black/30 p-0.5 rounded backdrop-blur-sm">
                                    <DeviceIcon offer={item} />
                                 </div>
                               </div>
-                           </div>
-
-                           <div className="w-full flex items-center gap-2 mt-1">
-                              <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden flex items-center justify-between">
-                                 <div className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] rounded-full transition-all duration-500" style={{ width: `${progressVal}%` }}></div>
-                              </div>
-                              <span className="text-[9px] text-[#8F95A3] font-bold shrink-0">{progressVal}%</span>
                            </div>
                         </div>
                       </div>
@@ -470,7 +440,7 @@ export default function MyOffersPage() {
               )}
 
               {!isLoading && (
-                <Link href="/dashboard" className="w-[220px] h-[140px] shrink-0 border border-dashed border-white/20 rounded-[18px] flex flex-col items-center justify-center gap-2 hover:bg-white/5 transition-colors cursor-pointer">
+                <Link href="/dashboard" className="w-[210px] h-[130px] shrink-0 border border-dashed border-white/20 rounded-[18px] flex flex-col items-center justify-center gap-2 hover:bg-white/5 transition-colors cursor-pointer">
                   <ClipboardList className="w-8 h-8 text-[#8B5CF6]" />
                   <span className="text-white font-bold text-sm">View Featured Offers</span>
                   <span className="text-[#8B5CF6] text-xs font-medium hover:underline">Explore Now</span>
@@ -478,98 +448,196 @@ export default function MyOffersPage() {
               )}
             </div>
 
-            {selectedOffer && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="mt-6">
-                {isDetailsLoading ? (
-                   <div className="flex flex-col items-center justify-center py-20 gap-4">
-                      <div className="w-12 h-12 border-4 border-[#A855F7]/30 border-t-[#A855F7] rounded-full animate-spin"></div>
-                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                    
-                    <div className="lg:col-span-5 flex flex-col gap-4">
-                      <div className="w-full aspect-[4/3] bg-[#161821] rounded-2xl sm:rounded-3xl border border-white/5 relative overflow-hidden flex flex-col justify-end p-4 sm:p-6 shadow-xl group">
-                        <div className="absolute inset-0 z-0">
-                          <img src={rawImage} alt="bg-blur" className="w-full h-full object-cover opacity-20 blur-2xl group-hover:scale-105 transition-transform duration-700" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#111319] to-transparent"></div>
-                        </div>
+            {/* MOBILE GRID VIEW */}
+            <div className="sm:hidden grid grid-cols-2 min-[450px]:grid-cols-3 gap-3 mb-4">
+              {isLoading ? (
+                <div className="col-span-full text-[#8F95A3] text-sm animate-pulse">Loading offers...</div>
+              ) : startedOffers.length === 0 ? (
+                <div className="col-span-full text-[#8F95A3] text-sm">No started offers found.</div>
+              ) : (
+                startedOffers.map((item, idx) => {
+                  const hasSelection = selectedOffer !== null;
+                  const isSelected = hasSelection && isSameOffer(selectedOffer, item);
+                  
+                  let iconImg = item.image_url || item.offerImage || item.logo || item.preview || item.offer?.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.offerName || 'O')}&background=A855F7&color=fff`;
+                  if (iconImg && !iconImg.startsWith('http')) iconImg = `https://apitest.binnycash.com${iconImg}`;
+                  const apiStatus = item.status || 'In Progress';
+                  
+                  return (
+                    <div 
+                      key={idx} 
+                      onClick={() => handleSelectOffer(item)}
+                      className={`relative w-full aspect-[4/5] bg-[#161821] border ${isSelected ? 'border-[#A855F7] shadow-[0_0_15px_rgba(168,85,247,0.3)] scale-[1.02]' : 'border-white/5'} rounded-2xl p-3 flex flex-col cursor-pointer transition-all duration-200 hover:border-[#8B5CF6]/50`}
+                    >
+                      <div className="w-full aspect-square bg-[#1A1C24] rounded-xl overflow-hidden mb-2 relative shrink-0">
+                        <img src={iconImg} alt={item.offerName || 'Offer'} className="absolute inset-0 w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/20"></div>
+                        <span className="absolute top-1.5 left-1.5 bg-[#A855F7] text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase shadow-sm">
+                          {apiStatus}
+                        </span>
+                      </div>
+                      
+                      <div className="flex flex-col flex-1 px-0.5">
+                        <h3 className="text-white font-bold text-xs leading-tight line-clamp-1 mb-1">{item.offerName || item.offer_name || 'Offer'}</h3>
                         
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-28 h-28 sm:w-36 sm:h-36 bg-white rounded-2xl sm:rounded-3xl p-1.5 sm:p-2 shadow-2xl">
-                          <img src={rawImage} alt={name} className="w-full h-full object-contain rounded-xl sm:rounded-2xl" />
-                        </div>
-
-                        <div className="absolute top-4 right-4 z-10 flex gap-2 opacity-80">
-                           {isIos ? <AppleIcon /> : isWindowsOffer ? <WindowsIcon /> : isAndroidOffer ? <AndroidIcon /> : null}
-                        </div>
-
-                        <div className="relative z-20 flex items-end justify-between w-full mt-auto">
-                          <div className="flex flex-col w-[70%]">
-                            <span className="text-white font-bold text-sm sm:text-base truncate mb-1">{name}</span>
-                            <h1 className="text-xl sm:text-2xl font-black text-white leading-none">{formatPrice(Number(rewardAmount) || 0, currency)}</h1>
-                          </div>
-
-                          {/* 🔥 ACTION NOT ALLOWED REMOVED - BUTTON IS ALWAYS CLICKABLE 🔥 */}
-                          <button 
-                            onClick={handlePlayClick} 
-                            disabled={isProcessingClick}
-                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all shrink-0 bg-[#A855F7] hover:bg-[#9333EA] cursor-pointer hover:scale-105`}
-                          >
-                            {isProcessingClick ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white ml-0.5" />}
-                          </button>
+                        <div className="mt-auto flex items-center justify-between">
+                          <span className="text-white font-bold text-[13px]">{formatPrice(Number(item.userCredits || item.reward || 0), currency)}</span>
                         </div>
                       </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
 
-                      <Link
-                        href={`/support?category=${encodeURIComponent('Offer and Surveys')}&description=${encodeURIComponent(`Offer Name: ${name}\nOffer ID: ${offerIdForSupport}`)}`}
-                        className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow-[0_0_20px_rgba(239,68,68,0.4)] border border-red-400/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-center gap-2 transition-all cursor-pointer w-full hover:scale-[1.02]"
-                      >
-                        <Headphones className="w-5 h-5 text-white" />
-                        <span className="text-white font-black text-[14px] sm:text-[15px] tracking-wide">Support</span>
-                      </Link>
+            {selectedOffer && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="mt-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                  
+                  {/* LEFT COLUMN (IMAGE BOX & SUPPORT) */}
+                  <div className="lg:col-span-5 flex flex-col gap-4">
+                    
+                    <div className="w-full h-[220px] sm:h-[260px] bg-[#161821] rounded-2xl sm:rounded-3xl border border-white/5 relative overflow-hidden flex flex-col justify-end p-4 sm:p-5 shadow-xl group">
+                      <div className="absolute inset-0 z-0">
+                        <img src={rawImage} alt="bg-blur" className="w-full h-full object-cover opacity-30 blur-2xl group-hover:scale-105 transition-transform duration-700" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#111319] via-[#111319]/60 to-[#111319]/20"></div>
+                      </div>
+                      
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-28 h-28 sm:w-32 sm:h-32 bg-white rounded-2xl sm:rounded-3xl p-1.5 sm:p-2 shadow-2xl">
+                        <img src={rawImage} alt={name} className="w-full h-full object-contain rounded-xl sm:rounded-2xl" />
+                      </div>
 
-                      {apiError && (
-                        <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-3 sm:p-4 rounded-xl sm:rounded-2xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)]">
-                          {apiError}
+                      <div className="absolute top-4 right-4 z-10 flex gap-2 opacity-80">
+                         {isIos ? <AppleIcon /> : isWindowsOffer ? <WindowsIcon /> : isAndroidOffer ? <AndroidIcon /> : null}
+                      </div>
+
+                      <div className="relative z-20 flex items-end justify-between w-full mt-auto">
+                        <div className="flex flex-col max-w-[70%]">
+                          <span className="text-white font-bold text-sm truncate mb-0.5">{name}</span>
+                          <h1 className="text-xl sm:text-2xl font-black text-white leading-none">{formattedReward}</h1>
+                        </div>
+
+                        <button 
+                          onClick={handlePlayClick} 
+                          disabled={isProcessingClick}
+                          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all shrink-0 bg-[#A855F7] hover:bg-[#9333EA] cursor-pointer hover:scale-105`}
+                        >
+                          {isProcessingClick ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white ml-0.5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Link
+                      href={`/support?category=${encodeURIComponent('Offer and Surveys')}&description=${encodeURIComponent(`Offer Name: ${name}\nOffer ID: ${offerIdForSupport}`)}`}
+                      className="bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-center gap-2 transition-all cursor-pointer w-full hover:scale-[1.02]"
+                    >
+                      <Headphones className="w-5 h-5 text-[#8F95A3]" />
+                      <span className="text-white font-bold text-[14px] sm:text-[15px] tracking-wide">Support</span>
+                    </Link>
+
+                    {apiError && (
+                      <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-3 sm:p-4 rounded-xl sm:rounded-2xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+                        {apiError}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* RIGHT COLUMN (REQUIREMENTS & TABS) */}
+                  <div className="lg:col-span-7 flex flex-col gap-4">
+                    
+                    {/* REQUIREMENTS */}
+                    <div className="bg-[#1A1C24] border border-white/5 rounded-2xl p-4 sm:p-5">
+                       <h4 className="text-white font-bold text-[14px] mb-1.5">Requirements</h4>
+                       <p className="text-[#8F95A3] text-[13px] leading-relaxed">{requirements}</p>
+                    </div>
+
+                    {/* TABS HEADER */}
+                    {events && events.length > 0 && (
+                      <div className="flex items-center gap-6 border-b border-white/10 px-1 mt-1">
+                        <button
+                          onClick={() => setActiveInnerTab('rewards')}
+                          className={`pb-2.5 text-sm font-bold transition-all relative ${activeInnerTab === 'rewards' ? 'text-[#00E57A]' : 'text-[#8F95A3] hover:text-white'}`}
+                        >
+                          Rewards
+                          {activeInnerTab === 'rewards' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-[#00E57A] rounded-t-full shadow-[0_0_8px_rgba(0,229,122,0.5)]"></span>}
+                        </button>
+                        <button
+                          onClick={() => setActiveInnerTab('details')}
+                          className={`pb-2.5 text-sm font-bold transition-all relative ${activeInnerTab === 'details' ? 'text-[#8B5CF6]' : 'text-[#8F95A3] hover:text-white'}`}
+                        >
+                          Details
+                          {activeInnerTab === 'details' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-[#8B5CF6] rounded-t-full shadow-[0_0_8px_rgba(139,92,246,0.5)]"></span>}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* TABS CONTENT */}
+                    <div className="w-full">
+                      {/* Rewards Tab Content */}
+                      {activeInnerTab === 'rewards' && events && events.length > 0 && (
+                        <div className="flex flex-col gap-2.5 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+                          {events.map((ev: any, idx: number) => (
+                            <div key={ev._id || idx} className="flex items-center justify-between bg-[#161821] p-3.5 rounded-xl border border-white/5 shadow-sm">
+                              <div className="flex items-center gap-3 pr-2">
+                                <div className="w-5 h-5 rounded-full bg-[#00E57A]/10 flex items-center justify-center shrink-0">
+                                  <CheckCircle2 className="w-3 h-3 text-[#00E57A]" />
+                                </div>
+                                <span className="text-white text-[13px] font-medium leading-tight line-clamp-2">{ev.event_name}</span>
+                              </div>
+                              <span className="text-[#00E57A] font-black text-sm shrink-0 pl-2">+{formatPrice(Number(ev.event_payout) || 0, currency)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Details Tab Content */}
+                      {activeInnerTab === 'details' && (
+                        <div className="flex flex-col gap-3 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+                          
+                          <div className="bg-[#1A1C24] border border-white/5 rounded-2xl p-4 sm:p-5">
+                             <h4 className="text-white font-bold text-[13px] mb-1">Description</h4>
+                             <p className="text-[#8F95A3] text-[13px] leading-relaxed whitespace-pre-wrap">{description}</p>
+                          </div>
+
+                          <div className="bg-[#1A1C24] border border-white/5 rounded-2xl p-4 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                              <RotateCcw className="w-4 h-4 text-[#8B5CF6]" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-white font-bold text-[13px]">Task Order Flexibility</span>
+                              <span className="text-[#8F95A3] text-[11px] mt-0.5">Tasks can be completed in any order. There is no fixed sequence.</span>
+                            </div>
+                          </div>
+
+                          <div className="bg-[#1A1C24] border border-white/5 rounded-2xl p-4 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                              <Smartphone className="w-4 h-4 text-[#8B5CF6]" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-white font-bold text-[13px]">New Users Only</span>
+                              <span className="text-[#8F95A3] text-[11px] mt-0.5">This offer is valid only for users who have not installed the app before.</span>
+                            </div>
+                          </div>
+
+                          <div onClick={() => setIsPayoutModalOpen(true)} className="bg-[#1A1C24] hover:bg-[#252836] transition-colors border border-white/5 rounded-2xl p-4 flex items-center justify-between cursor-pointer group mb-4">
+                            <div className="flex flex-col">
+                              <span className="text-white font-bold text-[13px]">Why Does Payout Take Time?</span>
+                              <span className="text-[#8F95A3] text-[11px] mt-0.5">Payout time depends on the type of offer and advertiser verification...</span>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors shrink-0" />
+                          </div>
                         </div>
                       )}
                     </div>
 
-                    <div className="lg:col-span-7 flex flex-col gap-4 sm:gap-5 pb-8">
-                      
-                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-sm">
-                         <div className="flex flex-col items-center flex-1 border-r border-white/5">
-                            <span className="text-[9px] sm:text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Click Status</span>
-                            <span className={`text-xs sm:text-sm font-black ${clickAllowed ? 'text-[#00E57A]' : 'text-red-500'}`}>{clickAllowed ? 'Allowed' : 'Blocked'}</span>
-                         </div>
-                         <div className="flex flex-col items-center flex-1">
-                            <span className="text-[9px] sm:text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1">Retries Left</span>
-                            <span className="text-xs sm:text-sm font-black text-amber-400 flex items-center gap-1.5">
-                              <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {retries}
-                            </span>
-                         </div>
-                      </div>
-
-                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-4 sm:p-6">
-                         <h4 className="text-white font-bold text-sm mb-2">Requirements</h4>
-                         <p className="text-[#8F95A3] text-xs sm:text-sm leading-relaxed">{requirements}</p>
-                      </div>
-
-                      <div className="border-b-2 border-[#8B5CF6] pb-2 mt-2 w-fit">
-                         <span className="text-[#8B5CF6] font-bold text-sm">Details</span>
-                      </div>
-
-                      <div className="bg-[#161821] border border-white/5 rounded-2xl p-6">
-                         <h4 className="text-white font-bold text-sm mb-2">Description</h4>
-                         <p className="text-[#8F95A3] text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{description}</p>
-                      </div>
-                    </div>
                   </div>
-                )}
+                </div>
               </motion.div>
             )}
           </>
         )}
 
+        {/* COMPLETED OFFERS VERTICAL LIST */}
         {activeTab === 'completed' && (
           <div className="flex flex-col gap-3 w-full max-w-4xl">
             {isLoading ? (
@@ -625,6 +693,7 @@ export default function MyOffersPage() {
 
       </main>
 
+      {/* 🔥 PAYOUT MODAL POPUP 🔥 */}
       <AnimatePresence>
         {isPayoutModalOpen && (
           <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
@@ -635,20 +704,20 @@ export default function MyOffersPage() {
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ duration: 0.3 }}
-              className="relative w-full max-w-[500px] p-6 sm:p-8 flex flex-col bg-[#1A1C24] border border-white/10 rounded-[24px] shadow-2xl z-10 text-center"
+              className="relative w-full max-w-[450px] p-6 sm:p-8 flex flex-col bg-[#161821] border border-white/10 rounded-[20px] shadow-2xl z-10"
             >
-              <button onClick={() => setIsPayoutModalOpen(false)} className="absolute top-5 right-5 text-[#8F95A3] hover:text-white transition-colors">
+              <button onClick={() => setIsPayoutModalOpen(false)} className="absolute top-4 right-4 text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
               
-              <h2 className="text-[20px] font-black text-white mb-5">Why Does Payout Take Time??</h2>
+              <h2 className="text-[18px] sm:text-[20px] font-black text-white mb-4 text-center">Why Does Payout Take Time??</h2>
               
-              <p className="text-[#A0A5B1] text-[15px] leading-relaxed mb-8 text-left">
+              <p className="text-[#A0A5B1] text-[14px] leading-relaxed mb-6 text-left">
                 Payout time depends on the type of offer you complete. Some tasks need verification from our partners, which may take a little longer. We also review certain activities to make sure all terms are followed. We always try to process rewards quickly, but sometimes delays happen due to external checks beyond our control.
               </p>
               
               <div className="flex justify-end w-full">
-                <button onClick={() => setIsPayoutModalOpen(false)} className="bg-[#A855F7] hover:bg-[#9333EA] text-white font-bold py-2.5 px-8 rounded-[12px] transition-colors shadow-lg cursor-pointer">
+                <button onClick={() => setIsPayoutModalOpen(false)} className="bg-[#A855F7] hover:bg-[#9333EA] text-white font-bold py-2.5 px-6 rounded-[8px] transition-colors shadow-lg cursor-pointer">
                   Got it
                 </button>
               </div>

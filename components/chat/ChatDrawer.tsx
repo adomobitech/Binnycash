@@ -141,7 +141,7 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
     // 🔥 BACKEND BUG BYPASS: FRONTEND ANTI-SPAM PRE-CHECK 🔥
     // Backend API hamesha USD format mein data deti hai
     try {
-      const balRes = await fetch('https://apitest.binnycash.com/api/user/wallet/total-earning', {
+      const balRes = await fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (balRes.ok) {
