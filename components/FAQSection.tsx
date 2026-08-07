@@ -142,7 +142,7 @@ export default function FAQSection() {
             </div>
           </div>
 
-          <Link href="/contact">
+          <Link href="/support">
             <button className="bg-[#120a22] hover:bg-[#1a0f30] border border-[#7e22ce]/50 text-white font-black text-xs uppercase tracking-widest px-6 py-4 rounded-xl flex items-center gap-3 transition-all shadow-[0_0_15px_rgba(126,34,206,0.2)] cursor-pointer">
               CONTACT SUPPORT
               <span className="w-7 h-7 rounded-lg bg-[#7e22ce] text-white flex items-center justify-center text-sm">↗</span>
