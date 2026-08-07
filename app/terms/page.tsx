@@ -141,3 +141,9 @@ export default function TermsPage() {
     </div>
   );
 }
+
+export const metadata = {
+  title: "sample ",
+  description: "sample ",
+  keywords: "sample",
+};
