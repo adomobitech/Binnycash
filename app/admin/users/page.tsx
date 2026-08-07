@@ -16,14 +16,14 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async () => {
     setIsLoading(true);
-    const token = localStorage.getItem('token');
+    // 🔥 FIX: Check for 'admin_token' instead of 'token' 🔥
+    const token = localStorage.getItem('admin_token');
     if (!token) {
       router.push('/admin/login');
       return;
     }
 
     try {
-      // API endpoint for fetching online/all users based on your backend
       const res = await fetch('https://apitest.binnycash.com/api/admin/onlineUserList', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -42,7 +42,8 @@ export default function AdminUsersPage() {
   }, [router]);
 
   const handleWalletAdjust = async (userId: string) => {
-    const token = localStorage.getItem('token');
+    // 🔥 FIX: Check for 'admin_token' 🔥
+    const token = localStorage.getItem('admin_token');
     if (!token || !walletAdjustment) return;
 
     try {

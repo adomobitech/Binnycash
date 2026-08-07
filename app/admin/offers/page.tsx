@@ -17,7 +17,8 @@ export default function AdminOffersPage() {
 
   const fetchOfferwalls = async () => {
     setIsLoading(true);
-    const token = localStorage.getItem('token');
+    // 🔥 FIX: Use 'admin_token' here too 🔥
+    const token = localStorage.getItem('admin_token');
     if (!token) {
       router.push('/admin/login');
       return;
@@ -43,7 +44,8 @@ export default function AdminOffersPage() {
 
   const handleCreateOfferwall = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
+    // 🔥 FIX: Use 'admin_token' 🔥
+    const token = localStorage.getItem('admin_token');
     if (!token || !name) return;
 
     try {
@@ -70,7 +72,8 @@ export default function AdminOffersPage() {
 
   const handleDeleteOfferwall = async (id: string) => {
     if (!confirm("Are you sure you want to delete this offerwall?")) return;
-    const token = localStorage.getItem('token');
+    // 🔥 FIX: Use 'admin_token' 🔥
+    const token = localStorage.getItem('admin_token');
     if (!token) return;
 
     try {

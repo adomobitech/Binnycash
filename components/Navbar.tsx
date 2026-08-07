@@ -134,7 +134,7 @@ export default function Navbar() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
 
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobile Menu State
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navRef = useRef<HTMLElement>(null);
 
@@ -160,10 +160,13 @@ export default function Navbar() {
          window.dispatchEvent(new CustomEvent('currencyChanged', { detail: 'Usd' }));
       }
     }
-    setIsMobileMenuOpen(false); // Route change hone par drawer bandh
+    setIsMobileMenuOpen(false);
   }, [pathname]);
 
   const handleForceLogout = () => {
+    // 🔥 FIX 1: THE ULTIMATE SHIELD - Admin URL hone par Navbar token delete nahi karega
+    if (pathname?.startsWith('/admin')) return; 
+
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('userDetails');
@@ -175,6 +178,9 @@ export default function Navbar() {
 
   useEffect(() => {
     const checkAuth = () => {
+      // 🔥 FIX 2: Admin routes par checkAuth API nahi chalegi
+      if (window.location.pathname.startsWith('/admin')) return;
+
       const token = localStorage.getItem('token');
       if (token && token !== 'undefined' && !token.includes('[object Object]')) {
         setIsLoggedIn(true);
@@ -212,8 +218,10 @@ export default function Navbar() {
     return `https://apitest.binnycash.com${imgSrc}`;
   };
 
-  // 🚀 USER DATA FETCH FUNCTION (Added real-time sync wrapper) 🚀
   const fetchUserData = () => {
+    // 🔥 FIX 3: Admin routes par Profile API nahi chalegi
+    if (pathname?.startsWith('/admin')) return;
+
     const token = localStorage.getItem('token');
     if (!token || token.includes('[object Object]')) return;
 
@@ -253,8 +261,6 @@ export default function Navbar() {
   useEffect(() => {
     if (isLoggedIn) {
       fetchUserData();
-
-      // 🚀 LISTEN FOR PROFILE UPDATES 🚀
       const handleProfileUpdate = () => {
         fetchUserData();
       };
@@ -308,6 +314,9 @@ export default function Navbar() {
   };
 
   const fetchInboxMessages = async () => {
+    // 🔥 FIX 4: Admin routes par Inbox API nahi chalegi
+    if (pathname?.startsWith('/admin')) return;
+
     setIsInboxLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -448,6 +457,11 @@ export default function Navbar() {
   };
 
   const isCoin = currency === 'Coin' || currency === 'COIN';
+
+  // 🔥 MAIN FIX: Navbar ko Admin Routes par completely hide kar do!
+  if (pathname && pathname.startsWith('/admin')) {
+    return null;
+  }
 
   return (
     <>
@@ -734,8 +748,6 @@ export default function Navbar() {
                       >
                         <div className="absolute -top-2 right-6 w-4 h-4 bg-[#0E1015] border-t border-l border-white/10 rotate-45" />
 
-                        {/* 🚀 OVERLAPPING PROFILE NAME REMOVED FROM HERE 🚀 */}
-
                         <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
@@ -910,7 +922,6 @@ export default function Navbar() {
                   <span className="text-sm font-bold">Affiliates</span>
                 </Link>
 
-                {/* 🚀 CHAT ROOM OPTION ADDED HERE 🚀 */}
                 <button onClick={() => { setIsMobileMenuOpen(false); setIsChatOpen(true); }} className="flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent cursor-pointer w-full text-left">
                   <div className="relative">
                     <MessageSquare className="w-5 h-5 text-[#8D89A8] group-hover:text-white transition-colors" />
@@ -922,7 +933,7 @@ export default function Navbar() {
                 </button>
               </div>
 
-              {/* Bottom Balance Card with Premium Glow */}
+              {/* Bottom Balance Card */}
               <div className="mt-auto p-6 border-t border-white/5 bg-gradient-to-t from-black/20 to-transparent">
                 <div className="bg-gradient-to-br from-[#1A1725] to-[#110E18] border border-white/5 rounded-2xl p-5 flex flex-col items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-[#00E57A]/10 rounded-bl-full pointer-events-none"></div>
@@ -930,7 +941,6 @@ export default function Navbar() {
                   
                   <span className="text-[10px] font-bold text-[#8D89A8] mb-1 uppercase tracking-widest relative z-10">Available Balance</span>
                   <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00E57A] to-[#3DE8A0] drop-shadow-md relative z-10">
-                    {/* 🚀 CRASH FIX RETAINED 🚀 */}
                     {isCoin ? Number(balance) * 1000 : balance}
                   </span>
                 </div>

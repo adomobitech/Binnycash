@@ -28,7 +28,9 @@ export default function AdminDashboardPage() {
   const fetchAdminData = async () => {
     setIsLoading(true);
     setError(null);
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+
+    // 🔥 MAIN FIX: Yahan bhi 'admin_token' use kiya hai 🔥
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
 
     if (!token) {
       router.push('/admin/login');
@@ -56,7 +58,6 @@ export default function AdminDashboardPage() {
         fetch(`${baseUrl}/adminTopEarners`, { headers }).then(res => res.json()),
       ]);
 
-      // Map settled responses safely
       if (responses[0].status === 'fulfilled') setOverview(responses[0].value?.data || responses[0].value);
       if (responses[1].status === 'fulfilled') setRevenueStats(responses[1].value?.data || responses[1].value);
       if (responses[2].status === 'fulfilled') setClickStats(responses[2].value?.data || responses[2].value);
@@ -69,7 +70,6 @@ export default function AdminDashboardPage() {
       if (responses[9].status === 'fulfilled') setTopEarners(responses[9].value?.data || responses[9].value || []);
 
     } catch (err: any) {
-      console.error("Failed to fetch admin dashboard data:", err);
       setError("Failed to load dashboard metrics. Please check connection or token.");
     } finally {
       setIsLoading(false);
@@ -81,7 +81,8 @@ export default function AdminDashboardPage() {
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    // 🔥 Remove admin_token properly
+    localStorage.removeItem('admin_token');
     router.push('/admin/login');
   };
 
@@ -131,7 +132,6 @@ export default function AdminDashboardPage() {
 
         {/* STATS OVERVIEW CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          
           <div className="bg-[#161821] border border-white/5 rounded-2xl p-5 flex flex-col justify-between shadow-lg">
             <div className="flex items-center justify-between">
               <span className="text-[#8F95A3] text-xs font-bold uppercase tracking-wider">Total Revenue</span>
@@ -197,13 +197,10 @@ export default function AdminDashboardPage() {
               <span className="text-amber-400 text-[11px] font-medium mt-1 block">Requires manual audit</span>
             </div>
           </div>
-
         </div>
 
         {/* MIDDLE SECTION: GRAPHS & DISTRIBUTION */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Weekly Revenue & Daily Earnings Summary */}
           <div className="lg:col-span-2 bg-[#161821] border border-white/5 rounded-2xl p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div>
@@ -235,7 +232,6 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Traffic Source & Withdraw Method Distribution */}
           <div className="bg-[#161821] border border-white/5 rounded-2xl p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div>
@@ -268,7 +264,6 @@ export default function AdminDashboardPage() {
               )}
             </div>
           </div>
-
         </div>
 
         {/* BOTTOM SECTION: TOP EARNERS TABLE */}

@@ -26,7 +26,8 @@ export default function AdminLoginPage() {
 
       if (res.ok && (data?.token || data?.data?.token)) {
         const token = data.token || data.data.token;
-        localStorage.setItem('token', token);
+        // 🔥 MAIN FIX YAHAN HAI: 'token' ki jagah 'admin_token' save hoga 🔥
+        localStorage.setItem('admin_token', token);
         router.push('/admin/dashboard');
       } else {
         setError(data?.message || 'Invalid admin credentials');
@@ -40,7 +41,6 @@ export default function AdminLoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen w-full bg-[#0B0D14] text-white px-4 relative overflow-hidden">
-      {/* Ambient background glow */}
       <div className="absolute w-[500px] h-[500px] bg-[#8B5CF6]/15 blur-[140px] rounded-full pointer-events-none" />
 
       <form onSubmit={handleLogin} className="w-full max-w-[420px] bg-[#161821] border border-white/10 p-8 sm:p-10 rounded-[28px] shadow-2xl relative z-10 flex flex-col gap-6">

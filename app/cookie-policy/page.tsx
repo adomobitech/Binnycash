@@ -76,7 +76,7 @@ export default function CookiePolicyPage() {
     },
     {
       title: "9. Contact",
-      content: "privacy@binnycash.com - AdoMobi Technology Pvt. Ltd., New Delhi, India"
+      content: "privacy@binnycash.com -   i, India"
     }
   ];
 
