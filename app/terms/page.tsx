@@ -9,7 +9,7 @@ export default function TermsPage() {
   const sections = [
     {
       title: "1. Acceptance of Terms",
-      content: "These Terms constitute a legally binding agreement between you and OTMR Survey Pvt. Ltd. (BinnyCash). By using our services, you agree to these Terms and our Privacy Policy."
+      content: "These Terms constitute a legally binding agreement between you and AdoMobi Technology Pvt. Ltd. (BinnyCash). By using our services, you agree to these Terms and our Privacy Policy."
     },
     {
       title: "2. Eligibility",
@@ -60,7 +60,7 @@ export default function TermsPage() {
     },
     {
       title: "10. Intellectual Property",
-      content: "All content belongs to BinnyCash and OTMR Survey Pvt. Ltd."
+      content: "All content belongs to BinnyCash and AdoMobi Technology Pvt. Ltd."
     },
     {
       title: "11. Disclaimer",
@@ -84,7 +84,7 @@ export default function TermsPage() {
     },
     {
       title: "16. Contact",
-      content: "support@binnycash.com - OTMR Survey Pvt. Ltd., New Delhi, India"
+      content: "support@binnycash.com - AdoMobi Technology Pvt. Ltd., New Delhi, India"
     }
   ];
 

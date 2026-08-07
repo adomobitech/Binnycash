@@ -9,11 +9,11 @@ export default function PrivacyPolicyPage() {
   const sections = [
     {
       title: "1. Introduction",
-      content: "Welcome to BinnyCash, operated by OTMR Survey Pvt. Ltd., India. We are committed to protecting your personal data and respecting your privacy.\n\nWe do not knowingly collect personal data from individuals under 16 years of age. If you believe a minor has provided us data, contact us at: support@binnycash.com"
+      content: "Welcome to BinnyCash, operated by AdoMobi Technology Pvt. Ltd., India. We are committed to protecting your personal data and respecting your privacy.\n\nWe do not knowingly collect personal data from individuals under 16 years of age. If you believe a minor has provided us data, contact us at: support@binnycash.com"
     },
     {
       title: "2. Company Information",
-      content: "Company Name: OTMR Survey Pvt. Ltd.\nRegistered Address: UGF BACK SIDE, B-2 KH NO 818, Chhattarpur Extension, New Delhi-110074, India\nEmail: support@binnycash.com\nPrivacy Contact: privacy@binnycash.com"
+      content: "Company Name: AdoMobi Technology Pvt. Ltd.\nRegistered Address: 5th Floor, DLF Two Horizon Centre, DLF Phase 5, Gurugram, 122002, India\nEmail: support@binnycash.com\nPrivacy Contact: privacy@binnycash.com"
     },
     {
       title: "3. Data We Collect",
