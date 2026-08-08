@@ -74,6 +74,7 @@ export default function RewardsPage() {
   const [claimingDay, setClaimingDay] = useState<number | null>(null);
   const [claimedDays, setClaimedDays] = useState<number[]>([]);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [claimSuccess, setClaimSuccess] = useState<string | null>(null);
   
   // Promo Code States
   const [promoCode, setPromoCode] = useState('');
@@ -133,33 +134,35 @@ export default function RewardsPage() {
   const handleClaimStreak = async (dayItem: any) => {
     const statusRaw = String(dayItem.status || '').toUpperCase();
     
-    if (statusRaw !== 'ACTIVE' && statusRaw !== 'UNLOCKED') return;
+    if (statusRaw !== 'ACTIVE' && statusRaw !== 'UNLOCKED' && statusRaw !== 'CLAIM') return;
     if (claimingDay !== null) return;
     if (claimedDays.includes(dayItem.day)) return;
 
     setClaimError(null);
+    setClaimSuccess(null);
     setClaimingDay(dayItem.day);
 
     try {
       const token = localStorage.getItem('token');
-      const userId = getUserId();
       
+      // Postman pe chalne wala exact form data payload setup
+      const formData = new FormData();
+      formData.append('day', String(dayItem.day));
+
       const res = await fetch('https://apitest.binnycash.com/api/user/claimReward', {
-        method: 'PUT',
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          userId: userId,
-          day: String(dayItem.day)
-        })
+        body: formData
       });
 
       const json = await res.json();
 
-      if (res.ok && json.code === 200) {
+      // Backend ke specific response ke hisaab se condition
+      if (res.ok && (json.code === 200 || json.type === 'success')) {
         setClaimedDays(prev => [...prev, dayItem.day]);
+        setClaimSuccess(json.message || `Day ${json.data?.day || dayItem.day} reward claimed successfully!`);
         await fetchStreakData();
         await fetchWalletStats();
       } else {
@@ -170,7 +173,10 @@ export default function RewardsPage() {
       setClaimError('Something went wrong. Please try again.');
     } finally {
       setClaimingDay(null);
-      setTimeout(() => setClaimError(null), 4000);
+      setTimeout(() => {
+        setClaimError(null);
+        setClaimSuccess(null);
+      }, 5000);
     }
   };
 
@@ -314,7 +320,6 @@ export default function RewardsPage() {
 
               <div className="flex-1 w-full overflow-x-auto custom-scrollbar pb-4 pt-2">
                 <div className="flex items-center gap-3 min-w-max px-2">
-                  {/* PURE API DRIVEN DAYS DATA (No hardcoded fallback array) */}
                   {(streakData?.days || []).map((day: any, idx: number, arr: any[]) => {
                     const statusRaw = String(day.status || '').toUpperCase();
                     
@@ -324,7 +329,7 @@ export default function RewardsPage() {
                     const isLocked = statusRaw === 'LOCKED' || (!isClaimed && !isClaimToday);
                     
                     const isClickable = isClaimToday && claimingDay === null;
-                    const isLastDay = idx === arr.length - 1; // Dynamic last day detection
+                    const isLastDay = idx === arr.length - 1;
 
                     return (
                       <div 
@@ -378,7 +383,6 @@ export default function RewardsPage() {
                     );
                   })}
                   
-                  {/* Empty state fallback if streakData is loaded but has no days array */}
                   {!loadingStreak && streakData?.days?.length === 0 && (
                      <div className="text-center w-full py-4 text-[#8D89A8] text-sm">
                        No streak data available right now.
@@ -399,6 +403,19 @@ export default function RewardsPage() {
                 <div className="flex flex-col pr-4">
                   <span className="text-sm font-bold text-rose-300">Action Denied</span>
                   <span className="text-xs font-medium mt-0.5">{claimError}</span>
+                </div>
+              </motion.div>
+            )}
+
+            {claimSuccess && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                className="mt-6 p-4 rounded-2xl flex items-start gap-3 bg-[#3DE8A0]/10 border border-[#3DE8A0]/20 text-[#3DE8A0] shadow-sm w-fit"
+              >
+                <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="flex flex-col pr-4">
+                  <span className="text-sm font-bold text-[#3DE8A0]">Success</span>
+                  <span className="text-xs font-medium mt-0.5">{claimSuccess}</span>
                 </div>
               </motion.div>
             )}
@@ -453,7 +470,7 @@ export default function RewardsPage() {
           </div>
         )}
 
-        {/* SOCIAL MEDIA REWARDS SECTION (COLORED ICONS, NO 'ACTIVE' BADGE) */}
+        {/* SOCIAL MEDIA REWARDS SECTION */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-[#A855F7]/10 flex items-center justify-center border border-[#A855F7]/20">
