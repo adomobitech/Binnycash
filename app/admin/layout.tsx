@@ -13,9 +13,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // Agar login page par hain, toh sidebar render nahi karna
   if (pathname === '/admin/login') {
-    return <div className="min-h-screen bg-[#0B0D14] text-white">{children}</div>;
+    return <div className="min-h-screen bg-white text-black">{children}</div>;
   }
 
   const navItems = [
@@ -36,20 +35,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="flex min-h-screen bg-[#0B0D14] text-white overflow-hidden">
+    <div className="flex min-h-screen bg-[#F4F5F7] text-black overflow-hidden">
       
       {/* SIDEBAR NAVIGATION */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#12141C] border-r border-white/10 flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 shadow-sm`}>
         
         {/* BRAND LOGO */}
-        <div className="p-6 border-b border-white/10 flex items-center justify-between">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#8B5CF6]/20 border border-[#8B5CF6]/40 flex items-center justify-center text-[#8B5CF6]">
+            <div className="w-9 h-9 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-black">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <span className="font-black tracking-wider uppercase text-base">BinnyAdmin</span>
+            <span className="font-black tracking-wider uppercase text-base text-black">BinnyAdmin</span>
           </div>
-          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-[#8F95A3] hover:text-white">
+          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-gray-500 hover:text-black">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -63,7 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${isActive ? 'bg-[#8B5CF6] text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]' : 'text-[#8F95A3] hover:bg-white/5 hover:text-white'}`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${isActive ? 'bg-black text-white shadow-md' : 'text-gray-500 hover:bg-gray-100 hover:text-black'}`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
                 {item.name}
@@ -73,10 +72,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* LOGOUT BUTTON */}
-        <div className="p-4 border-t border-white/10">
+        <div className="p-4 border-t border-gray-200">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold bg-transparent hover:bg-gray-100 text-black border border-gray-200 transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4 shrink-0" />
             Secure Logout
@@ -88,13 +87,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col lg:pl-64">
         
         {/* TOPBAR */}
-        <header className="sticky top-0 z-40 bg-[#0B0D14]/80 backdrop-blur-md border-b border-white/10 px-6 py-4 flex items-center justify-between">
-          <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden text-white p-2">
+        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
+          <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden text-black p-2">
             <Menu className="w-6 h-6" />
           </button>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-bold text-[#8F95A3] uppercase tracking-wider">System Operational</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">System Operational</span>
           </div>
         </header>
 
@@ -106,4 +105,4 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     </div>
   );
-}   
+}
