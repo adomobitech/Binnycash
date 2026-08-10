@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Trophy, Bell, Loader2, Crown, Calendar, Clock, Gift, Users, 
-  DollarSign, CheckCircle2, AlertOctagon, Ban, User
+  DollarSign, CheckCircle2, AlertOctagon, Ban, User, Info
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -71,6 +71,124 @@ const getPrizeForRank = (data: any, rank: number) => {
   const prizeObj = data.contest.prizes.find((p: any) => rank >= p.startRank && rank <= p.endRank);
   return prizeObj ? prizeObj.Cash : 0;
 };
+
+// ==========================================
+// REUSABLE TOP 3 PODIUM + RANK TABLE COMPONENT
+// ==========================================
+function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: boolean }) {
+  const { currency, winners } = data;
+
+  const sortedWinners = [...winners].sort((a, b) => Number(a.rank) - Number(b.rank));
+  const top1 = sortedWinners.find((w: any) => Number(w.rank) === 1);
+  const top2 = sortedWinners.find((w: any) => Number(w.rank) === 2);
+  const top3 = sortedWinners.find((w: any) => Number(w.rank) === 3);
+  
+  // Rank 4 and onwards
+  const tableUsers = sortedWinners.filter((w: any) => Number(w.rank) > 3);
+
+  const getImg = (u: any) => {
+    if (!u) return null;
+    if (String(u.userId) === String(getUserId())) return resolveImage(data.myProfilePic || u.image);
+    return resolveImage(u.image);
+  };
+
+  return (
+    <>
+      <div className="flex justify-between items-center mb-4 px-1">
+        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-[#FFC94A]"/> Top Winners
+        </h3>
+      </div>
+      
+      {/* 🔥 PODIUM: 2nd (Left), 1st (Center), 3rd (Right) 🔥 */}
+      <div className="flex items-end justify-center gap-2 sm:gap-4 h-[160px] mb-8 mt-6">
+        
+        {/* 2ND RANK (LEFT) */}
+        <div className="w-[30%] bg-[#1A1C25] rounded-t-2xl flex flex-col items-center relative h-[82%] border border-white/5 border-b-0 pb-3">
+           <div className="absolute -top-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#2A2C38] border-[3px] border-[#E2E8F0] overflow-hidden flex items-center justify-center shadow-md">
+             {getImg(top2) ? <img src={getImg(top2)!} className="w-full h-full object-cover" alt=""/> : <User className="w-5 h-5 text-[#8F95A3]"/>}
+           </div>
+           <div className="w-5 h-5 rounded-full bg-[#E2E8F0] text-black text-[10px] font-black absolute -top-8 flex items-center justify-center shadow">2</div>
+           <span className="text-xs font-bold text-white mt-auto truncate w-full text-center px-1">{top2?.userName || '---'}</span>
+           {top2?.totalReward !== undefined && (
+             <span className="text-[11px] text-[#00E57A] font-bold my-0.5">{formatPrice(top2?.totalReward, currency)}</span>
+           )}
+           <span className="text-[10px] text-[#FFC94A] font-black bg-[#FFC94A]/10 px-2 py-0.5 rounded mt-1">
+             {formatPrice(top2?.prize || getPrizeForRank(data, 2), currency)}
+           </span>
+        </div>
+        
+        {/* 1ST RANK (CENTER) */}
+        <div className="w-[36%] bg-gradient-to-t from-[#A66CFF]/20 via-[#1A1C25] to-[#252136] rounded-t-2xl flex flex-col items-center relative h-full border border-[#FFC94A]/40 border-b-0 pb-3 shadow-[0_-5px_25px_rgba(255,201,74,0.15)]">
+           <Crown className="w-7 h-7 text-[#FFC94A] absolute -top-11 z-10 drop-shadow-[0_2px_8px_rgba(255,201,74,0.6)]" fill="#FFC94A" />
+           <div className="absolute -top-7 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#2A2C38] border-[3px] border-[#FFC94A] overflow-hidden flex items-center justify-center shadow-lg">
+             {getImg(top1) ? <img src={getImg(top1)!} className="w-full h-full object-cover" alt=""/> : <User className="w-6 h-6 text-[#FFC94A]"/>}
+           </div>
+           <div className="w-6 h-6 rounded-full bg-[#FFC94A] text-black text-[11px] font-black absolute -top-9 flex items-center justify-center z-10 shadow-md">1</div>
+           <span className="text-sm font-black text-white mt-auto truncate w-full text-center px-1">{top1?.userName || '---'}</span>
+           {top1?.totalReward !== undefined && (
+             <span className="text-xs text-[#00E57A] font-black my-0.5">{formatPrice(top1?.totalReward, currency)}</span>
+           )}
+           <span className="text-[11px] text-[#FFC94A] font-black bg-[#FFC94A]/20 border border-[#FFC94A]/30 px-2.5 py-0.5 rounded mt-1">
+             {formatPrice(top1?.prize || getPrizeForRank(data, 1), currency)}
+           </span>
+        </div>
+
+        {/* 3RD RANK (RIGHT) */}
+        <div className="w-[30%] bg-[#1A1C25] rounded-t-2xl flex flex-col items-center relative h-[72%] border border-white/5 border-b-0 pb-3">
+           <div className="absolute -top-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#2A2C38] border-[3px] border-[#CD7F32] overflow-hidden flex items-center justify-center shadow-md">
+             {getImg(top3) ? <img src={getImg(top3)!} className="w-full h-full object-cover" alt=""/> : <User className="w-5 h-5 text-[#8F95A3]"/>}
+           </div>
+           <div className="w-5 h-5 rounded-full bg-[#CD7F32] text-black text-[10px] font-black absolute -top-8 flex items-center justify-center shadow">3</div>
+           <span className="text-xs font-bold text-white mt-auto truncate w-full text-center px-1">{top3?.userName || '---'}</span>
+           {top3?.totalReward !== undefined && (
+             <span className="text-[11px] text-[#00E57A] font-bold my-0.5">{formatPrice(top3?.totalReward, currency)}</span>
+           )}
+           <span className="text-[10px] text-[#FFC94A] font-black bg-[#FFC94A]/10 px-2 py-0.5 rounded mt-1">
+             {formatPrice(top3?.prize || getPrizeForRank(data, 3), currency)}
+           </span>
+        </div>
+      </div>
+
+      {/* 🔥 CHANGED: "Leaderboard (Rank 4+)" Replaced with "Global Standings" 🔥 */}
+      <h3 className="text-sm font-bold text-white mb-3 px-1">Global Standings</h3>
+      <div className="bg-[#0B0C10] rounded-xl border border-white/5 overflow-hidden mb-6">
+        <div className="grid grid-cols-[60px_1fr_100px_80px] gap-2 px-4 py-3 text-[10px] font-bold text-[#8F95A3] uppercase tracking-wider bg-white/[0.02] border-b border-white/5">
+          <div>RANK</div>
+          <div>USER</div>
+          <div className="text-right">PRIZE</div>
+          <div className="text-right">STATUS</div>
+        </div>
+        <div className="flex flex-col max-h-[260px] overflow-y-auto custom-scrollbar">
+          {tableUsers.length === 0 ? (
+            <div className="text-center py-8 text-sm text-[#8F95A3]">No other players ranked yet.</div>
+          ) : (
+            tableUsers.map((u: any, i: number) => (
+              <div 
+                key={i} 
+                className={`grid grid-cols-[60px_1fr_100px_80px] gap-2 px-4 py-3.5 items-center text-xs border-b border-white/5 last:border-0 ${String(u.userId) === String(getUserId()) ? 'bg-[#A66CFF]/15 border-l-2 border-l-[#A66CFF]' : 'hover:bg-white/[0.02]'}`}
+              >
+                <div className="text-[#8F95A3] font-bold">#{u.rank}</div>
+                <div className="flex items-center gap-2 truncate">
+                  <div className="w-6 h-6 rounded-full bg-white/5 overflow-hidden shrink-0 flex items-center justify-center border border-white/10">
+                    {getImg(u) ? <img src={getImg(u)!} className="w-full h-full object-cover" alt=""/> : <User className="w-3 h-3 text-[#8F95A3]"/>}
+                  </div>
+                  <span className="truncate font-bold text-white">{u.userName || 'Anonymous'}</span>
+                </div>
+                <div className="text-right text-[#FFC94A] font-bold">
+                  {formatPrice(u.prize || getPrizeForRank(data, u.rank), currency)}
+                </div>
+                <div className="text-right font-bold text-[#00E57A]">
+                  {isEnded ? 'Ended' : 'Active'}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
 
 // ==========================================
 // 1. UPCOMING CONTENT
@@ -149,18 +267,7 @@ function UpcomingContent({ data }: { data: any }) {
 // 2. ACTIVE CONTENT
 // ==========================================
 function ActiveContent({ data }: { data: any }) {
-  const { currency, contest, winners, currentUserRank, userEarnings } = data;
-
-  const top1 = winners.find((w: any) => w.rank === 1);
-  const top2 = winners.find((w: any) => w.rank === 2);
-  const top3 = winners.find((w: any) => w.rank === 3);
-  const tableUsers = winners.filter((w: any) => w.rank > 3);
-
-  const getImg = (u: any) => {
-    if (!u) return null;
-    if (u.userId === getUserId()) return resolveImage(data.myProfilePic || u.image);
-    return resolveImage(u.image);
-  };
+  const { currency, contest, currentUserRank, userEarnings } = data;
 
   return (
     <>
@@ -183,67 +290,23 @@ function ActiveContent({ data }: { data: any }) {
         </div>
       </div>
 
-      <div className="flex justify-between items-center mb-4 px-1">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2"><Trophy className="w-4 h-4 text-[#A66CFF]"/> Top 3 Leaderboard</h3>
-      </div>
-      
-      <div className="flex items-end justify-center gap-3 h-[140px] mb-6">
-        <div className="w-[28%] bg-[#1A1C25] rounded-t-xl flex flex-col items-center relative h-[80%] border border-white/5 border-b-0 pb-3">
-           <div className="absolute -top-6 w-12 h-12 rounded-full bg-[#2A2C38] border-[3px] border-[#E2E8F0] overflow-hidden flex items-center justify-center">
-             {getImg(top2) ? <img src={getImg(top2)!} className="w-full h-full object-cover" alt=""/> : <User className="w-5 h-5 text-[#8F95A3]"/>}
-           </div>
-           <div className="w-5 h-5 rounded-full bg-[#E2E8F0] text-black text-[10px] font-black absolute -top-8 flex items-center justify-center">2</div>
-           <span className="text-xs font-bold text-white mt-auto truncate w-full text-center px-2">{top2?.userName || '---'}</span>
-           <span className="text-[11px] text-[#00E57A] font-bold my-0.5">{formatPrice(top2?.prize || 0, currency)}</span>
-           <span className="text-[10px] text-[#FFC94A] font-black bg-[#FFC94A]/10 px-2 py-0.5 rounded">Prize {formatPrice(getPrizeForRank(data, 2), currency)}</span>
-        </div>
-        
-        <div className="w-[34%] bg-gradient-to-t from-[#A66CFF]/20 to-[#1A1C25] rounded-t-xl flex flex-col items-center relative h-full border border-[#A66CFF]/30 border-b-0 pb-3">
-           <Crown className="w-6 h-6 text-[#FFC94A] absolute -top-10 z-10" fill="#FFC94A" />
-           <div className="absolute -top-6 w-14 h-14 rounded-full bg-[#2A2C38] border-[3px] border-[#FFC94A] overflow-hidden flex items-center justify-center shadow-lg">
-             {getImg(top1) ? <img src={getImg(top1)!} className="w-full h-full object-cover" alt=""/> : <User className="w-6 h-6 text-[#FFC94A]"/>}
-           </div>
-           <div className="w-5 h-5 rounded-full bg-[#FFC94A] text-black text-[10px] font-black absolute -top-8 flex items-center justify-center z-10">1</div>
-           <span className="text-sm font-black text-white mt-auto truncate w-full text-center px-2">{top1?.userName || '---'}</span>
-           <span className="text-xs text-[#00E57A] font-black my-0.5">{formatPrice(top1?.prize || 0, currency)}</span>
-           <span className="text-[10px] text-[#FFC94A] font-black bg-[#FFC94A]/10 px-2 py-0.5 rounded">Prize {formatPrice(getPrizeForRank(data, 1), currency)}</span>
-        </div>
+      {/* Render Podium + Table */}
+      <LeaderboardDisplay data={data} isEnded={false} />
 
-        <div className="w-[28%] bg-[#1A1C25] rounded-t-xl flex flex-col items-center relative h-[70%] border border-white/5 border-b-0 pb-3">
-           <div className="absolute -top-6 w-12 h-12 rounded-full bg-[#2A2C38] border-[3px] border-[#CD7F32] overflow-hidden flex items-center justify-center">
-             {getImg(top3) ? <img src={getImg(top3)!} className="w-full h-full object-cover" alt=""/> : <User className="w-5 h-5 text-[#8F95A3]"/>}
-           </div>
-           <div className="w-5 h-5 rounded-full bg-[#CD7F32] text-black text-[10px] font-black absolute -top-8 flex items-center justify-center">3</div>
-           <span className="text-xs font-bold text-white mt-auto truncate w-full text-center px-2">{top3?.userName || '---'}</span>
-           <span className="text-[11px] text-[#00E57A] font-bold my-0.5">{formatPrice(top3?.prize || 0, currency)}</span>
-           <span className="text-[10px] text-[#FFC94A] font-black bg-[#FFC94A]/10 px-2 py-0.5 rounded">Prize {formatPrice(getPrizeForRank(data, 3), currency)}</span>
-        </div>
-      </div>
-
-      <h3 className="text-sm font-bold text-white mb-3 px-1">Full Leaderboard</h3>
-      <div className="bg-[#0B0C10] rounded-xl border border-white/5 overflow-hidden mb-6">
-        <div className="grid grid-cols-[60px_1fr_100px_80px] gap-2 px-4 py-3 text-[10px] font-bold text-[#8F95A3] uppercase tracking-wider bg-white/[0.02] border-b border-white/5">
-          <div>RANK</div><div>USER</div><div className="text-right">PRIZE</div><div className="text-right">STATUS</div>
-        </div>
-        <div className="flex flex-col max-h-[220px] overflow-y-auto custom-scrollbar">
-          {tableUsers.length === 0 ? (
-            <div className="text-center py-8 text-sm text-[#8F95A3]">No other players ranked yet.</div>
-          ) : (
-            tableUsers.map((u: any, i: number) => (
-              <div key={i} className={`grid grid-cols-[60px_1fr_100px_80px] gap-2 px-4 py-3.5 items-center text-xs border-b border-white/5 last:border-0 ${u.userId === getUserId() ? 'bg-[#A66CFF]/15' : 'hover:bg-white/[0.02]'}`}>
-                <div className="text-[#8F95A3] font-bold">#{u.rank}</div>
-                <div className="truncate font-bold text-white">{u.userName || 'Anonymous'}</div>
-                <div className="text-right text-[#FFC94A] font-bold">{formatPrice(u.prize || getPrizeForRank(data, u.rank), currency)}</div>
-                <div className="text-right text-[#00E57A] font-bold">Active</div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
+      {/* 🔥 CHANGED: Clean & Premium Notice/Warning Box 🔥 */}
       {data.rankMessage && (
-        <div className="text-sm text-[#8F95A3] bg-[#0B0C10] p-4 rounded-xl border border-white/5 text-center mt-auto">
-          {data.rankMessage}
+        <div className="mt-2 bg-gradient-to-r from-[#F59E0B]/10 to-[#0B0C10] border border-[#F59E0B]/20 rounded-xl p-4 flex items-start gap-4">
+           <div className="w-10 h-10 rounded-full bg-[#F59E0B]/20 flex items-center justify-center shrink-0 mt-0.5">
+             <AlertOctagon className="w-5 h-5 text-[#F59E0B]" />
+           </div>
+           <div className="text-left flex-1">
+             <h4 className="text-[#F59E0B] font-bold text-sm mb-1 uppercase tracking-wider">
+               {data.rankMessage.includes(':') ? data.rankMessage.split(':')[0] : 'Eligibility Notice'}
+             </h4>
+             <p className="text-[13px] text-[#F59E0B]/90 font-medium leading-relaxed">
+               {data.rankMessage.includes(':') ? data.rankMessage.split(':')[1].trim() : data.rankMessage}
+             </p>
+           </div>
         </div>
       )}
     </>
@@ -254,15 +317,7 @@ function ActiveContent({ data }: { data: any }) {
 // 3. ENDED CONTENT
 // ==========================================
 function EndedContent({ data }: { data: any }) {
-  const { currency, contest, winners } = data;
-  const top1 = winners.find((w: any) => w.rank === 1);
-  const tableUsers = winners.filter((w: any) => w.rank > 1);
-
-  const getImg = (u: any) => {
-    if (!u) return null;
-    if (u.userId === getUserId()) return resolveImage(data.myProfilePic || u.image);
-    return resolveImage(u.image);
-  };
+  const { currency, contest } = data;
 
   return (
     <>
@@ -281,49 +336,23 @@ function EndedContent({ data }: { data: any }) {
         </div>
       </div>
 
-      <div className="mb-6">
-        <h3 className="text-sm font-bold text-white mb-3 px-1">Winner</h3>
-        {top1 ? (
-          <div className="bg-gradient-to-r from-[#FFC94A]/10 to-transparent border border-[#FFC94A]/20 rounded-xl p-4 flex items-center justify-between">
-             <div className="flex items-center gap-4">
-               <div className="w-10 h-10 rounded-full bg-[#12141D] border border-[#FFC94A] overflow-hidden flex items-center justify-center font-black text-lg text-[#FFC94A]">
-                 {getImg(top1) ? <img src={getImg(top1)!} className="w-full h-full object-cover" alt=""/> : '🥇'}
-               </div>
-               <span className="text-sm font-bold text-white">{top1.userName || 'Winner'}</span>
-             </div>
-             <div className="flex items-center gap-4 text-right">
-               <div><span className="text-[10px] text-[#8F95A3] block uppercase tracking-wider mb-0.5">Prize</span><span className="text-sm font-black text-[#FFC94A]">{formatPrice(top1.prize || getPrizeForRank(data, 1), currency)}</span></div>
-             </div>
-          </div>
-        ) : (
-          <div className="text-sm text-[#8F95A3] bg-[#0B0C10] p-4 rounded-xl border border-white/5 text-center">No winner recorded.</div>
-        )}
-      </div>
+      {/* Render Podium + Table for Ended Contest */}
+      <LeaderboardDisplay data={data} isEnded={true} />
 
-      <h3 className="text-sm font-bold text-white mb-3 px-1">Full Leaderboard</h3>
-      <div className="bg-[#0B0C10] rounded-xl border border-white/5 overflow-hidden mb-6 flex-1 flex flex-col max-h-[300px]">
-        <div className="grid grid-cols-[60px_1fr_100px_80px] gap-2 px-4 py-3 text-[10px] font-bold text-[#8F95A3] uppercase tracking-wider bg-white/[0.02] border-b border-white/5 shrink-0">
-          <div>RANK</div><div>USER</div><div className="text-right">PRIZE</div><div className="text-right">STATUS</div>
-        </div>
-        <div className="flex flex-col overflow-y-auto custom-scrollbar flex-1">
-          {tableUsers.length === 0 ? (
-            <div className="text-center py-10 text-sm text-[#8F95A3]">No other ranked users.</div>
-          ) : (
-            tableUsers.map((row: any, i: number) => (
-              <div key={i} className="grid grid-cols-[60px_1fr_100px_80px] gap-2 px-4 py-3.5 items-center text-xs border-b border-white/5 last:border-0 hover:bg-white/[0.02]">
-                <div className="text-white font-bold">#{row.rank}</div>
-                <div className="truncate font-bold text-white">{row.userName || 'Anonymous'}</div>
-                <div className="text-right text-[#FFC94A] font-bold">{formatPrice(row.prize || getPrizeForRank(data, row.rank), currency)}</div>
-                <div className="text-right text-[#00E57A] font-bold">Ended</div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
+      {/* 🔥 CHANGED: Clean & Premium Notice/Warning Box 🔥 */}
       {data.rankMessage && (
-        <div className="text-sm text-[#8F95A3] bg-[#0B0C10] p-4 rounded-xl border border-white/5 text-center mb-0">
-          {data.rankMessage}
+        <div className="mt-2 bg-gradient-to-r from-[#F59E0B]/10 to-[#0B0C10] border border-[#F59E0B]/20 rounded-xl p-4 flex items-start gap-4">
+           <div className="w-10 h-10 rounded-full bg-[#F59E0B]/20 flex items-center justify-center shrink-0 mt-0.5">
+             <AlertOctagon className="w-5 h-5 text-[#F59E0B]" />
+           </div>
+           <div className="text-left flex-1">
+             <h4 className="text-[#F59E0B] font-bold text-sm mb-1 uppercase tracking-wider">
+               {data.rankMessage.includes(':') ? data.rankMessage.split(':')[0] : 'Eligibility Notice'}
+             </h4>
+             <p className="text-[13px] text-[#F59E0B]/90 font-medium leading-relaxed">
+               {data.rankMessage.includes(':') ? data.rankMessage.split(':')[1].trim() : data.rankMessage}
+             </p>
+           </div>
         </div>
       )}
     </>
@@ -423,8 +452,6 @@ function InactiveContent() {
         <h3 className="text-xl font-black text-white mb-2">Check back later!</h3>
         <p className="text-sm text-[#8F95A3] max-w-[80%] mx-auto">We are preparing something exciting for you.</p>
       </div>
-
-      
     </>
   );
 }
@@ -432,7 +459,7 @@ function InactiveContent() {
 // ==========================================
 // REUSABLE CARD WRAPPER
 // ==========================================
-function ContestCard({ state, title, children }: { state: string, title: string, children: React.ReactNode }) {
+function ContestCard({ state, title, contestName, description, children }: { state: string, title: string, contestName?: string, description?: string, children: React.ReactNode }) {
   const getBadgeStyle = () => {
     switch (state) {
       case 'UPCOMING': return 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/20';
@@ -482,15 +509,14 @@ function ContestCard({ state, title, children }: { state: string, title: string,
             </span>
           </div>
           <h2 className="text-[20px] font-black text-white leading-tight mb-1 truncate">
-            {state === 'INACTIVE' ? 'No Active Contest' : 'Loot League Season 5'} <Trophy className="w-4 h-4 inline text-[#FFC94A] ml-1 mb-1" fill="#FFC94A"/>
+            {state === 'INACTIVE' ? 'No Active Contest' : (contestName || 'Contest')} <Trophy className="w-4 h-4 inline text-[#FFC94A] ml-1 mb-1" fill="#FFC94A"/>
           </h2>
           <p className="text-xs text-[#8F95A3] line-clamp-2">
-            {state === 'UPCOMING' && 'Get ready! The contest starts soon.'}
-            {state === 'ACTIVE' && 'Compete now and climb to the top!'}
-            {state === 'ENDED' && 'This contest has ended. Thank you for participating!'}
-            {state === 'FINALIZED' && 'Rewards have been distributed successfully.'}
-            {state === 'CANCELLED' && 'This contest has been cancelled.'}
-            {state === 'INACTIVE' && 'There is no active contest at the moment.'}
+            {state === 'INACTIVE' || state === 'CANCELLED' ? (
+              state === 'CANCELLED' ? 'This contest has been cancelled.' : 'There is no active contest at the moment.'
+            ) : (
+              description || 'Compete now and climb to the top!'
+            )}
           </p>
         </div>
       </div>
@@ -556,13 +582,20 @@ export default function LeaderboardPage() {
   // Determine status dynamically from real API response
   const currentStatus = (contestData?.contest?.status || (isLoading ? '' : 'INACTIVE')).toUpperCase();
 
+  // Safely map winners array regardless of whether backend sends 'topUsers' or 'winners'
+  const safeWinners = Array.isArray(contestData?.topUsers) 
+    ? contestData.topUsers 
+    : Array.isArray(contestData?.winners) 
+      ? contestData.winners 
+      : [];
+
   const cData = {
     contest: contestData?.contest,
     totalUsers: contestData?.totalUsers || 0,
-    winners: contestData?.winners || [],
-    currentUserRank: contestData?.currentUserRank,
-    myPrize: contestData?.myPrize || 0,
-    userEarnings: contestData?.userEligibility?.contestEarnings || 0,
+    winners: safeWinners,
+    currentUserRank: contestData?.currentUserRank?.rank,
+    myPrize: contestData?.currentUserRank?.prize || contestData?.myPrize || 0,
+    userEarnings: contestData?.userEligibility?.contestEarnings || contestData?.currentUserRank?.totalReward || 0,
     rankMessage: contestData?.rankMessage || '',
     myProfilePic,
     currency
@@ -571,35 +604,39 @@ export default function LeaderboardPage() {
   // Function to render exactly one block based on backend status
   const renderContestBlock = () => {
     if (isLoading) return null;
+    
+    // Dynamic values for the card wrapper
+    const cName = contestData?.contest?.contestName;
+    const cDesc = contestData?.contest?.description;
 
     switch (currentStatus) {
       case 'UPCOMING':
         return (
-          <ContestCard state="UPCOMING" title={`${contestType} CONTEST`}>
+          <ContestCard state="UPCOMING" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}>
             <UpcomingContent data={cData} />
           </ContestCard>
         );
       case 'ACTIVE':
         return (
-          <ContestCard state="ACTIVE" title={`${contestType} CONTEST`}>
+          <ContestCard state="ACTIVE" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}>
             <ActiveContent data={cData} />
           </ContestCard>
         );
       case 'ENDED':
         return (
-          <ContestCard state="ENDED" title={`${contestType} CONTEST`}>
+          <ContestCard state="ENDED" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}>
             <EndedContent data={cData} />
           </ContestCard>
         );
       case 'FINALIZED':
         return (
-          <ContestCard state="FINALIZED" title={`${contestType} CONTEST`}>
+          <ContestCard state="FINALIZED" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}>
             <FinalizedContent data={cData} />
           </ContestCard>
         );
       case 'CANCELLED':
         return (
-          <ContestCard state="CANCELLED" title={`${contestType} CONTEST`}>
+          <ContestCard state="CANCELLED" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}>
             <CancelledContent />
           </ContestCard>
         );
@@ -666,7 +703,7 @@ export default function LeaderboardPage() {
           ) : (
             <motion.div key={contestType + currentStatus} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
               
-              {/* --- DYNAMIC SINGLE CONTEST BLOCK WITH INCREASED WIDTH --- */}
+              {/* --- DYNAMIC SINGLE CONTEST BLOCK --- */}
               <div className="max-w-[850px] mx-auto w-full">
                 {renderContestBlock()}
               </div>

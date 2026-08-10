@@ -14,18 +14,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
 import ChatDrawer from '@/components/chat/ChatDrawer';
 
-// 🚀 DYNAMIC COLOR GENERATOR: Hashing logic to assign fixed color to names 🚀
+// 🔥 DYNAMIC COLOR GENERATOR
 const getDynamicColor = (name: string) => {
   const colors = [
-    'bg-[#8B5CF6]', // Purple
-    'bg-[#3B82F6]', // Blue
-    'bg-[#EC4899]', // Pink
-    'bg-[#10B981]', // Green
-    'bg-[#F59E0B]', // Orange
-    'bg-[#EF4444]', // Red
-    'bg-[#6366F1]', // Indigo
+    'bg-[#8B5CF6]', 'bg-[#3B82F6]', 'bg-[#EC4899]', 
+    'bg-[#10B981]', 'bg-[#F59E0B]', 'bg-[#EF4444]', 'bg-[#6366F1]'
   ];
-  if (!name) return colors[0];
+  if (!name || name === 'Profile') return colors[0];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -138,15 +133,55 @@ export default function Navbar() {
 
   const navRef = useRef<HTMLElement>(null);
 
+  // 🔥 TYPESCRIPT-SAFE GOOGLE TRANSLATE DOM PATCH 🔥
+  useEffect(() => {
+    if (typeof window !== 'undefined' && typeof Node === 'function' && Node.prototype) {
+      // @ts-ignore
+      const nativeRemoveChild = Node.prototype.removeChild;
+      // @ts-ignore
+      Node.prototype.removeChild = function (child) {
+        if (child && child.parentNode !== this) {
+          return child; // Ignore safely
+        }
+        return nativeRemoveChild.call(this, child);
+      };
+
+      // @ts-ignore
+      const nativeInsertBefore = Node.prototype.insertBefore;
+      // @ts-ignore
+      Node.prototype.insertBefore = function (newNode, referenceNode) {
+        if (referenceNode && referenceNode.parentNode !== this) {
+          return newNode; // Ignore safely
+        }
+        return nativeInsertBefore.call(this, newNode, referenceNode);
+      };
+    }
+  }, []);
+
+  // SPA ROUTE CHANGE TRANSLATION FIX
   useEffect(() => {
     const cookies = document.cookie.split(';');
+    let currentLang = 'en';
     for (let cookie of cookies) {
       const [name, value] = cookie.trim().split('=');
       if (name === 'googtrans' && value) {
         const langCode = value.split('/')[2];
+        currentLang = langCode;
         const found = LANGUAGES.find(l => l.code === langCode);
         if (found) setSelectedLang(found);
       }
+    }
+
+    if (currentLang !== 'en') {
+      const triggerTranslate = () => {
+        const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
+        if (select) {
+          select.value = currentLang;
+          select.dispatchEvent(new Event('change'));
+        }
+      };
+      setTimeout(triggerTranslate, 300);
+      setTimeout(triggerTranslate, 1000); 
     }
     
     if (typeof window !== 'undefined') {
@@ -164,7 +199,6 @@ export default function Navbar() {
   }, [pathname]);
 
   const handleForceLogout = () => {
-    // 🔥 FIX 1: THE ULTIMATE SHIELD - Admin URL hone par Navbar token delete nahi karega
     if (pathname?.startsWith('/admin')) return; 
 
     localStorage.removeItem('token');
@@ -178,7 +212,6 @@ export default function Navbar() {
 
   useEffect(() => {
     const checkAuth = () => {
-      // 🔥 FIX 2: Admin routes par checkAuth API nahi chalegi
       if (window.location.pathname.startsWith('/admin')) return;
 
       const token = localStorage.getItem('token');
@@ -213,13 +246,13 @@ export default function Navbar() {
   }, []);
 
   const resolveImage = (imgSrc: string) => {
-    if (!imgSrc) return null;
+    // If backend gives literal "null" or "undefined" text, bypass it
+    if (!imgSrc || imgSrc === 'null' || imgSrc === 'undefined') return null;
     if (imgSrc.startsWith('http')) return imgSrc;
     return `https://apitest.binnycash.com${imgSrc}`;
   };
 
   const fetchUserData = () => {
-    // 🔥 FIX 3: Admin routes par Profile API nahi chalegi
     if (pathname?.startsWith('/admin')) return;
 
     const token = localStorage.getItem('token');
@@ -238,16 +271,17 @@ export default function Navbar() {
     })
     .then(data => {
        if (!data) return;
-       const user = data?.data?.user || data?.data;
+       const user = data?.data?.user || data?.data || data?.userDetails || data;
        if (user) {
-          if (user.id) setTrueUserId(String(user.id));
-          let display = user.userName || user.firstName;
+          if (user.id || user._id) setTrueUserId(String(user.id || user._id));
+          
+          let display = user.userName || user.username || user.firstName;
           if (!display && user.email) {
             display = user.email.split('@')[0];
           }
           if (display) setUserName(display);
           
-          const rawPic = user.image || user.profilePic;
+          const rawPic = user.image || user.profilePic || user.picture || user.avatar;
           if (rawPic) {
             setUserAvatar(resolveImage(rawPic));
           } else {
@@ -314,7 +348,6 @@ export default function Navbar() {
   };
 
   const fetchInboxMessages = async () => {
-    // 🔥 FIX 4: Admin routes par Inbox API nahi chalegi
     if (pathname?.startsWith('/admin')) return;
 
     setIsInboxLoading(true);
@@ -421,13 +454,39 @@ export default function Navbar() {
   const handleLanguageChange = (lang: any) => {
     setSelectedLang(lang);
     setIsLangModalOpen(false);
-    if (lang.code === 'en') {
-      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + window.location.hostname;
-    } else {
+    
+    const host = window.location.hostname;
+    
+    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${host}`;
+    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${host}`;
+
+    if (lang.code !== 'en') {
       document.cookie = `googtrans=/en/${lang.code}; path=/;`;
+      document.cookie = `googtrans=/en/${lang.code}; path=/; domain=${host}`;
+      document.cookie = `googtrans=/en/${lang.code}; path=/; domain=.${host}`;
+      
+      const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+      if (combo) {
+        combo.value = lang.code;
+        combo.dispatchEvent(new Event('change'));
+      } else {
+         window.location.reload();
+      }
+    } else {
+      try {
+        const iframe = document.querySelector('.goog-te-banner-frame') as HTMLIFrameElement;
+        if (iframe && iframe.contentWindow) {
+          const innerDoc = iframe.contentWindow.document;
+          const restoreBtn = innerDoc.getElementById('restore') as HTMLButtonElement | null;
+          if (restoreBtn) {
+            restoreBtn.click();
+            return;
+          }
+        }
+      } catch (e) {}
+      window.location.reload();
     }
-    window.location.reload();
   };
 
   const handleLogoutConfirm = async () => {
@@ -458,7 +517,6 @@ export default function Navbar() {
 
   const isCoin = currency === 'Coin' || currency === 'COIN';
 
-  // 🔥 MAIN FIX: Navbar ko Admin Routes par completely hide kar do!
   if (pathname && pathname.startsWith('/admin')) {
     return null;
   }
@@ -467,10 +525,8 @@ export default function Navbar() {
     <>
       <AnimatePresence>
         {isTransitioning && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#070913] overflow-hidden font-sans">
-            
+          <motion.div key="transitioning-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#070913] overflow-hidden font-sans">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#8B5CF6]/15 blur-[120px] rounded-full pointer-events-none" />
-            
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -478,56 +534,22 @@ export default function Navbar() {
               className="relative flex flex-col items-center z-10"
             >
                <div className="relative flex items-center justify-center mb-10 mt-[-50px]">
-                  
-                  <motion.div 
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                    className="absolute w-32 h-32 rounded-full border-2 border-transparent border-t-[#8B5CF6] border-r-[#8B5CF6] opacity-80"
-                  />
-                  
-                  <motion.div 
-                    animate={{ rotate: -360 }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
-                    className="absolute w-36 h-36 rounded-full border border-dashed border-white/10"
-                  />
-                  
-                  <motion.div 
-                    animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute w-24 h-24 rounded-full bg-[#00E57A]/30 blur-md"
-                  />
-
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} className="absolute w-32 h-32 rounded-full border-2 border-transparent border-t-[#8B5CF6] border-r-[#8B5CF6] opacity-80" />
+                  <motion.div animate={{ rotate: -360 }} transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }} className="absolute w-36 h-36 rounded-full border border-dashed border-white/10" />
+                  <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }} className="absolute w-24 h-24 rounded-full bg-[#00E57A]/30 blur-md" />
                   <div className="w-20 h-20 bg-[#120F1A] border border-[#8B5CF6]/30 rounded-[20px] flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.2)] z-10 relative overflow-hidden backdrop-blur-xl">
                      <img src="/logo.png" alt="BinnyCash Logo" className="w-10 h-10 object-contain z-10" />
-                     
-                     <motion.div 
-                       animate={{ x: ['-150%', '250%'] }}
-                       transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }}
-                       className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
-                     />
+                     <motion.div animate={{ x: ['-150%', '250%'] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }} className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12" />
                   </div>
-
-                  <motion.div 
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-                    className="absolute -bottom-2 -right-2 bg-[#00E57A] w-8 h-8 rounded-full flex items-center justify-center border-4 border-[#070913] z-20 shadow-[0_0_15px_rgba(0,229,122,0.4)]"
-                  >
+                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3, type: "spring", stiffness: 200 }} className="absolute -bottom-2 -right-2 bg-[#00E57A] w-8 h-8 rounded-full flex items-center justify-center border-4 border-[#070913] z-20 shadow-[0_0_15px_rgba(0,229,122,0.4)]">
                     <Lock className="w-3.5 h-3.5 text-black" strokeWidth={3} />
                   </motion.div>
                </div>
-
-               <motion.h2 
-                 animate={{ opacity: [0.5, 1, 0.5] }}
-                 transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                 className="text-2xl font-black text-white tracking-wide mb-3"
-               >
+               <motion.h2 animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }} className="text-2xl font-black text-white tracking-wide mb-3">
                  Logging out securely...
                </motion.h2>
-               
                <p className="text-[#8F95A3] text-sm font-medium flex items-center gap-2">
-                 <ShieldCheck className="w-4 h-4 text-[#00E57A]" />
-                 Clearing your session data
+                 <ShieldCheck className="w-4 h-4 text-[#00E57A]" /> Clearing your session data
                </p>
             </motion.div>
           </motion.div>
@@ -536,7 +558,7 @@ export default function Navbar() {
 
       <AnimatePresence>
         {showLogoutConfirm && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <motion.div key="logout-confirm-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-[#111315] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
               <h3 className="text-white text-lg font-black mb-2 mt-4">Are you sure?</h3>
               <p className="text-[#8F95A3] text-sm mb-6">You will be logged out of your session.</p>
@@ -596,6 +618,7 @@ export default function Navbar() {
               <AnimatePresence>
                 {isLangModalOpen && (
                   <motion.div 
+                    key="lang-dropdown"
                     initial={{ opacity: 0, y: 10, scale: 0.95 }} 
                     animate={{ opacity: 1, y: 0, scale: 1 }} 
                     exit={{ opacity: 0, y: 10, scale: 0.95 }} 
@@ -653,6 +676,7 @@ export default function Navbar() {
                   <AnimatePresence>
                     {isInboxOpen && (
                       <motion.div 
+                        key="inbox-dropdown"
                         initial={{ opacity: 0, y: 10, scale: 0.95 }} 
                         animate={{ opacity: 1, y: 0, scale: 1 }} 
                         exit={{ opacity: 0, y: 10, scale: 0.95 }} 
@@ -702,7 +726,6 @@ export default function Navbar() {
                                       <span className="text-[#8F95A3] text-[11px] whitespace-nowrap ml-2 mt-0.5">{timeAgo}</span>
                                     </div>
                                     <p className="text-[#8F95A3] text-[13px] leading-relaxed pr-2">{message}</p>
-                                    
                                     <div className="mt-1">
                                       <span className="text-[#A66CFF] text-[11px] font-bold uppercase tracking-wider">{item.method || 'SYSTEM'}</span>
                                     </div>
@@ -728,7 +751,12 @@ export default function Navbar() {
                 <div className="relative">
                   <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] p-1 pr-2 rounded-xl transition-all cursor-pointer border border-white/5">
                     {userAvatar ? (
-                      <img src={userAvatar} alt="Profile" className="w-6 h-6 md:w-8 md:h-8 rounded-lg object-cover shadow-sm" />
+                      <img 
+                        src={userAvatar} 
+                        alt="Profile" 
+                        className="w-6 h-6 md:w-8 md:h-8 rounded-lg object-cover shadow-sm" 
+                        onError={() => setUserAvatar(null)} 
+                      />
                     ) : (
                       <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg ${getDynamicColor(userName)} flex items-center justify-center text-white text-[12px] md:text-[15px] font-black shadow-sm uppercase`}>
                         {userName ? userName.charAt(0) : '?'}
@@ -740,6 +768,7 @@ export default function Navbar() {
                   <AnimatePresence>
                     {isProfileOpen && (
                       <motion.div 
+                        key="profile-dropdown"
                         initial={{ opacity: 0, y: 10, scale: 0.95 }} 
                         animate={{ opacity: 1, y: 0, scale: 1 }} 
                         exit={{ opacity: 0, y: 10, scale: 0.95 }} 

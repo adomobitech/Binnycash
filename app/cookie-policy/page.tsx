@@ -9,17 +9,17 @@ export default function CookiePolicyPage() {
   const sections = [
     {
       title: "1. Introduction",
-      content: "This Cookie Policy explains how BinnyCash uses cookies and tracking technologies."
+      content: "This Cookie Policy explains how Weeo Media LLC (operating as BinnyCash) uses cookies and similar tracking technologies on our platform."
     },
     {
       title: "2. What Are Cookies?",
       content: "Cookies are small text files stored on your device. They help us:",
       list: [
-        "Recognize your device",
-        "Improve user experience",
-        "Track offers",
-        "Prevent fraud",
-        "Analyze performance"
+        "Recognize your device securely",
+        "Improve and personalize user experience",
+        "Track reward offers accurately",
+        "Prevent fraudulent activities",
+        "Analyze platform performance"
       ]
     },
     {
@@ -35,48 +35,48 @@ export default function CookiePolicyPage() {
         },
         {
           subtitle: "3.3 Functional Cookies",
-          items: ["Dashboard customization"]
+          items: ["Dashboard customization", "Preference saving"]
         },
         {
-          subtitle: "3.4 Advertising Cookies",
-          items: ["Measure ads", "Track offers", "Prevent duplicate rewards", "Personalized ads"]
+          subtitle: "3.4 Advertising & Tracking Cookies",
+          items: ["Measure ad effectiveness", "Track third-party offers", "Prevent duplicate rewards", "Personalized content"]
         }
       ]
     },
     {
       title: "4. Third-Party Cookies",
-      content: "Some cookies are placed by third parties. We do not control them."
+      content: "Some cookies are placed by trusted third-party partners (e.g., offerwalls, payment gateways, analytics providers). We do not control these cookies, but we strictly vet our partners to ensure they align with our privacy standards."
     },
     {
       title: "5. Why We Use Cookies",
       list: [
-        "Secure accounts",
-        "Prevent fraud",
-        "Track rewards",
-        "Improve performance",
-        "Deliver offers"
+        "Secure accounts from unauthorized access",
+        "Actively detect and prevent fraud",
+        "Accurately track your rewards and completions",
+        "Improve platform speed and performance",
+        "Deliver targeted offers relevant to you"
       ]
     },
     {
       title: "6. Managing Cookies",
-      content: "You can disable cookies via browser settings.",
+      content: "You have the right to disable cookies via your browser settings. However, please note:",
       list: [
-        "Login issues may occur",
-        "Tracking failures",
-        "Rewards may not work"
+        "Login issues or session timeouts may occur",
+        "Offer tracking may fail",
+        "Rewards may not be credited if tracking is blocked"
       ]
     },
     {
-      title: "7. Data Protection",
-      content: "We comply with GDPR and India DPDP Act."
+      title: "7. Data Protection Compliance",
+      content: "Weeo Media LLC complies with applicable global data protection regulations, including GDPR, US privacy laws, and India's DPDP Act."
     },
     {
-      title: "8. Updates",
-      content: "We may update this policy periodically to reflect changes in our practices or applicable laws."
+      title: "8. Updates to this Policy",
+      content: "We may update this policy periodically to reflect changes in our technology, practices, or applicable laws. Continued use implies acceptance."
     },
     {
-      title: "9. Contact",
-      content: "privacy@binnycash.com -   i, India"
+      title: "9. Contact Information",
+      content: "Company: Weeo Media LLC\nHQ Address: 5900 Balcones Drive STE 100 Austin, TX 78731 USA\nEmail: privacy@binnycash.com"
     }
   ];
 
@@ -115,7 +115,8 @@ export default function CookiePolicyPage() {
             {sections.map((section, idx) => (
               <div key={idx} className="flex flex-col gap-3">
                 <h2 className="text-xl font-bold text-white border-b border-white/5 pb-2 inline-block w-full">{section.title}</h2>
-                {section.content && <p className="text-[#8F95A3] text-sm leading-relaxed">{section.content}</p>}
+                {/* Added whitespace-pre-wrap for proper address formatting */}
+                {section.content && <p className="text-[#8F95A3] text-sm leading-relaxed whitespace-pre-wrap">{section.content}</p>}
                 
                 {section.list && (
                   <ul className="list-none space-y-2 mt-2">

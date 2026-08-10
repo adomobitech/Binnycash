@@ -9,82 +9,82 @@ export default function TermsPage() {
   const sections = [
     {
       title: "1. Acceptance of Terms",
-      content: "These Terms constitute a legally binding agreement between you and AdoMobi Technology Pvt. Ltd. (BinnyCash). By using our services, you agree to these Terms and our Privacy Policy."
+      content: "These Terms constitute a legally binding agreement between you and Weeo Media LLC (operating as BinnyCash), headquartered at 5900 Balcones Drive STE 100 Austin, TX 78731 USA. By using our services, you agree to these Terms and our Privacy Policy."
     },
     {
       title: "2. Eligibility",
       list: [
-        "Minimum age: 16 years",
-        "One account per person",
-        "Provide accurate information",
-        "We may request identity verification"
+        "Minimum age requirement: 16 years.",
+        "Strictly one account per person.",
+        "Must provide accurate and truthful information.",
+        "We reserve the right to request identity verification to prevent fraud."
       ]
     },
     {
       title: "3. Account Registration",
       list: [
-        "Maintain login confidentiality",
-        "Responsible for all activity",
-        "Provide truthful data"
+        "You must maintain the confidentiality of your login credentials.",
+        "You are solely responsible for all activity under your account.",
+        "Providing false data may result in immediate termination."
       ]
     },
     {
       title: "4. Rewards Program",
-      content: "Rewards are promotional, subject to validation, and may be reversed if fraud is detected."
+      content: "Rewards are promotional, subject to validation by our partners, and may be reversed or withheld if fraudulent activity is detected."
     },
     {
       title: "5. Offer Validation",
-      content: "BinnyCash does not control third-party offer approvals."
+      content: "BinnyCash acts as an intermediary. We do not control third-party offer approvals or survey disqualifications."
     },
     {
       title: "6. Redemption & Payout",
-      content: "Payouts are subject to minimum withdrawal thresholds and internal security checks before processing."
+      content: "All payouts are subject to minimum withdrawal thresholds. We conduct mandatory internal security checks before processing any transactions to ensure compliance."
     },
     {
       title: "7. Prohibited Activities",
       list: [
-        "No VPN or proxy",
-        "No multiple accounts",
-        "No fake info",
-        "No system abuse",
-        "No chargebacks"
+        "No use of VPNs, proxies, or emulators.",
+        "No creation of multiple accounts.",
+        "No submission of fake or misleading information.",
+        "No exploitation, hacking, or abuse of our systems.",
+        "No fraudulent chargebacks or payment reversals."
       ]
     },
     {
       title: "8. Account Suspension",
-      content: "Accounts may be suspended for violations or fraud."
+      content: "Accounts may be permanently suspended without notice for violations of these Terms, suspicious activity, or detected fraud."
     },
     {
       title: "9. Taxes",
-      content: "Users are responsible for their taxes."
+      content: "Users are solely responsible for reporting and paying any applicable taxes on their earnings according to their local jurisdictions."
     },
     {
       title: "10. Intellectual Property",
-      content: "All content belongs to BinnyCash and AdoMobi Technology Pvt. Ltd."
+      content: "All content, branding, trademarks, and platform infrastructure belong exclusively to BinnyCash and Weeo Media LLC."
     },
     {
       title: "11. Disclaimer",
-      content: "Service provided as-is without guarantees."
+      content: "The service is provided on an 'as-is' and 'as-available' basis without any warranties or guarantees of continuous availability."
     },
     {
       title: "12. Limitation of Liability",
-      content: "We are not liable for indirect damages."
+      content: "Under no circumstances shall Weeo Media LLC be liable for indirect, incidental, or consequential damages arising from your use of the platform."
     },
     {
       title: "13. Indemnification",
-      content: "You agree to indemnify BinnyCash from misuse."
+      content: "You agree to indemnify and hold BinnyCash and Weeo Media LLC harmless against any claims, losses, or damages resulting from your misuse of the platform."
     },
     {
       title: "14. Force Majeure",
-      content: "We are not liable for events beyond control."
+      content: "We are not liable for any failure to perform our obligations due to events beyond our reasonable control."
     },
     {
       title: "15. Changes to Terms",
-      content: "We may update Terms anytime."
+      content: "We may update these Terms at any time. Continued use of the platform constitutes your acceptance of the revised Terms."
     },
     {
-      title: "16. Contact",
-      content: "support@binnycash.com - AdoMobi Technology Pvt. Ltd., New Delhi, India"
+      title: "16. Contact Information",
+      content: "Company: Weeo Media LLC\nHQ Address: 5900 Balcones Drive STE 100 Austin, TX 78731 USA\nEmail: support@binnycash.com"
     }
   ];
 
@@ -120,7 +120,7 @@ export default function TermsPage() {
             {sections.map((section, idx) => (
               <div key={idx} className="flex flex-col gap-2.5">
                 <h2 className="text-lg font-bold text-white tracking-wide">{section.title}</h2>
-                {section.content && <p className="text-[#8F95A3] text-sm leading-relaxed bg-[#1A1725] p-4 rounded-xl border border-white/5">{section.content}</p>}
+                {section.content && <p className="text-[#8F95A3] text-sm leading-relaxed whitespace-pre-wrap bg-[#1A1725] p-4 rounded-xl border border-white/5">{section.content}</p>}
                 
                 {section.list && (
                   <div className="bg-[#1A1725] p-5 rounded-xl border border-white/5">
