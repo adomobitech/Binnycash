@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, PlayCircle, Star, CheckCircle2, Monitor, Smartphone, ShieldCheck, Sparkles, RotateCcw, Headphones, ChevronRight } from "lucide-react";
+import { X, Star, CheckCircle2, RotateCcw, Smartphone, ChevronRight, Headphones, Sparkles, Play } from "lucide-react";
 import { DeviceIcon } from '@/components/offers/OfferCard';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency'; 
 import Link from 'next/link';
