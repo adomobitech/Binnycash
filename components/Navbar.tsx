@@ -114,6 +114,10 @@ export default function Navbar() {
   
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  // 🔥 MASKING HOMEPAGE OVERLAY FIX 🔥
+  const [isRouting, setIsRouting] = useState(false);
+  
   const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
   const [balance, setBalance] = useState('0.00');
   
@@ -137,6 +141,19 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navRef = useRef<HTMLElement>(null);
+
+  // 🔥 HOMEPAGE HOLD/FLASH FIX: Show overlay if transitioning from home to dashboard
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token && token !== 'undefined' && pathname === '/') {
+      setIsRouting(true);
+      // Failsafe timeout in case redirect fails
+      const timer = setTimeout(() => setIsRouting(false), 4000);
+      return () => clearTimeout(timer);
+    } else {
+      setIsRouting(false);
+    }
+  }, [pathname, isLoggedIn]);
 
   // 🛡️ TYPESCRIPT-SAFE GOOGLE TRANSLATE DOM PATCH
   useEffect(() => {
@@ -163,45 +180,67 @@ export default function Navbar() {
     }
   }, []);
 
-  // SPA ROUTE CHANGE TRANSLATION FIX
+  // 🔥 BULLETPROOF LANGUAGE RESET FIX 🔥
   useEffect(() => {
-    const cookies = document.cookie.split(';');
     let currentLang = 'en';
-    for (let cookie of cookies) {
-      const [name, value] = cookie.trim().split('=');
-      if (name === 'googtrans' && value) {
-        const langCode = value.split('/')[2];
-        currentLang = langCode;
-        const found = LANGUAGES.find(l => l.code === langCode);
-        if (found) setSelectedLang(found);
+    const savedLang = localStorage.getItem('preferredLang');
+
+    if (savedLang) {
+      currentLang = savedLang;
+      const host = window.location.hostname;
+      // Force cookie consistency
+      document.cookie = `googtrans=/en/${savedLang}; path=/;`;
+      document.cookie = `googtrans=/en/${savedLang}; path=/; domain=${host}`;
+      document.cookie = `googtrans=/en/${savedLang}; path=/; domain=.${host}`;
+    } else {
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'googtrans' && value) {
+          currentLang = value.split('/')[2] || 'en';
+        }
       }
     }
+
+    const found = LANGUAGES.find(l => l.code === currentLang);
+    if (found) setSelectedLang(found);
 
     if (currentLang !== 'en') {
       const triggerTranslate = () => {
         const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
-        if (select) {
+        if (select && select.value !== currentLang) {
           select.value = currentLang;
           select.dispatchEvent(new Event('change'));
         }
       };
+      // Next.js SPA navigation requires re-triggering translate after DOM updates
       setTimeout(triggerTranslate, 300);
-      setTimeout(triggerTranslate, 1000); 
+      setTimeout(triggerTranslate, 800);
+      setTimeout(triggerTranslate, 1500);
     }
-    
-    if (typeof window !== 'undefined') {
-      const savedCurrency = localStorage.getItem('currency');
-      if (savedCurrency === 'Coin' || savedCurrency === 'COIN') {
-         setCurrency('Coin');
-         window.dispatchEvent(new CustomEvent('currencyChanged', { detail: 'Coin' }));
-      } else {
-         setCurrency('Usd');
-         localStorage.setItem('currency', 'Usd');
-         window.dispatchEvent(new CustomEvent('currencyChanged', { detail: 'Usd' }));
-      }
-    }
+
     setIsMobileMenuOpen(false);
   }, [pathname]);
+
+  const handleLanguageChange = (lang: any) => {
+    setSelectedLang(lang);
+    setIsLangModalOpen(false);
+    
+    // Save to local storage
+    localStorage.setItem('preferredLang', lang.code);
+    
+    const host = window.location.hostname;
+    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${host}`;
+    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${host}`;
+
+    document.cookie = `googtrans=/en/${lang.code}; path=/;`;
+    document.cookie = `googtrans=/en/${lang.code}; path=/; domain=${host}`;
+    document.cookie = `googtrans=/en/${lang.code}; path=/; domain=.${host}`;
+
+    // Force reload to completely parse translating DOM
+    window.location.reload();
+  };
 
   const handleForceLogout = () => {
     if (pathname?.startsWith('/admin')) return; 
@@ -225,8 +264,11 @@ export default function Navbar() {
 
         // 🔥 LOGIC TO PREVENT 3-4 MULTIPLE FETCHES 🔥
         const now = Date.now();
-        if (now - globalLastWalletFetch < 3000) return; // Ignore if called within the last 3 seconds
-        globalLastWalletFetch = now;
+        const lastFetchTime = localStorage.getItem('lastWalletFetch');
+        if (lastFetchTime && now - parseInt(lastFetchTime) < 30000) {
+           return; 
+        }
+        localStorage.setItem('lastWalletFetch', now.toString());
 
         fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', {
           method: 'GET',
@@ -237,7 +279,6 @@ export default function Navbar() {
                handleForceLogout();
                return null;
             }
-            // 🔥 BULLETPROOF HTML PARSE FIX 🔥
             const text = await res.text();
             if (!text || text.trim().startsWith('<')) return null;
             try { return JSON.parse(text); } catch (e) { return null; }
@@ -245,7 +286,10 @@ export default function Navbar() {
           .then(data => { 
             if (data && data.data !== undefined) setBalance(data.data); 
           })
-          .catch(err => console.error("Wallet fetch error:", err));
+          .catch(err => {
+             console.error("Wallet fetch error:", err);
+             localStorage.removeItem('lastWalletFetch');
+          });
       } else {
         setIsLoggedIn(false);
       }
@@ -271,10 +315,12 @@ export default function Navbar() {
     const token = localStorage.getItem('token');
     if (!token || token.includes('[object Object]')) return;
 
-    // 🔥 LOGIC TO PREVENT MULTIPLE USER FETCHES 🔥
     const now = Date.now();
-    if (now - globalLastUserFetch < 3000) return; 
-    globalLastUserFetch = now;
+    const lastUserFetchTime = localStorage.getItem('lastUserFetch');
+    if (lastUserFetchTime && now - parseInt(lastUserFetchTime) < 30000) {
+       return; 
+    }
+    localStorage.setItem('lastUserFetch', now.toString());
 
     fetch('https://apitest.binnycash.com/api/user/userDetails', {
       method: 'GET',
@@ -285,7 +331,6 @@ export default function Navbar() {
           handleForceLogout();
           return null;
        }
-       // 🔥 BULLETPROOF HTML PARSE FIX 🔥
        const text = await res.text();
        if (!text || text.trim().startsWith('<')) return null;
        try { return JSON.parse(text); } catch (e) { return null; }
@@ -311,13 +356,17 @@ export default function Navbar() {
           }
        }
     })
-    .catch(err => console.error("Profile fetch error:", err));
+    .catch(err => {
+       console.error("Profile fetch error:", err);
+       localStorage.removeItem('lastUserFetch');
+    });
   };
 
   useEffect(() => {
     if (isLoggedIn) {
       fetchUserData();
       const handleProfileUpdate = () => {
+        localStorage.removeItem('lastUserFetch');
         fetchUserData();
       };
       window.addEventListener('profileUpdated', handleProfileUpdate);
@@ -481,45 +530,6 @@ export default function Navbar() {
     }
   }, []);
 
-  // 🔥 RESTORED YOUR EXACT LANGUAGE HANDLER 🔥
-  const handleLanguageChange = (lang: any) => {
-    setSelectedLang(lang);
-    setIsLangModalOpen(false);
-    
-    const host = window.location.hostname;
-    
-    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${host}`;
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${host}`;
-
-    if (lang.code !== 'en') {
-      document.cookie = `googtrans=/en/${lang.code}; path=/;`;
-      document.cookie = `googtrans=/en/${lang.code}; path=/; domain=${host}`;
-      document.cookie = `googtrans=/en/${lang.code}; path=/; domain=.${host}`;
-      
-      const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-      if (combo) {
-        combo.value = lang.code;
-        combo.dispatchEvent(new Event('change'));
-      } else {
-         window.location.reload();
-      }
-    } else {
-      try {
-        const iframe = document.querySelector('.goog-te-banner-frame') as HTMLIFrameElement;
-        if (iframe && iframe.contentWindow) {
-          const innerDoc = iframe.contentWindow.document;
-          const restoreBtn = innerDoc.getElementById('restore') as HTMLButtonElement | null;
-          if (restoreBtn) {
-            restoreBtn.click();
-            return;
-          }
-        }
-      } catch (e) {}
-      window.location.reload();
-    }
-  };
-
   const handleLogoutConfirm = async () => {
     setShowLogoutConfirm(false);
     setIsTransitioning(true);
@@ -581,6 +591,40 @@ export default function Navbar() {
                </motion.h2>
                <p className="text-[#8F95A3] text-sm font-medium flex items-center gap-2">
                  <ShieldCheck className="w-4 h-4 text-[#00E57A]" /> Clearing your session data
+               </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 🔥 NEW: ROUTING LOADER TO MASK HOMEPAGE FLASH 🔥 */}
+      <AnimatePresence>
+        {isRouting && (
+          <motion.div key="routing-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#070913] overflow-hidden font-sans">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#8B5CF6]/15 blur-[120px] rounded-full pointer-events-none" />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="relative flex flex-col items-center z-10"
+            >
+               <div className="relative flex items-center justify-center mb-10 mt-[-50px]">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} className="absolute w-32 h-32 rounded-full border-2 border-transparent border-t-[#8B5CF6] border-r-[#8B5CF6] opacity-80" />
+                  <motion.div animate={{ rotate: -360 }} transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }} className="absolute w-36 h-36 rounded-full border border-dashed border-white/10" />
+                  <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }} className="absolute w-24 h-24 rounded-full bg-[#00E57A]/30 blur-md" />
+                  <div className="w-20 h-20 bg-[#120F1A] border border-[#8B5CF6]/30 rounded-[20px] flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.2)] z-10 relative overflow-hidden backdrop-blur-xl">
+                     <img src="/logo.png" alt="BinnyCash Logo" className="w-10 h-10 object-contain z-10" />
+                     <motion.div animate={{ x: ['-150%', '250%'] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }} className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12" />
+                  </div>
+                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3, type: "spring", stiffness: 200 }} className="absolute -bottom-2 -right-2 bg-[#8B5CF6] w-8 h-8 rounded-full flex items-center justify-center border-4 border-[#070913] z-20 shadow-[0_0_15px_rgba(139,92,246,0.4)]">
+                    <Rocket className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                  </motion.div>
+               </div>
+               <motion.h2 animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }} className="text-2xl font-black text-white tracking-wide mb-3">
+                 Entering Dashboard...
+               </motion.h2>
+               <p className="text-[#8F95A3] text-sm font-medium flex items-center gap-2">
+                 <Loader2 className="w-4 h-4 text-[#8B5CF6] animate-spin" /> Preparing your workspace
                </p>
             </motion.div>
           </motion.div>
