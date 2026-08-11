@@ -28,6 +28,24 @@ export default function DashboardHero() {
   });
 
   useEffect(() => {
+    // 🔥 FIX: Fetching Username from LocalStorage Safely without Extra API Call 🔥
+    try {
+      if (typeof window !== 'undefined') {
+        const rawUserDetails = localStorage.getItem('userDetails');
+        if (rawUserDetails && rawUserDetails !== 'undefined') {
+          const user = JSON.parse(rawUserDetails);
+          // Handles various structures inside userDetails
+          const name = user?.userName || user?.firstName || user?.username || 'User';
+          setUserName(name);
+        } else {
+          setUserName('User');
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to parse userDetails for Hero Banner", e);
+      setUserName('User');
+    }
+
     const fetchDashboardData = async () => {
       setIsLoading(true);
       const token = localStorage.getItem('token');
@@ -39,15 +57,7 @@ export default function DashboardHero() {
       };
 
       try {
-        // 1. Fetch Basic User Data for the Banner (Name)
-        fetch('https://apitest.binnycash.com/api/user/viewData', { headers })
-          .then(res => res.json())
-          .then(data => {
-            const user = data?.data?.user || data?.data;
-            if (user) setUserName(user.userName || user.firstName || 'User');
-          }).catch(console.error);
-
-        // 2. NEW DYNAMIC API: Fetch Dashboard Summary
+        // 🔥 ONLY Fetching Dashboard Summary, Removed Deprecated viewData Call 🔥
         const summaryRes = await fetch('https://apitest.binnycash.com/api/user/dashboardSummary', { headers });
         const summaryJson = await summaryRes.json();
 

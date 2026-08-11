@@ -15,23 +15,14 @@ export default function AdminAffiliateDashboard() {
   const currency = useCurrency();
   const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
   
-  // ==========================================
-  // 1. DASHBOARD STATS STATES
-  // ==========================================
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ==========================================
-  // 2. MODAL STATES
-  // ==========================================
   const [isTrendModalOpen, setIsTrendModalOpen] = useState(false);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [isAffiliatesModalOpen, setIsAffiliatesModalOpen] = useState(false);
 
-  // ==========================================
-  // 3. TIERS STATES (WITH ADD/EDIT/DELETE)
-  // ==========================================
   const [tiers, setTiers] = useState<any[]>([]);
   const [isTiersLoading, setIsTiersLoading] = useState(false);
   const [isTierModalOpen, setIsTierModalOpen] = useState(false);
@@ -39,9 +30,6 @@ export default function AdminAffiliateDashboard() {
   const [isTierSaving, setIsTierSaving] = useState(false);
   const [isTierDeleting, setIsTierDeleting] = useState(false);
 
-  // ==========================================
-  // 4. AFFILIATE USERS LIST STATES (PREVIEW & MODAL)
-  // ==========================================
   const [previewAffiliates, setPreviewAffiliates] = useState<any[]>([]);
   const [isPreviewAffiliatesLoading, setIsPreviewAffiliatesLoading] = useState(false);
 
@@ -51,18 +39,11 @@ export default function AdminAffiliateDashboard() {
   const [modalAffiliatesTotal, setModalAffiliatesTotal] = useState(0);
   const [isModalAffiliatesLoading, setIsModalAffiliatesLoading] = useState(false);
 
-  // ==========================================
-  // 5. USER DETAIL SEARCH STATES
-  // ==========================================
   const [detailUserId, setDetailUserId] = useState('');
   const [userDetail, setUserDetail] = useState<any>(null);
   const [isUserDetailLoading, setIsUserDetailLoading] = useState(false);
   const [userDetailError, setUserDetailError] = useState<string | null>(null);
   const [isTogglingLock, setIsTogglingLock] = useState(false);
-
-  // ==========================================
-  // 6. USER REFERRALS LIST STATES
-  // ==========================================
   const [refUserId, setRefUserId] = useState('');
   const [refPage, setRefPage] = useState(1);
   const [refLimit, setRefLimit] = useState(10);
@@ -72,9 +53,6 @@ export default function AdminAffiliateDashboard() {
   const [isRefLoading, setIsRefLoading] = useState(false);
   const [refError, setRefError] = useState<string | null>(null);
 
-  // ==========================================
-  // 7. COMMISSION LOGS STATES
-  // ==========================================
   const [logUserId, setLogUserId] = useState('');
   const [logStatus, setLogStatus] = useState(''); 
   const [logPage, setLogPage] = useState(1);
@@ -85,9 +63,6 @@ export default function AdminAffiliateDashboard() {
   const [isLogsLoading, setIsLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState<string | null>(null);
 
-  // ==========================================
-  // 8. RECENT ACTIVITY STATES
-  // ==========================================
   const [previewActivities, setPreviewActivities] = useState<any[]>([]);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
@@ -96,9 +71,6 @@ export default function AdminAffiliateDashboard() {
   const [hasMoreModal, setHasMoreModal] = useState(true);
   const [isModalActivityLoading, setIsModalActivityLoading] = useState(false);
 
-  // ==========================================
-  // API FETCH FUNCTIONS
-  // ==========================================
 
   const fetchAffiliateStats = async () => {
     if (!token) { router.push('/admin/login'); return; }
@@ -370,11 +342,6 @@ export default function AdminAffiliateDashboard() {
       setIsLogsLoading(false);
     }
   };
-
-  // ==========================================
-  // USE EFFECTS & OBSERVERS
-  // ==========================================
-  
   useEffect(() => {
     fetchAffiliateStats();
     fetchPreviewActivities();
@@ -406,7 +373,6 @@ export default function AdminAffiliateDashboard() {
     if (node) observer.current.observe(node);
   }, [isModalActivityLoading, hasMoreModal, modalPage]);
 
-  // Helpers
   const resolveImage = (imgSrc: string) => imgSrc && !imgSrc.startsWith('http') ? `https://apitest.binnycash.com${imgSrc}` : imgSrc;
   const trendData = stats?.referralCommissionTrend || [];
 

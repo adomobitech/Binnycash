@@ -14,13 +14,6 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-// ─────────────────────────────────────────────────────────────
-// TRUST CARD — premium fintech account security console
-// Design language: near-black navy, warm champagne-gold chrome,
-// editorial serif numerals, a virtual metal card as the hero
-// signature (sheen sweep + embossed score), statement-style
-// itemized readings below.
-// ─────────────────────────────────────────────────────────────
 
 type Tone = 'clear' | 'caution' | 'risk';
 
@@ -187,9 +180,6 @@ export default function AccountStatusPage() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// COMPONENTS
-// ─────────────────────────────────────────────────────────────
 
 function TrustCard({
   userData,

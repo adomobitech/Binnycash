@@ -51,41 +51,31 @@ const getCleanString = (val: any) => {
 };
 
 export const DeviceIcon = ({ offer }: { offer: any }) => {
-  const rawBrowsers = String(offer?.browsers || offer?.platform || offer?.os || offer?.device_type || '').toLowerCase();
+  const rawDevice = String(offer?.device || offer?.devices || offer?.browsers || offer?.platform || offer?.os || offer?.device_type || '').toLowerCase().trim();
   
-  const isAndroid = rawBrowsers.includes('android');
-  const isWindows = rawBrowsers.includes('windows') || rawBrowsers.includes('win') || rawBrowsers.includes('pc') || rawBrowsers.includes('desktop');
-  const isIos = rawBrowsers.includes('ios') || rawBrowsers.includes('iphone') || rawBrowsers.includes('ipad');
+  const isAll = rawDevice === 'all' || rawDevice === 'global' || rawDevice === '';
+  const isAndroid = rawDevice.includes('android');
+  const isIos = rawDevice.includes('ios') || rawDevice.includes('iphone') || rawDevice.includes('ipad');
+  const isWindows = rawDevice.includes('windows') || rawDevice.includes('win') || rawDevice.includes('pc') || rawDevice.includes('desktop') || rawDevice.includes('web') || rawDevice.includes('mac');
 
-  if (isAndroid && !isWindows && !isIos) return <AndroidIcon />;
-  if (isWindows && !isAndroid && !isIos) return <WindowsIcon />;
-  if (isIos && !isAndroid && !isWindows) return <AppleIcon />;
+  if (isAll) {
+    return (
+      <div className="flex items-center gap-0.5 opacity-90">
+        <AndroidIcon/>
+        <AppleIcon/>
+        <WindowsIcon/>
+      </div>
+    );
+  }
   
   return (
     <div className="flex items-center gap-0.5 opacity-90">
-      <AndroidIcon/>
-      <AppleIcon/>
-      <WindowsIcon/>
+      {isAndroid && <AndroidIcon />}
+      {isIos && <AppleIcon />}
+      {isWindows && <WindowsIcon />}
     </div>
   );
 };
-
-function resolveTargetPlatformsString(data: any): string {
-  if (!data) return '';
-  const candidateKeys = [
-    'browsers', 'platform', 'platforms', 'os', 'device_type', 'deviceType',
-    'devices', 'device', 'supported_os', 'supportedOS', 'target_os', 'targetOS',
-    'operating_system', 'operatingSystem', 'os_type', 'osType', 'os_name', 'osName'
-  ];
-  const parts: string[] = [];
-  for (const key of candidateKeys) {
-    const val = data?.[key];
-    if (val === undefined || val === null) continue;
-    if (Array.isArray(val)) parts.push(val.join(' '));
-    else parts.push(String(val));
-  }
-  return parts.join(' ').toLowerCase();
-}
 
 function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   const currency = useCurrency();
@@ -138,8 +128,13 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
         
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
-          const jsonRes = await res.json();
-          setDetails(jsonRes?.data || jsonRes);
+          try {
+             const text = await res.text();
+             const jsonRes = text ? JSON.parse(text) : null;
+             setDetails(jsonRes?.data || jsonRes || offer);
+          } catch(e) {
+             setDetails(offer);
+          }
         } else {
           setDetails(offer);
         }
@@ -164,7 +159,17 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   const handlePlayClick = async () => {
     setIsProcessingClick(true);
     setApiError(null);
-    
+
+    const targetId = offer.id ?? offer._id ?? offer.offer_id;
+    const userId = getUserId();
+
+    if (!userId) {
+      setApiError('Could not identify your account. Please log in again and retry.');
+      setIsProcessingClick(false);
+      return;
+    }
+
+    // 🔥 PRE-CHECK LOGIC TO PREVENT UI FLASH/REFRESH 🔥
     const ua = navigator.userAgent;
     const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isAndroid = /Android/i.test(ua);
@@ -172,15 +177,16 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     const isDesktop = !isMobile;
 
     const currentData = details || offer;
-    const targetPlatforms = String(currentData?.browsers || currentData?.platform || currentData?.os || currentData?.device_type || '').toLowerCase();
-    const isUniversal = targetPlatforms === 'all' || targetPlatforms === 'global' || targetPlatforms === '';
+    const targetPlatforms = String(currentData?.device || currentData?.devices || currentData?.browsers || currentData?.platform || currentData?.os || currentData?.device_type || '').toLowerCase();
     
+    const isUniversal = targetPlatforms === 'all' || targetPlatforms === 'global' || targetPlatforms === '';
     const isOfferAndroid = targetPlatforms.includes('android');
     const isOfferIos = targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad');
     const isOfferWindows = targetPlatforms.includes('windows') || targetPlatforms.includes('desktop') || targetPlatforms.includes('pc') || targetPlatforms.includes('win');
+    const isOfferMac = targetPlatforms.includes('mac') || targetPlatforms.includes('osx');
 
-    const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isUniversal);
-    const isStrictlyDesktopOffer = isOfferWindows && !(isOfferAndroid || isOfferIos || isUniversal);
+    const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isOfferMac || isUniversal);
+    const isStrictlyDesktopOffer = (isOfferWindows || isOfferMac) && !(isOfferAndroid || isOfferIos || isUniversal);
 
     let showQR = false;
     let generateQRFor = 'Mobile Device';
@@ -192,7 +198,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       else generateQRFor = 'Android or iOS';
     } 
     else if (isMobile && isStrictlyDesktopOffer) {
-      setApiError(`This offer is exclusively for Windows PCs. Please complete this on your computer.`);
+      setApiError(`This offer is exclusively for ${isOfferWindows && !isOfferMac ? 'Windows' : isOfferMac && !isOfferWindows ? 'Mac' : 'Desktop'} PCs. Please complete this on your computer.`);
       setIsProcessingClick(false);
       return; 
     }
@@ -205,15 +211,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       generateQRFor = 'Android';
     }
 
-    const targetId = offer.id ?? offer._id ?? offer.offer_id;
-    const userId = getUserId();
-
-    if (!userId) {
-      setApiError('Could not identify your account. Please log in again and retry.');
-      setIsProcessingClick(false);
-      return;
-    }
-
+    // 🚀 If pre-check says it needs QR, generate instantly WITHOUT opening a new tab!
     if (showQR) {
       const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
       setTargetDeviceName(generateQRFor);
@@ -222,6 +220,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       return;
     }
 
+    // 🟢 ONLY if device is COMPATIBLE, we open the blank tab and wait for API.
     const newTab: Window | null = window.open('about:blank', '_blank');
 
     try {
@@ -238,11 +237,18 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       const responseText = await res.text();
       let finalRedirectUrl = '';
       let errorMessage = '';
+      let isDeviceError = false;
 
       try {
         const jsonRes = JSON.parse(responseText);
+        
         if (jsonRes.type === 'error' || jsonRes.status === 'error' || jsonRes.code !== 200) {
-          errorMessage = jsonRes.message || 'Device not supported or offer unavailable.';
+          errorMessage = jsonRes.message || 'Offer unavailable.';
+          const msgLower = errorMessage.toLowerCase();
+          
+          if (msgLower.includes('device') || msgLower.includes('support') || msgLower.includes('platform') || msgLower.includes('os') || msgLower.includes('not allow')) {
+              isDeviceError = true;
+          }
         }
         finalRedirectUrl = jsonRes?.url || jsonRes?.link || jsonRes?.click_url || jsonRes?.data?.url || jsonRes?.data?.link || jsonRes?.data?.click_url || '';
       } catch (e) {
@@ -254,9 +260,18 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
         }
       }
 
+      // If backend explicitly rejected due to device mismatch even after our pre-check
       if (errorMessage && !finalRedirectUrl) {
         if (newTab) newTab.close();
-        setApiError(errorMessage);
+        
+        if (isDeviceError || isDesktop) {
+          const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
+          setTargetDeviceName('Mobile Device');
+          setQrCodeUrl(trackingUrl);
+        } else {
+          setApiError(errorMessage);
+        }
+        
         setIsProcessingClick(false);
         return;
       }
@@ -450,7 +465,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                 </button>
 
                 {apiError && (
-                  <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-3 rounded-xl text-center animate-pulse">
+                  <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-3 rounded-xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)]">
                     {apiError}
                   </div>
                 )}
@@ -624,7 +639,6 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
         onClick={handleCardClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        // 🔥 COMPACT CARD DESIGN 🔥
         className="relative w-full h-full bg-[#15171E] border border-white/5 rounded-[12px] p-2 flex flex-col cursor-pointer overflow-hidden group transition-all duration-200 hover:border-[#8B5CF6]/50 shadow-sm hover:shadow-[0_8px_20px_rgba(139,92,246,0.15)]"
       >
         <div className="w-full aspect-square bg-[#1A1C24] rounded-[8px] overflow-hidden mb-2 relative shrink-0 shadow-inner">
@@ -637,7 +651,6 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
             }`} 
           />
           
-          {/* 🔥 HIGH BLUR IMAGE ON HOVER 🔥 */}
           <img 
             src={rawImage} 
             alt={`${title}-blur`} 
@@ -665,7 +678,6 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
                   <div className="w-8 h-8 rounded-full bg-[#A855F7] flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.6)]">
                     <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
                   </div>
-                  {/* 🔥 RESTORED "START OFFER" TEXT 🔥 */}
                   <span className="text-white font-black text-[10px] tracking-wide mt-1.5 drop-shadow-md">
                     {isStrictlySurvey ? 'Start Survey' : 'Start Offer'}
                   </span>

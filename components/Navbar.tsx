@@ -14,6 +14,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
 import ChatDrawer from '@/components/chat/ChatDrawer';
 
+// 🔥 GLOBAL THROTTLE TIMERS TO PREVENT DUPLICATE API SPAM 🔥
+let globalLastWalletFetch = 0;
+let globalLastUserFetch = 0;
+
 // 🔥 DYNAMIC COLOR GENERATOR
 const getDynamicColor = (name: string) => {
   const colors = [
@@ -115,6 +119,7 @@ export default function Navbar() {
   
   const [userName, setUserName] = useState('Profile');
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
   
   const [trueUserId, setTrueUserId] = useState<string>('');
 
@@ -133,7 +138,7 @@ export default function Navbar() {
 
   const navRef = useRef<HTMLElement>(null);
 
-  // 🔥 TYPESCRIPT-SAFE GOOGLE TRANSLATE DOM PATCH 🔥
+  // 🛡️ TYPESCRIPT-SAFE GOOGLE TRANSLATE DOM PATCH
   useEffect(() => {
     if (typeof window !== 'undefined' && typeof Node === 'function' && Node.prototype) {
       // @ts-ignore
@@ -141,7 +146,7 @@ export default function Navbar() {
       // @ts-ignore
       Node.prototype.removeChild = function (child) {
         if (child && child.parentNode !== this) {
-          return child; // Ignore safely
+          return child; 
         }
         return nativeRemoveChild.call(this, child);
       };
@@ -151,7 +156,7 @@ export default function Navbar() {
       // @ts-ignore
       Node.prototype.insertBefore = function (newNode, referenceNode) {
         if (referenceNode && referenceNode.parentNode !== this) {
-          return newNode; // Ignore safely
+          return newNode; 
         }
         return nativeInsertBefore.call(this, newNode, referenceNode);
       };
@@ -217,16 +222,25 @@ export default function Navbar() {
       const token = localStorage.getItem('token');
       if (token && token !== 'undefined' && !token.includes('[object Object]')) {
         setIsLoggedIn(true);
+
+        // 🔥 LOGIC TO PREVENT 3-4 MULTIPLE FETCHES 🔥
+        const now = Date.now();
+        if (now - globalLastWalletFetch < 3000) return; // Ignore if called within the last 3 seconds
+        globalLastWalletFetch = now;
+
         fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         })
-          .then(res => {
+          .then(async res => {
             if (res.status === 401 || res.status === 404) {
                handleForceLogout();
                return null;
             }
-            return res.json();
+            // 🔥 BULLETPROOF HTML PARSE FIX 🔥
+            const text = await res.text();
+            if (!text || text.trim().startsWith('<')) return null;
+            try { return JSON.parse(text); } catch (e) { return null; }
           })
           .then(data => { 
             if (data && data.data !== undefined) setBalance(data.data); 
@@ -246,7 +260,6 @@ export default function Navbar() {
   }, []);
 
   const resolveImage = (imgSrc: string) => {
-    // If backend gives literal "null" or "undefined" text, bypass it
     if (!imgSrc || imgSrc === 'null' || imgSrc === 'undefined') return null;
     if (imgSrc.startsWith('http')) return imgSrc;
     return `https://apitest.binnycash.com${imgSrc}`;
@@ -258,16 +271,24 @@ export default function Navbar() {
     const token = localStorage.getItem('token');
     if (!token || token.includes('[object Object]')) return;
 
-    fetch('https://apitest.binnycash.com/api/user/viewData', {
+    // 🔥 LOGIC TO PREVENT MULTIPLE USER FETCHES 🔥
+    const now = Date.now();
+    if (now - globalLastUserFetch < 3000) return; 
+    globalLastUserFetch = now;
+
+    fetch('https://apitest.binnycash.com/api/user/userDetails', {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${token}` }
     })
-    .then(res => {
+    .then(async res => {
        if (res.status === 401 || res.status === 404) {
           handleForceLogout();
           return null;
        }
-       return res.json();
+       // 🔥 BULLETPROOF HTML PARSE FIX 🔥
+       const text = await res.text();
+       if (!text || text.trim().startsWith('<')) return null;
+       try { return JSON.parse(text); } catch (e) { return null; }
     })
     .then(data => {
        if (!data) return;
@@ -284,6 +305,7 @@ export default function Navbar() {
           const rawPic = user.image || user.profilePic || user.picture || user.avatar;
           if (rawPic) {
             setUserAvatar(resolveImage(rawPic));
+            setImageError(false);
           } else {
             setUserAvatar(null);
           }
@@ -333,7 +355,11 @@ export default function Navbar() {
         body: bodyParams
       });
 
-      const json = await res.json();
+      const text = await res.text();
+      let json: any = {};
+      if (text && !text.trim().startsWith('<')) {
+         try { json = JSON.parse(text); } catch (e) {}
+      }
 
       if (res.ok || json.code === 200) {
         setCurrency(newCurrency);
@@ -366,7 +392,11 @@ export default function Navbar() {
          return;
       }
 
-      const data = await res.json();
+      const text = await res.text();
+      let data: any = {};
+      if (text && !text.trim().startsWith('<')) {
+         try { data = JSON.parse(text); } catch (e) {}
+      }
       
       let notificationsList = data?.data?.notifications || data?.notifications || [];
       if (!Array.isArray(notificationsList)) notificationsList = [];
@@ -451,6 +481,7 @@ export default function Navbar() {
     }
   }, []);
 
+  // 🔥 RESTORED YOUR EXACT LANGUAGE HANDLER 🔥
   const handleLanguageChange = (lang: any) => {
     setSelectedLang(lang);
     setIsLangModalOpen(false);
@@ -750,12 +781,12 @@ export default function Navbar() {
 
                 <div className="relative">
                   <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] p-1 pr-2 rounded-xl transition-all cursor-pointer border border-white/5">
-                    {userAvatar ? (
+                    {userAvatar && !imageError ? (
                       <img 
                         src={userAvatar} 
                         alt="Profile" 
                         className="w-6 h-6 md:w-8 md:h-8 rounded-lg object-cover shadow-sm" 
-                        onError={() => setUserAvatar(null)} 
+                        onError={() => setImageError(true)} 
                       />
                     ) : (
                       <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg ${getDynamicColor(userName)} flex items-center justify-center text-white text-[12px] md:text-[15px] font-black shadow-sm uppercase`}>

@@ -94,13 +94,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const res = await fetch('https://apitest.binnycash.com/api/user/viewData', {
+        // 🔥 FIX: ENDPOINT CHANGED TO /userDetails 🔥
+        const res = await fetch('https://apitest.binnycash.com/api/user/userDetails', {
+          method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (res.ok) {
-          const data = await res.json();
-          const user = data?.data?.user || data?.data;
+          // 🔥 FIX: 100% BULLETPROOF JSON PARSE 🔥
+          let data: any = null;
+          try {
+            const text = await res.text();
+            if (text && !text.trim().startsWith('<')) {
+               data = JSON.parse(text);
+            }
+          } catch (e) {
+            console.warn("AuthContext Parse Error Safely Handled");
+          }
+          
+          // Maps new JSON structure dynamically
+          const user = data?.data?.user || data?.data || data?.userDetails || data;
           
           if (user) {
             const backendCurrency = user.currency || user.currencyValue || 'Usd';
@@ -110,10 +123,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             window.dispatchEvent(new CustomEvent('currencyChanged', { detail: resolvedCurrency }));
           }
         } else {
-          localStorage.removeItem('token');
-          localStorage.removeItem('userId');
-          localStorage.removeItem('userDetails');
-          if (isProtectedRoute) router.replace('/');
+          // If strictly unauthorized, remove tokens
+          if (res.status === 401 || res.status === 404) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userDetails');
+            if (isProtectedRoute) router.replace('/');
+          }
         }
       } catch (err) {
         console.error("Session verification failed", err);

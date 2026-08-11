@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, PlayCircle, Star, CheckCircle2, Monitor, Smartphone, ShieldCheck, Sparkles, RotateCcw } from "lucide-react";
+import { X, PlayCircle, Star, CheckCircle2, Monitor, Smartphone, ShieldCheck, Sparkles, RotateCcw, Headphones, ChevronRight } from "lucide-react";
 import { DeviceIcon } from '@/components/offers/OfferCard';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency'; 
+import Link from 'next/link';
 
 const AndroidIcon = () => (
   <svg viewBox="0 0 24 24" className="w-6 h-6 fill-[#A4C639]">
@@ -60,6 +61,12 @@ function getUserId(): string {
   return '';
 }
 
+const getCleanString = (val: any) => {
+  const s = String(val || '').trim();
+  if (s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined' || s === '') return '';
+  return s;
+};
+
 export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   const currency = useCurrency();
   const [details, setDetails] = useState<any>(null);
@@ -69,6 +76,9 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   const [targetDeviceName, setTargetDeviceName] = useState<string>('Android');
   const [currentOS, setCurrentOS] = useState<string>('Windows');
   const [apiError, setApiError] = useState<string | null>(null); 
+  
+  const [activeInnerTab, setActiveInnerTab] = useState<'rewards' | 'details'>('rewards');
+  const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -125,64 +135,24 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen, offer]);
 
+  useEffect(() => {
+    const evs = (details?.offer_events || offer?.offer_events || details?.events || offer?.events || []);
+    if (evs.length > 0) setActiveInnerTab('rewards');
+    else setActiveInnerTab('details');
+  }, [details, offer]);
+
   const handlePlayClick = async () => {
     setIsProcessingClick(true);
     setApiError(null);
     
     const ua = navigator.userAgent;
-    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isAndroid = /Android/i.test(ua);
-    const isMobile = isIOS || isAndroid || /Mobi|Tablet/i.test(ua);
-    const isDesktop = !isMobile;
-
-    const currentData = details || offer;
-    const targetPlatforms = String(currentData?.browsers || currentData?.platform || currentData?.os || currentData?.device_type || '').toLowerCase();
-    const isUniversal = targetPlatforms === 'all' || targetPlatforms === 'global' || targetPlatforms === '';
-    
-    const isOfferAndroid = targetPlatforms.includes('android');
-    const isOfferIos = targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad');
-    const isOfferWindows = targetPlatforms.includes('windows') || targetPlatforms.includes('desktop') || targetPlatforms.includes('pc') || targetPlatforms.includes('win');
-    const isOfferMac = targetPlatforms.includes('mac') || targetPlatforms.includes('osx');
-
-    const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isOfferMac || isUniversal);
-    const isStrictlyDesktopOffer = (isOfferWindows || isOfferMac) && !(isOfferAndroid || isOfferIos || isUniversal);
-
-    let showQR = false;
-    let generateQRFor = 'Mobile Device';
-
-    if (isDesktop && isStrictlyMobileOffer) {
-      showQR = true;
-      if (isOfferAndroid && !isOfferIos) generateQRFor = 'Android';
-      else if (isOfferIos && !isOfferAndroid) generateQRFor = 'iOS';
-      else generateQRFor = 'Android or iOS';
-    } 
-    else if (isMobile && isStrictlyDesktopOffer) {
-      setApiError(`This offer is exclusively for ${isOfferWindows && !isOfferMac ? 'Windows' : isOfferMac && !isOfferWindows ? 'Mac' : 'Desktop'} PCs. Please complete this on your computer.`);
-      setIsProcessingClick(false);
-      return; 
-    }
-    else if (isAndroid && isOfferIos && !isOfferAndroid && !isUniversal) {
-      showQR = true;
-      generateQRFor = 'iOS';
-    }
-    else if (isIOS && isOfferAndroid && !isOfferIos && !isUniversal) {
-      showQR = true;
-      generateQRFor = 'Android';
-    }
+    const isDesktop = !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
     const targetId = offer.id ?? offer._id ?? offer.offer_id;
     const userId = getUserId();
 
     if (!userId) {
       setApiError('Could not identify your account. Please log in again and retry.');
-      setIsProcessingClick(false);
-      return;
-    }
-
-    if (showQR) {
-      const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
-      setTargetDeviceName(generateQRFor);
-      setQrCodeUrl(trackingUrl);
       setIsProcessingClick(false);
       return;
     }
@@ -203,11 +173,19 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       const responseText = await res.text();
       let finalRedirectUrl = '';
       let errorMessage = '';
+      let isDeviceError = false;
 
       try {
         const jsonRes = JSON.parse(responseText);
+        
+        // 🔥 FIX: Let the API decide if device is supported 🔥
         if (jsonRes.type === 'error' || jsonRes.status === 'error' || jsonRes.code !== 200) {
-          errorMessage = jsonRes.message || 'Device not supported or offer unavailable.';
+          errorMessage = jsonRes.message || 'Offer unavailable.';
+          const msgLower = errorMessage.toLowerCase();
+          
+          if (msgLower.includes('device') || msgLower.includes('support') || msgLower.includes('platform') || msgLower.includes('os') || msgLower.includes('not allow')) {
+              isDeviceError = true;
+          }
         }
         finalRedirectUrl = jsonRes?.url || jsonRes?.link || jsonRes?.click_url || jsonRes?.data?.url || jsonRes?.data?.link || jsonRes?.data?.click_url || '';
       } catch (e) {
@@ -221,7 +199,27 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
 
       if (errorMessage && !finalRedirectUrl) {
         if (newTab) newTab.close();
-        setApiError(errorMessage);
+        
+        // 🔥 SHOW QR ONLY IF BACKEND REJECTED DUE TO DEVICE OR WE'RE ON PC WITH ERROR 🔥
+        if (isDeviceError || isDesktop) {
+          const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
+          
+          let generateQRFor = 'Mobile Device';
+          const currentData = details || offer;
+          const targetPlatforms = String(currentData?.device || currentData?.browsers || currentData?.platform || currentData?.os || '').toLowerCase();
+          
+          if (targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad')) {
+             generateQRFor = 'iOS';
+          } else if (targetPlatforms.includes('android')) {
+             generateQRFor = 'Android';
+          }
+          
+          setTargetDeviceName(generateQRFor);
+          setQrCodeUrl(trackingUrl);
+        } else {
+          setApiError(errorMessage);
+        }
+        
         setIsProcessingClick(false);
         return;
       }
@@ -258,17 +256,20 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   if (rawNetworkLogo && !rawNetworkLogo.startsWith('http')) rawNetworkLogo = `https://apitest.binnycash.com${rawNetworkLogo}`;
 
   const title = currentData?.offerName || currentData?.title || 'Offer Details';
-  
+  const offerIdForSupport = currentData?.id || currentData?._id || currentData?.offer_id || '';
   const rewardAmount = currentData?.userCredits ?? currentData?.reward ?? currentData?.payout ?? 0;
   const formattedReward = formatPrice(Number(rewardAmount) || 0, currency);
 
   const networkName = currentData?.network || currentData?.provider || 'BinnyCash';
   const category = currentData?.categories || currentData?.category || 'All';
-  const requirements = currentData?.offer_requirements || currentData?.requirements || "CPA offer";
-  const description = currentData?.description || "Complete the task as instructed to receive your reward.";
-  const events = currentData?.offer_events || [];
-  const clickAllowed = currentData ? currentData.clickAllowed : false;
-  const retries = currentData?.retryAllow || 0;
+  
+  const descCurrent = getCleanString(currentData?.description);
+  const description = descCurrent || "Complete the task as instructed to receive your reward.";
+
+  const reqCurrent = getCleanString(currentData?.offer_requirements) || getCleanString(currentData?.requirements);
+  const requirements = reqCurrent || "Install and Launch to earn reward.";
+
+  const events = currentData?.offer_events || currentData?.events || [];
 
   return (
     <AnimatePresence>
@@ -323,7 +324,7 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                   </div>
                   <div className="flex flex-col text-left">
                     <span className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">
-                      Current Device
+                      Current device
                     </span>
                     <span className="text-white font-bold text-base leading-tight">
                       {currentOS}
@@ -342,17 +343,16 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
             animate={{ opacity: 1, scale: 1, y: 0 }} 
             exit={{ opacity: 0, scale: 0.95, y: 20 }} 
             transition={{ duration: 0.2 }}
-            className={`w-full max-w-[500px] rounded-[28px] max-h-[90vh] overflow-y-auto no-scrollbar relative border border-white/10 shadow-2xl bg-[#111319]`}
+            className={`w-full max-w-[400px] rounded-[24px] max-h-[90vh] overflow-y-auto custom-scrollbar relative border border-white/10 shadow-2xl bg-[#0B0D14] flex flex-col`}
           >
-            <button 
-              onClick={onClose}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-[#8F95A3] hover:text-white transition-colors border border-white/5 cursor-pointer z-50"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="sticky top-0 bg-[#111319]/95 backdrop-blur-md z-20 flex items-center p-4 border-b border-white/5">
-              <h2 className="text-white font-black text-base truncate pr-10">{title}</h2>
+            <div className="sticky top-0 bg-[#0B0D14]/95 backdrop-blur-md z-20 px-5 pt-5 pb-3 flex items-center justify-between">
+              <h2 className="text-white font-black text-lg truncate pr-4">{title}</h2>
+              <button 
+                onClick={onClose}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-[#8F95A3] hover:text-white transition-colors cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             {isLoading ? (
@@ -361,42 +361,56 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                 <p className="text-[#8F95A3] text-sm font-bold">Loading offer details...</p>
               </div>
             ) : (
-              <div className="p-4 sm:p-5 flex flex-col gap-5">
-                <div className="w-full h-[180px] rounded-xl overflow-hidden relative flex items-center justify-center bg-[#1A1C24]">
-                  <img src={rawImage} alt="blur-bg" className="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110" />
-                  <img src={rawImage} alt={title} className="w-[100px] h-[100px] rounded-2xl relative z-10 shadow-2xl object-cover" />
-                  <div className="absolute top-3 right-3 z-10 w-8 h-8 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white">
+              <div className="px-5 pb-5 flex flex-col gap-4 mt-1">
+                
+                <div className="w-full h-[150px] rounded-2xl overflow-hidden relative flex items-center justify-center bg-[#1A1C24] shrink-0 border border-white/5">
+                  <img src={rawImage} className="absolute inset-0 w-full h-full object-cover blur-[30px] opacity-40 scale-110" alt="blur-bg" />
+                  
+                  <div className="absolute top-2.5 right-2.5 z-10 flex items-center justify-center text-white opacity-80">
                     <DeviceIcon offer={currentData} />
                   </div>
+                  
+                  <img src={rawImage} alt={title} className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl relative z-10 shadow-2xl object-cover" />
                 </div>
 
                 <div className="text-center">
-                  <h1 className="text-3xl font-black text-white drop-shadow-md">{formattedReward}</h1>
+                  <h1 className="text-2xl font-black text-[#A855F7] drop-shadow-md">{formattedReward}</h1>
                 </div>
 
-                <div className="grid grid-cols-4 divide-x divide-white/5 py-3 border-y border-white/5">
+                <div className="grid grid-cols-4 divide-x divide-white/5 py-1 mb-1">
                   <div className="flex flex-col items-center justify-center gap-1">
-                    <span className="text-white font-bold text-xs truncate max-w-[90px]">{currentData?.status || 'Active'}</span>
-                    <span className="text-[#8F95A3] text-[10px] font-medium uppercase tracking-wider">Status</span>
+                    <span className="text-white font-bold text-[10px] truncate max-w-[90px]">{currentData?.status || 'Not Started'}</span>
+                    <span className="text-[#8F95A3] text-[9px] font-medium uppercase tracking-wider">Status</span>
                   </div>
                   <div className="flex flex-col items-center justify-center gap-1">
                     <div className="flex items-center gap-0.5">
-                      {[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 text-amber-400 fill-amber-400" />)}
+                      {[1,2,3].map(i => <Star key={i} className="w-2 h-2 text-amber-400 fill-amber-400" />)}
+                      {[4,5].map(i => <Star key={i} className="w-2 h-2 text-gray-600 fill-gray-600" />)}
                     </div>
-                    <span className="text-[#8F95A3] text-[10px] font-medium uppercase tracking-wider">Popularity</span>
+                    <span className="text-[#8F95A3] text-[9px] font-medium uppercase tracking-wider">Popularity</span>
                   </div>
                   <div className="flex flex-col items-center justify-center gap-1">
-                    <span className="text-white font-bold text-xs truncate max-w-[90px] px-1 uppercase">{category}</span>
-                    <span className="text-[#8F95A3] text-[10px] font-medium uppercase tracking-wider">Category</span>
+                    <span className="text-white font-bold text-[10px] truncate max-w-[90px] px-1 capitalize">{category}</span>
+                    <span className="text-[#8F95A3] text-[9px] font-medium uppercase tracking-wider">Category</span>
                   </div>
                   <div className="flex flex-col items-center justify-center gap-1">
                     {rawNetworkLogo ? (
-                      <img src={rawNetworkLogo} alt={networkName} className="h-4 object-contain mb-0.5 max-w-[70px]" onError={(e: any) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'block'; }} />
+                      <img src={rawNetworkLogo} alt={networkName} className="h-3.5 object-contain mb-0.5 max-w-[70px]" onError={(e: any) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'block'; }} />
                     ) : null}
-                    <span className="text-white font-bold text-xs truncate max-w-[80px]" style={{ display: rawNetworkLogo ? 'none' : 'block' }}>{networkName}</span>
-                    <span className="text-[#8F95A3] text-[10px] font-medium uppercase tracking-wider">Provider</span>
+                    <span className="text-white font-bold text-[10px] truncate max-w-[80px]" style={{ display: rawNetworkLogo ? 'none' : 'block' }}>{networkName}</span>
+                    <span className="text-[#8F95A3] text-[9px] font-medium uppercase tracking-wider">Provider</span>
                   </div>
                 </div>
+
+                <button 
+                  onClick={handlePlayClick} disabled={isProcessingClick}
+                  className="w-full py-3 rounded-[12px] bg-[#A855F7] hover:bg-[#9333EA] shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-all flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-70"
+                >
+                  {isProcessingClick ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <>
+                    <Play className="w-4 h-4 text-white fill-white transition-transform" />
+                    <span className="text-white font-black text-[14px]">Play & Earn</span>
+                  </>}
+                </button>
 
                 {apiError && (
                   <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold p-3 rounded-xl text-center animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)]">
@@ -404,52 +418,138 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                   </div>
                 )}
 
-                <button 
-                  onClick={handlePlayClick} disabled={isProcessingClick || !clickAllowed}
-                  className="w-full py-4 rounded-xl bg-[#A855F7] hover:bg-[#9333EA] shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-all flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {isProcessingClick ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <>
-                    <PlayCircle className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
-                    <span className="text-white font-black text-base">{clickAllowed ? `Play & Earn ${formattedReward}` : 'Action Not Allowed'}</span>
-                  </>}
-                </button>
-
-                <div className="bg-[#1A1C24] border border-white/5 rounded-xl p-4 flex flex-col gap-1">
-                  <h3 className="text-white font-bold text-sm">Requirements</h3>
-                  <p className="text-[#8F95A3] text-xs leading-relaxed">{requirements}</p>
+                <div className="bg-[#161821] border border-white/5 rounded-2xl p-4 mt-1">
+                   <h4 className="text-white font-bold text-[12px] mb-1">Requirements</h4>
+                   <p className="text-[#8F95A3] text-[11px] leading-relaxed">{requirements}</p>
                 </div>
 
-                <div className="flex flex-col gap-3 mt-1">
-                  <div className="flex flex-col">
-                    <h3 className="text-white font-black text-sm mb-1">Details</h3>
-                    <div className="w-8 h-0.5 bg-[#A855F7] rounded-full mb-3"></div>
-                    <div className="bg-[#1A1C24] border border-white/5 rounded-xl p-4 flex flex-col gap-4">
-                      <div className="flex flex-col gap-1">
-                        <h4 className="text-white font-bold text-sm">Description</h4>
-                        <p className="text-[#8F95A3] text-xs leading-relaxed whitespace-pre-wrap">{description}</p>
-                      </div>
-                      {events.length > 0 && (
-                        <div className="flex flex-col gap-2 pt-2 border-t border-white/5">
-                          <h4 className="text-white font-bold text-xs uppercase tracking-wider text-[#A855F7]">Milestone Events</h4>
-                          <div className="flex flex-col gap-2">
-                            {events.map((ev: any, idx: number) => (
-                              <div key={ev._id || idx} className="flex items-center justify-between bg-white/5 p-2.5 rounded-lg border border-white/5">
-                                <div className="flex items-center gap-2">
-                                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                                  <span className="text-white text-xs font-medium">{ev.event_name}</span>
-                                </div>
-                                <span className="text-emerald-400 font-black text-xs">+{formatPrice(Number(ev.event_payout) || 0, currency)}</span>
+                <div className="flex flex-col gap-3">
+                  {events && events.length > 0 && (
+                    <div className="flex items-center gap-5 border-b border-white/10 px-2 mt-1">
+                      <button
+                        onClick={() => setActiveInnerTab('rewards')}
+                        className={`pb-2.5 text-[12px] font-bold transition-all relative ${activeInnerTab === 'rewards' ? 'text-[#00E57A]' : 'text-[#8F95A3] hover:text-white'}`}
+                      >
+                        Rewards
+                        {activeInnerTab === 'rewards' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-[#00E57A] rounded-t-full shadow-[0_0_8px_rgba(0,229,122,0.5)]"></span>}
+                      </button>
+                      <button
+                        onClick={() => setActiveInnerTab('details')}
+                        className={`pb-2.5 text-[12px] font-bold transition-all relative ${activeInnerTab === 'details' ? 'text-[#8B5CF6]' : 'text-[#8F95A3] hover:text-white'}`}
+                      >
+                        Details
+                        {activeInnerTab === 'details' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-[#8B5CF6] rounded-t-full shadow-[0_0_8px_rgba(139,92,246,0.5)]"></span>}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="w-full">
+                    {/* Rewards Tab Content */}
+                    {activeInnerTab === 'rewards' && events && events.length > 0 && (
+                      <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+                        {events.map((ev: any, idx: number) => (
+                          <div key={ev._id || idx} className="flex items-center justify-between bg-[#1A1C24] p-3 rounded-xl border border-white/5">
+                            <div className="flex items-center gap-2.5 pr-2">
+                              <div className="w-4 h-4 rounded-full bg-[#00E57A]/10 flex items-center justify-center shrink-0">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-[#00E57A]" />
                               </div>
-                            ))}
+                              <span className="text-white text-[11px] font-medium leading-tight">{ev.event_name}</span>
+                            </div>
+                            <span className="text-[#00E57A] font-black text-[12px] shrink-0 pl-1">+{formatPrice(Number(ev.event_payout) || 0, currency)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Details Tab Content */}
+                    {activeInnerTab === 'details' && (
+                      <div className="flex flex-col gap-2.5 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
+                        <div className="bg-[#1A1C24] border border-white/5 rounded-2xl p-4">
+                           <h4 className="text-white font-bold text-[12px] mb-1">Description</h4>
+                           <p className="text-[#8F95A3] text-[11px] leading-relaxed whitespace-pre-wrap">{description}</p>
+                        </div>
+
+                        <div className="bg-[#1A1C24] border border-white/5 rounded-2xl p-3.5 flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                            <RotateCcw className="w-3.5 h-3.5 text-[#8B5CF6]" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-white font-bold text-[12px]">Task Order Flexibility</span>
+                            <span className="text-[#8F95A3] text-[10px] leading-tight mt-0.5">Tasks can be completed in any order.</span>
                           </div>
                         </div>
-                      )}
-                    </div>
+
+                        <div className="bg-[#1A1C24] border border-white/5 rounded-2xl p-3.5 flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                            <Smartphone className="w-3.5 h-3.5 text-[#8B5CF6]" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-white font-bold text-[12px]">New Users Only</span>
+                            <span className="text-[#8F95A3] text-[10px] leading-tight mt-0.5">Valid only for users who haven't installed this before.</span>
+                          </div>
+                        </div>
+
+                        <div onClick={() => setIsPayoutModalOpen(true)} className="bg-[#1A1C24] hover:bg-[#252836] transition-colors border border-white/5 rounded-2xl p-3.5 flex items-center justify-between cursor-pointer group mb-2">
+                          <div className="flex flex-col">
+                            <span className="text-white font-bold text-[12px]">Why Does Payout Take Time?</span>
+                            <span className="text-[#8F95A3] text-[10px] mt-0.5">Depends on offer type and checks...</span>
+                          </div>
+                          <ChevronRight className="w-3.5 h-3.5 text-[#8F95A3] group-hover:text-white transition-colors shrink-0" />
+                        </div>
+                        
+                        <Link
+                          href={`/support?category=${encodeURIComponent('Offer and Surveys')}&description=${encodeURIComponent(`Offer Name: ${title}\nOffer ID: ${offerIdForSupport}`)}`}
+                          className="bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-2xl p-3.5 flex items-center justify-center gap-2 transition-all cursor-pointer w-full hover:scale-[1.02] mt-1"
+                        >
+                          <Headphones className="w-4 h-4 text-[#8F95A3]" />
+                          <span className="text-white font-bold text-[13px] tracking-wide">Contact Support</span>
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
+
               </div>
             )}
+            
+            <style dangerouslySetInnerHTML={{__html: `
+              .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
+              .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+              .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+              .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
+            `}} />
           </motion.div>
+        )}
+
+        {/* 🔥 PAYOUT MODAL POPUP 🔥 */}
+        {isPayoutModalOpen && (
+          <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsPayoutModalOpen(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm cursor-pointer"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ duration: 0.3 }}
+              className="relative w-full max-w-[400px] p-6 flex flex-col bg-[#161821] border border-white/10 rounded-[20px] shadow-2xl z-10"
+            >
+              <button onClick={() => setIsPayoutModalOpen(false)} className="absolute top-4 right-4 text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+              
+              <h2 className="text-[17px] font-black text-white mb-3 text-center">Why Does Payout Take Time??</h2>
+              
+              <p className="text-[#A0A5B1] text-[13px] leading-relaxed mb-5 text-left">
+                Payout time depends on the type of offer you complete. Some tasks need verification from our partners, which may take a little longer. We also review certain activities to make sure all terms are followed. We always try to process rewards quickly, but sometimes delays happen due to external checks beyond our control.
+              </p>
+              
+              <div className="flex justify-end w-full">
+                <button onClick={() => setIsPayoutModalOpen(false)} className="bg-[#A855F7] hover:bg-[#9333EA] text-white text-[13px] font-bold py-2 px-6 rounded-[8px] transition-colors shadow-lg cursor-pointer">
+                  Got it
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </div>
     </AnimatePresence>

@@ -9,10 +9,8 @@ import { Boxes, ChevronLeft, ChevronRight } from "lucide-react";
 export default function OfferwallSlider({ offerwalls = [], isLoading = false }: any) {
   const sliderRef = useRef<HTMLDivElement>(null);
   
-  // 🚀 Arrow visibility states
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  
   const [selectedOfferwall, setSelectedOfferwall] = useState<any>(null);
 
   const checkScroll = () => {
@@ -29,7 +27,6 @@ export default function OfferwallSlider({ offerwalls = [], isLoading = false }: 
     return () => window.removeEventListener('resize', checkScroll);
   }, [offerwalls]);
 
-  // 🚀 Smooth Scroll Functions
   const scrollLeft = () => {
     if (sliderRef.current) {
       sliderRef.current.scrollBy({ left: -320, behavior: 'smooth' });
@@ -45,10 +42,8 @@ export default function OfferwallSlider({ offerwalls = [], isLoading = false }: 
   return (
     <div className="w-full flex flex-col gap-6 mt-6 relative">
       
-      {/* 🚀 Header Section - Blended with background */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/5 pb-4">
         
-        {/* Title */}
         <div className="flex flex-col shrink-0">
           <div className="flex items-center gap-2 mb-1">
             <Boxes className="w-5 h-5 text-emerald-400" />
@@ -57,7 +52,6 @@ export default function OfferwallSlider({ offerwalls = [], isLoading = false }: 
           <p className="text-[#8F95A3] text-xs font-medium">Explore top offer walls to maximize your earnings.</p>
         </div>
 
-        {/* Dynamic Arrows */}
         <div className="hidden lg:flex items-center gap-4 shrink-0">
           <div className="flex items-center gap-1.5">
             {canScrollLeft && (
@@ -81,7 +75,6 @@ export default function OfferwallSlider({ offerwalls = [], isLoading = false }: 
 
       </div>
 
-      {/* Slider Section */}
       <div className="relative group">
         {isLoading ? (
           <div className="flex gap-4 overflow-hidden py-2">

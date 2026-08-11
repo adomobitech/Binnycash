@@ -6,19 +6,27 @@ import OfferCard from '@/components/offers/OfferCard';
 import OfferFilters from '@/components/offers/OfferFilters'; 
 import { Sparkles, ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
 
-export function filterOffersByDevice(offers: any[], selectedDevices: string[]) {
-  if (!selectedDevices || selectedDevices.length === 0 || selectedDevices.includes('all')) return offers;
+export function filterOffersByDevice(offers: any[], filterInput: any) {
+  let selected: string[] = [];
+  if (typeof filterInput === 'string') {
+    selected = [filterInput];
+  } else if (Array.isArray(filterInput)) {
+    selected = filterInput;
+  }
+
+  if (selected.length === 0 || selected.includes('all') || selected.includes('')) return offers;
 
   return offers.filter((offer) => {
-    const browsers = String(offer?.browsers || offer?.platform || offer?.os || offer?.device_type || '').toLowerCase();
-    if (browsers === 'all' || browsers === 'global' || browsers === '') return false; 
+    const rawDevice = String(offer?.device || offer?.devices || offer?.browsers || offer?.platform || offer?.os || offer?.device_type || '').toLowerCase();
     
-    return selectedDevices.some((device) => {
-      if (device === 'android') return browsers.includes('android');
-      if (device === 'ios') return browsers.includes('ios') || browsers.includes('iphone');
-      if (device === 'windows') return browsers.includes('windows') || browsers.includes('win') || browsers.includes('pc') || browsers.includes('desktop');
-      if (device === 'mac') return browsers.includes('mac') || browsers.includes('osx');
-      if (device === 'ipad') return browsers.includes('ipad');
+    if (rawDevice === 'all' || rawDevice === 'global' || rawDevice === '') return true; 
+    
+    return selected.some((device) => {
+      if (device === 'android') return rawDevice.includes('android');
+      if (device === 'ios') return rawDevice.includes('ios') || rawDevice.includes('iphone') || rawDevice.includes('ipad');
+      if (device === 'windows') return rawDevice.includes('windows') || rawDevice.includes('win') || rawDevice.includes('pc') || rawDevice.includes('desktop') || rawDevice.includes('web') || rawDevice.includes('mac');
+      if (device === 'mac') return rawDevice.includes('mac') || rawDevice.includes('osx') || rawDevice.includes('desktop') || rawDevice.includes('windows');
+      if (device === 'ipad') return rawDevice.includes('ipad') || rawDevice.includes('ios');
       return false;
     });
   });
@@ -27,7 +35,8 @@ export function filterOffersByDevice(offers: any[], selectedDevices: string[]) {
 export default function OfferSlider({ 
   offers = [], 
   isLoading = false, 
-  selectedDevices = [], 
+  selectedDevice, 
+  selectedDevices, 
   onSelectDevice = () => {} 
 }: any) {
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -35,7 +44,9 @@ export default function OfferSlider({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const filteredOffers = filterOffersByDevice(offers, selectedDevices);
+  // Fallback to array if string is undefined
+  const activeFilter = selectedDevice !== undefined ? selectedDevice : (selectedDevices || []);
+  const filteredOffers = filterOffersByDevice(offers, activeFilter);
 
   const checkScroll = () => {
     if (sliderRef.current) {
@@ -63,14 +74,6 @@ export default function OfferSlider({
     }
   };
 
-  const handleDeviceSelect = (dev: string) => {
-    if (dev === 'all') {
-      onSelectDevice(''); 
-    } else {
-      onSelectDevice(dev);
-    }
-  };
-
   return (
     <div className="w-full flex flex-col gap-6 mt-6">
       
@@ -85,7 +88,7 @@ export default function OfferSlider({
         </div>
 
         <div className="hidden lg:flex flex-1 justify-center">
-          <OfferFilters selectedDevices={selectedDevices} onSelectDevice={handleDeviceSelect} />
+          <OfferFilters selectedDevice={selectedDevice} selectedDevices={selectedDevices} onSelectDevice={onSelectDevice} />
         </div>
 
         <div className="hidden lg:flex items-center gap-4 shrink-0">
@@ -117,7 +120,6 @@ export default function OfferSlider({
       <div className="relative group">
         {isLoading ? (
           <div className="flex gap-2.5 sm:gap-3 overflow-hidden py-1">
-            {/* 🔥 WIDTH REDUCED TO MATCH SCREENSHOT 🔥 */}
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
               <div key={i} className="aspect-[4/5] w-[110px] sm:w-[125px] lg:w-[135px] bg-[#161821] animate-pulse rounded-[12px] shrink-0 border border-white/5"></div>
             ))}

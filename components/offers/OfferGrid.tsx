@@ -5,15 +5,16 @@ import OfferCard from './OfferCard';
 import OfferFilters from './OfferFilters';
 import { filterOffersByDevice } from './OfferSlider';
 
-interface OfferGridProps {
-  offers: any[];
-  isLoading: boolean;
-  selectedDevices: string[]; 
-  onSelectDevice: (device: string) => void;
-}
-
-export default function OfferGrid({ offers, isLoading, selectedDevices, onSelectDevice }: OfferGridProps) {
-  const filtered = filterOffersByDevice(offers, selectedDevices);
+export default function OfferGrid({ 
+  offers, 
+  isLoading, 
+  selectedDevice, 
+  selectedDevices, 
+  onSelectDevice 
+}: any) {
+  
+  const activeFilter = selectedDevice !== undefined ? selectedDevice : (selectedDevices || []);
+  const filtered = filterOffersByDevice(offers, activeFilter);
   
   return (
     <div className="w-full flex flex-col gap-6">
@@ -23,20 +24,19 @@ export default function OfferGrid({ offers, isLoading, selectedDevices, onSelect
         </h1>
         
         <div className="hidden md:block">
-          <OfferFilters selectedDevices={selectedDevices} onSelectDevice={onSelectDevice} />
+          <OfferFilters selectedDevice={selectedDevice} selectedDevices={selectedDevices} onSelectDevice={onSelectDevice} />
         </div>
       </div>
 
       {isLoading ? (
         <div className="grid grid-cols-3 min-[450px]:grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-8 xl:grid-cols-9 2xl:grid-cols-10 gap-2 sm:gap-3 lg:gap-3">
-          {/* 🔥 COMMENT MOVED INSIDE DIV 🔥 */}
           {[...Array(20)].map((_, i) => (
             <div key={i} className="aspect-[4/5] w-full bg-[#111319] animate-pulse rounded-[12px] border border-white/5"></div>
           ))}
         </div>
       ) : filtered.length > 0 ? (
         <div className="grid grid-cols-3 min-[450px]:grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-8 xl:grid-cols-9 2xl:grid-cols-10 gap-2 sm:gap-3 lg:gap-3">
-          {filtered.map((offer, index) => (
+          {filtered.map((offer: any, index: number) => (
             <OfferCard key={offer._id || offer.id || index} offer={offer} />
           ))}
         </div>

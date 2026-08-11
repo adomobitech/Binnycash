@@ -13,22 +13,22 @@ import {
 
 const CATEGORIES = [
   { id: 'All', label: 'All Categories', icon: <Filter className="w-4 h-4" /> },
-  { id: 'Apps', label: 'App', icon: <Smartphone className="w-4 h-4" /> },
+  { id: 'App', label: 'App', icon: <Smartphone className="w-4 h-4" /> },
   { id: 'Casino', label: 'Casino', icon: <Diamond className="w-4 h-4" /> },
-  { id: 'Crypto', label: 'Cripto', icon: <Bitcoin className="w-4 h-4" /> },
-  { id: 'Games', label: 'Game', icon: <Gamepad2 className="w-4 h-4" /> },
+  { id: 'Crypto', label: 'Crypto', icon: <Bitcoin className="w-4 h-4" /> },
+  { id: 'Game', label: 'Game', icon: <Gamepad2 className="w-4 h-4" /> },
   { id: 'Purchase', label: 'Purchase', icon: <ShoppingBag className="w-4 h-4" /> },
   { id: 'Freetrial', label: 'Freetrial', icon: <CreditCard className="w-4 h-4" /> },
   { id: 'Signup', label: 'Signup', icon: <LogIn className="w-4 h-4" /> },
-  { id: 'Quizzes', label: 'Quiz', icon: <ClipboardList className="w-4 h-4" /> },
-  { id: 'Other', label: 'Other', icon: <Hexagon className="w-4 h-4" /> }
+  { id: 'Quiz', label: 'Quiz', icon: <ClipboardList className="w-4 h-4" /> },
+  { id: 'Web', label: 'Web', icon: <Hexagon className="w-4 h-4" /> }
 ];
 
 export default function AllOffersPage() {
   const [offers, setOffers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   
   const [apiNetworks, setApiNetworks] = useState<{name: string, count: number}[]>([]);
@@ -102,7 +102,7 @@ export default function AllOffersPage() {
 
       try {
         while (hasMoreData && pageNum <= 20) {
-          const res = await fetch(`https://apitest.binnycash.com/api/user/offerlist?page=${pageNum}`, {
+          const res = await fetch(`https://apitest.binnycash.com/api/user/offerList?page=${pageNum}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -124,27 +124,28 @@ export default function AllOffersPage() {
           if (list.length > 0) {
             allFetchedOffers = [...allFetchedOffers, ...list];
             pageNum++;
-            if (list.length < 20) hasMoreData = false;
-          } else { hasMoreData = false; }
+            
+            const totalPages = resData?.data?.pagination?.totalPages || 20;
+            if (pageNum > totalPages || list.length < 20) {
+              hasMoreData = false;
+            }
+          } else { 
+            hasMoreData = false; 
+          }
         }
 
         const uniqueOffers = Array.from(new Map(allFetchedOffers.map(item => [item._id || item.id, item])).values());
         setOffers(uniqueOffers);
       } catch (err) {
         console.error(err);
-      } finally { setIsLoading(false); }
+      } finally { 
+        setIsLoading(false); 
+      }
     };
     fetchAllOffers();
   }, []);
 
-  const handleSelectDevice = (device: string) => {
-    setSelectedDevices((prev) => {
-      if (prev.includes(device)) return prev.filter((d) => d !== device);
-      return [...prev, device];
-    });
-  };
-
-  let processedOffers = filterOffersByDevice(offers, selectedDevices);
+  let processedOffers = filterOffersByDevice(offers, selectedDevice);
 
   const parseCategoryString = (val: any) => {
     if (!val) return '';
@@ -166,17 +167,6 @@ export default function AllOffersPage() {
     if (catMatch && catMatch !== 'all') {
       processedOffers = processedOffers.filter(offer => {
         const cat = parseCategoryString(offer.categories || offer.category || offer.tags || offer.offerName);
-        
-        if (catMatch === 'games') return cat.includes('game') || cat.includes('play');
-        if (catMatch === 'surveys') return cat.includes('survey') || cat.includes('opinion');
-        if (catMatch === 'apps') return cat.includes('app') || cat.includes('install');
-        if (catMatch === 'quizzes') return cat.includes('quiz') || cat.includes('trivia');
-        if (catMatch === 'crypto') return cat.includes('crypto') || cat.includes('bitcoin') || cat.includes('cripto');
-        if (catMatch === 'casino') return cat.includes('casino') || cat.includes('slot');
-        if (catMatch === 'freetrial') return cat.includes('trial') || cat.includes('free');
-        if (catMatch === 'signup') return cat.includes('sign') || cat.includes('register');
-        if (catMatch === 'purchase') return cat.includes('purchase') || cat.includes('buy');
-        
         return cat.includes(catMatch);
       });
     }
@@ -212,7 +202,7 @@ export default function AllOffersPage() {
 
       <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative z-10 custom-scrollbar pb-24 sm:pb-8">
         
-        {/* HERO BANNER - MOBILE OPTIMIZED */}
+        {/* HERO BANNER */}
         <div className="relative w-full bg-[#111319] border border-white/5 rounded-[20px] sm:rounded-[24px] mb-4 sm:mb-6 overflow-hidden flex flex-col justify-center px-4 sm:px-6 md:px-10 py-6 sm:py-8 shadow-lg">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#8B5CF6]/10 blur-[100px] rounded-full translate-x-1/3 -translate-y-1/3"></div>
           <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#3B82F6]/5 blur-[80px] rounded-full -translate-x-1/3 translate-y-1/3"></div>
@@ -236,10 +226,9 @@ export default function AllOffersPage() {
           </div>
         </div>
 
-        {/* FILTERS BAR - MOBILE OPTIMIZED */}
+        {/* FILTERS BAR */}
         <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center gap-3 sm:gap-4 mb-6 bg-[#111319]/80 backdrop-blur-md p-3 sm:p-4 rounded-[20px] border border-white/5 shadow-lg relative z-20">
           
-          {/* Search Bar */}
           <div className="relative w-full xl:w-[320px] shrink-0">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
               <Search className="w-4 h-4 text-[#8F95A3]" />
@@ -255,16 +244,15 @@ export default function AllOffersPage() {
 
           <div className="flex flex-wrap items-center justify-start xl:justify-end gap-2 sm:gap-3 w-full xl:w-auto relative z-30">
             
-            {/* 🔥 DEVICE FILTER - HIDDEN ON MOBILE, SHOW ON DESKTOP 🔥 */}
             <div className="hidden xl:flex shrink-0 items-center bg-[#1A1C24] p-1 rounded-[14px] border border-white/5">
-              <OfferFilters selectedDevices={selectedDevices} onSelectDevice={handleSelectDevice} />
+              <OfferFilters selectedDevice={selectedDevice} onSelectDevice={setSelectedDevice} />
             </div>
 
-            {/* 1. Category Dropdown */}
+            {/* Category Dropdown */}
             <div className="relative w-[48%] md:w-auto" ref={catRef}>
               <button 
                 onClick={() => setIsCatOpen(!isCatOpen)}
-                className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11"
+                className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11 cursor-pointer"
               >
                 <div className="flex items-center gap-2 truncate">
                   {getCatIcon()}
@@ -278,7 +266,7 @@ export default function AllOffersPage() {
                     <button 
                       key={cat.id} 
                       onClick={() => {setSelectedCategory(cat.label); setIsCatOpen(false);}} 
-                      className={`flex items-center gap-3 px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors ${selectedCategory === cat.label ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
+                      className={`flex items-center gap-3 px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors cursor-pointer ${selectedCategory === cat.label ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
                     >
                       <span className="w-5 flex justify-center text-white">{cat.icon}</span> {cat.label}
                     </button>
@@ -287,11 +275,11 @@ export default function AllOffersPage() {
               )}
             </div>
 
-            {/* 2. Network Dropdown */}
+            {/* Network Dropdown */}
             <div className="relative w-[48%] md:w-auto" ref={netRef}>
               <button 
                 onClick={() => setIsNetOpen(!isNetOpen)}
-                className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11"
+                className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11 cursor-pointer"
               >
                 <div className="flex items-center gap-2 truncate">
                   <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white shrink-0" /> 
@@ -300,10 +288,10 @@ export default function AllOffersPage() {
                 <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A855F7] transition-transform ml-1 shrink-0 ${isNetOpen ? 'rotate-180' : ''}`} />
               </button>
               {isNetOpen && (
-                <div className="absolute right-0 md:left-auto top-full mt-2 w-[240px] max-h-[300px] sm:max-h-[350px] overflow-y-auto custom-scrollbar bg-[#111319] border border-white/5 rounded-xl shadow-2xl flex flex-col py-2 z-[100]">
+                <div className="absolute right-0 md:left-auto top-full mt-2 w-[240px] max-h-[300px] overflow-y-auto custom-scrollbar bg-[#111319] border border-white/5 rounded-xl shadow-2xl flex flex-col py-2 z-[100]">
                   <button 
                     onClick={() => {setSelectedNetwork('All Networks'); setIsNetOpen(false);}} 
-                    className={`flex items-center justify-between px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors ${selectedNetwork === 'All Networks' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
+                    className={`flex items-center justify-between px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors cursor-pointer ${selectedNetwork === 'All Networks' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
                   >
                     All Networks
                   </button>
@@ -311,7 +299,7 @@ export default function AllOffersPage() {
                     <button 
                       key={net.name} 
                       onClick={() => {setSelectedNetwork(net.name); setIsNetOpen(false);}} 
-                      className={`flex items-center justify-between px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors ${selectedNetwork === net.name ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
+                      className={`flex items-center justify-between px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors cursor-pointer ${selectedNetwork === net.name ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
                     >
                       <span className="truncate pr-2 capitalize">{net.name}</span>
                       {net.count > 0 && <span className="bg-[#A855F7] text-white text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full">{net.count}</span>}
@@ -321,11 +309,11 @@ export default function AllOffersPage() {
               )}
             </div>
 
-            {/* 3. Sort By Dropdown */}
+            {/* Sort Dropdown */}
             <div className="relative w-full md:w-auto" ref={sortRef}>
               <button 
                 onClick={() => setIsSortOpen(!isSortOpen)}
-                className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11"
+                className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11 cursor-pointer"
               >
                 <div className="flex items-center gap-2 truncate">
                   {getSortIcon()}
@@ -335,13 +323,13 @@ export default function AllOffersPage() {
               </button>
               {isSortOpen && (
                 <div className="absolute right-0 md:left-0 top-full mt-2 w-full md:w-[180px] bg-[#111319] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 z-[100]">
-                  <button onClick={() => {setSortBy('Most Popular'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors ${sortBy === 'Most Popular' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
+                  <button onClick={() => {setSortBy('Most Popular'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-3 text-[13px] font-medium transition-colors cursor-pointer ${sortBy === 'Most Popular' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
                     <Flame className="w-4 h-4 text-white" /> Most Popular
                   </button>
-                  <button onClick={() => {setSortBy('High Reward'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors ${sortBy === 'High Reward' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
+                  <button onClick={() => {setSortBy('High Reward'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-3 text-[13px] font-medium transition-colors cursor-pointer ${sortBy === 'High Reward' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
                     <ArrowUp className="w-4 h-4 text-white" /> High Reward
                   </button>
-                  <button onClick={() => {setSortBy('Low Reward'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors ${sortBy === 'Low Reward' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
+                  <button onClick={() => {setSortBy('Low Reward'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-3 text-[13px] font-medium transition-colors cursor-pointer ${sortBy === 'Low Reward' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
                     <ArrowDown className="w-4 h-4 text-white" /> Low Reward
                   </button>
                 </div>
@@ -369,7 +357,7 @@ export default function AllOffersPage() {
             <Settings2 className="w-12 h-12 text-[#8F95A3] mb-4 opacity-50" />
             <p className="text-white font-bold text-base sm:text-lg mb-1">No matching offers found</p>
             <p className="text-[#8F95A3] text-xs sm:text-sm">Try adjusting your filters or clearing the search query.</p>
-            <button onClick={() => {setSearchQuery(''); setSelectedCategory('All Categories'); setSelectedNetwork('All Networks');}} className="mt-4 px-6 py-2.5 bg-[#8B5CF6]/20 text-[#8B5CF6] text-sm rounded-xl font-bold hover:bg-[#8B5CF6] hover:text-white transition-all">Clear All Filters</button>
+            <button onClick={() => {setSearchQuery(''); setSelectedCategory('All Categories'); setSelectedNetwork('All Networks'); setSelectedDevice('all');}} className="mt-4 px-6 py-2.5 bg-[#8B5CF6]/20 text-[#8B5CF6] text-sm rounded-xl font-bold hover:bg-[#8B5CF6] hover:text-white transition-all cursor-pointer">Clear All Filters</button>
           </div>
         )}
 
