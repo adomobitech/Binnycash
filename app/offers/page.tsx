@@ -197,8 +197,8 @@ export default function AllOffersPage() {
   };
 
   return (
-    <div className="flex flex-col bg-[#0B0D19] min-h-[calc(100vh-80px)] text-white relative">
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[#8B5CF6]/5 blur-[120px] rounded-full pointer-events-none" />
+    <div className="flex flex-col bg-[#0B0D19] min-h-[calc(100vh-80px)] text-white relative overflow-x-hidden">
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[#8B5CF6]/5 blur-[120px] rounded-full pointer-events-none z-0" />
 
       <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative z-10 custom-scrollbar pb-24 sm:pb-8">
         
@@ -233,26 +233,27 @@ export default function AllOffersPage() {
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
               <Search className="w-4 h-4 text-[#8F95A3]" />
             </div>
+            {/* 🔥 SEARCH OVERLAP FIX: explicitly split paddings to py, pr, and pl 🔥 */}
             <input 
               type="text" 
               placeholder="Search offers..." 
               value={searchQuery} 
               onChange={(e) => setSearchQuery(e.target.value)} 
-              className="w-full bg-[#1A1C24] border border-white/5 text-white text-[13px] font-medium rounded-[14px] focus:ring-1 focus:ring-[#8B5CF6]/50 focus:border-[#8B5CF6]/50 block pl-10 p-3 sm:p-3.5 placeholder-[#8F95A3] outline-none transition-all shadow-inner" 
+              className="w-full bg-[#1A1C24] border border-white/5 text-white text-[13px] font-medium rounded-[14px] focus:ring-1 focus:ring-[#8B5CF6]/50 focus:border-[#8B5CF6]/50 block py-3 sm:py-3.5 pr-3 sm:pr-4 pl-10 sm:pl-11 placeholder-[#8F95A3] outline-none transition-all shadow-inner" 
             />
           </div>
 
-          <div className="flex flex-wrap items-center justify-start xl:justify-end gap-2 sm:gap-3 w-full xl:w-auto relative z-30">
+          <div className="flex flex-wrap xl:flex-nowrap items-center justify-start xl:justify-end gap-2 sm:gap-3 w-full xl:w-auto relative z-30">
             
             <div className="hidden xl:flex shrink-0 items-center bg-[#1A1C24] p-1 rounded-[14px] border border-white/5">
               <OfferFilters selectedDevice={selectedDevice} onSelectDevice={setSelectedDevice} />
             </div>
 
             {/* Category Dropdown */}
-            <div className="relative w-[48%] md:w-auto" ref={catRef}>
+            <div className="relative shrink-0 w-full sm:w-auto" ref={catRef}>
               <button 
                 onClick={() => setIsCatOpen(!isCatOpen)}
-                className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11 cursor-pointer"
+                className="w-full sm:w-auto flex items-center justify-between gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11 cursor-pointer"
               >
                 <div className="flex items-center gap-2 truncate">
                   {getCatIcon()}
@@ -261,12 +262,12 @@ export default function AllOffersPage() {
                 <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A855F7] transition-transform ml-1 shrink-0 ${isCatOpen ? 'rotate-180' : ''}`} />
               </button>
               {isCatOpen && (
-                <div className="absolute left-0 top-full mt-2 w-full md:w-[220px] bg-[#111319] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 z-[100]">
+                <div className="absolute left-0 top-full mt-2 w-[180px] bg-[#111319] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 z-[100]">
                   {CATEGORIES.map(cat => (
                     <button 
                       key={cat.id} 
                       onClick={() => {setSelectedCategory(cat.label); setIsCatOpen(false);}} 
-                      className={`flex items-center gap-3 px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors cursor-pointer ${selectedCategory === cat.label ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
+                      className={`flex items-center gap-3 px-4 py-3 text-[13px] font-medium transition-colors cursor-pointer ${selectedCategory === cat.label ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
                     >
                       <span className="w-5 flex justify-center text-white">{cat.icon}</span> {cat.label}
                     </button>
@@ -276,10 +277,10 @@ export default function AllOffersPage() {
             </div>
 
             {/* Network Dropdown */}
-            <div className="relative w-[48%] md:w-auto" ref={netRef}>
+            <div className="relative shrink-0 w-full sm:w-auto" ref={netRef}>
               <button 
                 onClick={() => setIsNetOpen(!isNetOpen)}
-                className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11 cursor-pointer"
+                className="w-full sm:w-auto flex items-center justify-between gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11 cursor-pointer"
               >
                 <div className="flex items-center gap-2 truncate">
                   <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white shrink-0" /> 
@@ -288,10 +289,10 @@ export default function AllOffersPage() {
                 <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A855F7] transition-transform ml-1 shrink-0 ${isNetOpen ? 'rotate-180' : ''}`} />
               </button>
               {isNetOpen && (
-                <div className="absolute right-0 md:left-auto top-full mt-2 w-[240px] max-h-[300px] overflow-y-auto custom-scrollbar bg-[#111319] border border-white/5 rounded-xl shadow-2xl flex flex-col py-2 z-[100]">
+                <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-2 w-[220px] max-h-[300px] overflow-y-auto custom-scrollbar bg-[#111319] border border-white/5 rounded-xl shadow-2xl flex flex-col py-2 z-[100]">
                   <button 
                     onClick={() => {setSelectedNetwork('All Networks'); setIsNetOpen(false);}} 
-                    className={`flex items-center justify-between px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors cursor-pointer ${selectedNetwork === 'All Networks' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
+                    className={`flex items-center justify-between px-4 py-3 text-[13px] font-medium transition-colors cursor-pointer ${selectedNetwork === 'All Networks' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
                   >
                     All Networks
                   </button>
@@ -299,10 +300,10 @@ export default function AllOffersPage() {
                     <button 
                       key={net.name} 
                       onClick={() => {setSelectedNetwork(net.name); setIsNetOpen(false);}} 
-                      className={`flex items-center justify-between px-4 py-3 text-[13px] sm:text-[14px] font-medium transition-colors cursor-pointer ${selectedNetwork === net.name ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
+                      className={`flex items-center justify-between px-4 py-3 text-[13px] font-medium transition-colors cursor-pointer ${selectedNetwork === net.name ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
                     >
                       <span className="truncate pr-2 capitalize">{net.name}</span>
-                      {net.count > 0 && <span className="bg-[#A855F7] text-white text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full">{net.count}</span>}
+                      {net.count > 0 && <span className="bg-[#A855F7] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{net.count}</span>}
                     </button>
                   ))}
                 </div>
@@ -310,10 +311,10 @@ export default function AllOffersPage() {
             </div>
 
             {/* Sort Dropdown */}
-            <div className="relative w-full md:w-auto" ref={sortRef}>
+            <div className="relative shrink-0 w-full sm:w-auto" ref={sortRef}>
               <button 
                 onClick={() => setIsSortOpen(!isSortOpen)}
-                className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11 cursor-pointer"
+                className="w-full sm:w-auto flex items-center justify-between gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 rounded-[14px] px-3 sm:px-4 py-2.5 text-[12px] sm:text-[14px] font-medium text-white transition-colors h-10 sm:h-11 cursor-pointer"
               >
                 <div className="flex items-center gap-2 truncate">
                   {getSortIcon()}
@@ -322,7 +323,7 @@ export default function AllOffersPage() {
                 <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A855F7] transition-transform ml-1 shrink-0 ${isSortOpen ? 'rotate-180' : ''}`} />
               </button>
               {isSortOpen && (
-                <div className="absolute right-0 md:left-0 top-full mt-2 w-full md:w-[180px] bg-[#111319] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 z-[100]">
+                <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-2 w-[160px] bg-[#111319] border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col py-2 z-[100]">
                   <button onClick={() => {setSortBy('Most Popular'); setIsSortOpen(false);}} className={`flex items-center gap-3 px-4 py-3 text-[13px] font-medium transition-colors cursor-pointer ${sortBy === 'Most Popular' ? 'bg-white/5 text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}>
                     <Flame className="w-4 h-4 text-white" /> Most Popular
                   </button>
