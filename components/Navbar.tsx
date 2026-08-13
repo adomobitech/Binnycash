@@ -14,11 +14,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
 import ChatDrawer from '@/components/chat/ChatDrawer';
 
-// 🔥 GLOBAL THROTTLE TIMERS TO PREVENT DUPLICATE API SPAM 🔥
 let globalLastWalletFetch = 0;
 let globalLastUserFetch = 0;
 
-// 🔥 DYNAMIC COLOR GENERATOR
 const getDynamicColor = (name: string) => {
   const colors = [
     'bg-[#8B5CF6]', 'bg-[#3B82F6]', 'bg-[#EC4899]', 
@@ -73,6 +71,7 @@ function getUserId(): string {
   return '';
 }
 
+// 🔥 EXACT LANGUAGES MATCHING YOUR SCREENSHOTS 🔥
 const LANGUAGES = [
   { code: 'en', name: 'English', tag: 'us' },
   { code: 'hi', name: 'Hindi', tag: 'in' },
@@ -114,8 +113,6 @@ export default function Navbar() {
   
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  
-  // 🔥 MASKING HOMEPAGE OVERLAY FIX 🔥
   const [isRouting, setIsRouting] = useState(false);
   
   const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
@@ -142,12 +139,10 @@ export default function Navbar() {
 
   const navRef = useRef<HTMLElement>(null);
 
-  // 🔥 HOMEPAGE HOLD/FLASH FIX: Show overlay if transitioning from home to dashboard
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && token !== 'undefined' && pathname === '/') {
       setIsRouting(true);
-      // Failsafe timeout in case redirect fails
       const timer = setTimeout(() => setIsRouting(false), 4000);
       return () => clearTimeout(timer);
     } else {
@@ -155,7 +150,6 @@ export default function Navbar() {
     }
   }, [pathname, isLoggedIn]);
 
-  // 🛡️ TYPESCRIPT-SAFE GOOGLE TRANSLATE DOM PATCH
   useEffect(() => {
     if (typeof window !== 'undefined' && typeof Node === 'function' && Node.prototype) {
       // @ts-ignore
@@ -180,7 +174,7 @@ export default function Navbar() {
     }
   }, []);
 
-  // 🔥 BULLETPROOF LANGUAGE RESET FIX 🔥
+  // 🔥 BULLETPROOF PRODUCTION TRANSLATION SYNC 🔥
   useEffect(() => {
     let currentLang = 'en';
     const savedLang = localStorage.getItem('preferredLang');
@@ -188,7 +182,6 @@ export default function Navbar() {
     if (savedLang) {
       currentLang = savedLang;
       const host = window.location.hostname;
-      // Force cookie consistency
       document.cookie = `googtrans=/en/${savedLang}; path=/;`;
       document.cookie = `googtrans=/en/${savedLang}; path=/; domain=${host}`;
       document.cookie = `googtrans=/en/${savedLang}; path=/; domain=.${host}`;
@@ -213,7 +206,6 @@ export default function Navbar() {
           select.dispatchEvent(new Event('change'));
         }
       };
-      // Next.js SPA navigation requires re-triggering translate after DOM updates
       setTimeout(triggerTranslate, 300);
       setTimeout(triggerTranslate, 800);
       setTimeout(triggerTranslate, 1500);
@@ -222,23 +214,19 @@ export default function Navbar() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  const handleLanguageChange = (lang: any) => {
+const handleLanguageChange = (lang: any) => {
     setSelectedLang(lang);
     setIsLangModalOpen(false);
     
-    // Save to local storage
+    // Save locally
     localStorage.setItem('preferredLang', lang.code);
     
-    const host = window.location.hostname;
+    // 🔥 FIX FOR LIVE (VERCEL/NETLIFY) DOMAINS 🔥
+    // Remove complex wildcard domains that browsers block. Just use path=/
     document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${host}`;
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${host}`;
-
     document.cookie = `googtrans=/en/${lang.code}; path=/;`;
-    document.cookie = `googtrans=/en/${lang.code}; path=/; domain=${host}`;
-    document.cookie = `googtrans=/en/${lang.code}; path=/; domain=.${host}`;
 
-    // Force reload to completely parse translating DOM
+    // Force reload to apply clean translation across the live domain
     window.location.reload();
   };
 
@@ -262,7 +250,6 @@ export default function Navbar() {
       if (token && token !== 'undefined' && !token.includes('[object Object]')) {
         setIsLoggedIn(true);
 
-        // 🔥 LOGIC TO PREVENT 3-4 MULTIPLE FETCHES 🔥
         const now = Date.now();
         const lastFetchTime = localStorage.getItem('lastWalletFetch');
         if (lastFetchTime && now - parseInt(lastFetchTime) < 30000) {
@@ -597,7 +584,6 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* 🔥 NEW: ROUTING LOADER TO MASK HOMEPAGE FLASH 🔥 */}
       <AnimatePresence>
         {isRouting && (
           <motion.div key="routing-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#070913] overflow-hidden font-sans">
@@ -702,8 +688,9 @@ export default function Navbar() {
                   >
                     <div className="px-4 py-2 border-b border-white/5 mb-2 flex items-center gap-2">
                       <Globe className="w-4 h-4 text-[#8B5CF6]" />
-                      <span className="text-white text-xs font-bold uppercase tracking-wider">Select Region</span>
+                      <span className="text-white text-xs font-bold uppercase tracking-wider">SELECT REGION</span>
                     </div>
+                    {/* 🔥 2-COLUMN GRID MATCHING YOUR EXACT LIST WITH FLAGS 🔥 */}
                     <div className="grid grid-cols-2 gap-1 px-2 max-h-[300px] overflow-y-auto custom-scrollbar pb-2">
                       {LANGUAGES.map((lang) => (
                         <button 

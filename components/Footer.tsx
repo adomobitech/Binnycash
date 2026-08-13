@@ -220,10 +220,7 @@ export default function Footer() {
           <div className="flex items-center gap-1.5 text-xs">
             <span>Built for hustlers. Backed by you.</span>
           </div>
-          <div className="flex items-center gap-6">
-            <span className="text-xs">Made with 💜 in India</span>
-          </div>
-        </div>
+         </div>
 
       </div>
     </footer>

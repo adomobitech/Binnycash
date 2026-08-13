@@ -22,7 +22,7 @@ interface AuthModalProps {
   initialView?: 'login' | 'register';
 }
 
-type ViewState = 'login' | 'register' | 'verifyOtp' | 'forgotPassword' | 'verifyForgotOtp' | 'createNewPassword' | 'loginSuccess';
+type ViewState = 'login' | 'register' | 'verifyOtp' | 'forgotPassword' | 'resetPassword' | 'loginSuccess';
 
 // --- UTILITY: Get Device ID ---
 function getOrCreateDeviceId(): string {
@@ -53,6 +53,9 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   const [toast, setToast] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Timer State for Resend OTP (in seconds)
+  const [resendTimer, setResendTimer] = useState(0);
+
   // Referral States
   const [isUrlReferral, setIsUrlReferral] = useState(false);
   const [refCodeValue, setRefCodeValue] = useState('');
@@ -75,6 +78,24 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       }
     }
   }, [isOpen, initialView]);
+
+  // Handle Resend OTP Timer Countdown
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
+
+  // Format seconds to MM:SS
+  const formatTime = (timeInSeconds: number) => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = timeInSeconds % 60;
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
 
   // Auto-clear error after 4 seconds
   useEffect(() => {
@@ -338,7 +359,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     }
   };
 
-  const handleResendOtp = async () => {
+  const handleResendSignupOtp = async () => {
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
 
@@ -354,7 +375,28 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     }
   };
 
-  // STEP 1: Send Recovery Email (/user/forgetPassword)
+  const handleResendForgotOtp = async () => {
+    if (resendTimer > 0) return; // Prevent double clicks if timer is running
+    
+    const urlEncoded = new URLSearchParams();
+    urlEncoded.append('email', email);
+
+    try {
+      await fetch('https://apitest.binnycash.com/api/user/resendOtp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: urlEncoded
+      });
+      setToast('OTP Resent to your email!');
+      setResendTimer(300); // Restart the 5-minute timer
+    } catch (err) {
+      setError('Failed to resend OTP');
+    }
+  };
+
+  // =====================================================
+  // FORGOT PASSWORD FLOW (Step 1: Just hit forgetPassword)
+  // =====================================================
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -370,9 +412,12 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
         body: urlEncoded
       });
       const data = await res.json();
+      
       if (res.ok) {
         setOtp('');
-        setView('verifyForgotOtp'); 
+        setNewPassword('');
+        setResendTimer(300); // Start 5 minutes timer
+        setView('resetPassword'); 
       } else {
         setError(data.message || 'Email not found');
       }
@@ -383,20 +428,16 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     }
   };
 
-  const handleProceedToNewPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otp.length < 4) {
-      setError('Please enter all 4 digits.');
-      return;
-    }
-    setError('');
-    setView('createNewPassword'); 
-  };
-
-  // STEP 3: Final Password Reset (/user/verifyforgetPasswordOtp)
-  const handleVerifyForgotOtp = async (e: React.FormEvent) => {
+  // =====================================================
+  // RESET PASSWORD FLOW (Step 2: Hit resetPassword directly)
+  // =====================================================
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (otp.length < 4) {
+      setError('Please enter all 4 digits of the OTP.');
+      return;
+    }
     if (newPassword.length < 8) {
       setError('New password must be at least 8 characters long.');
       return;
@@ -408,11 +449,12 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
     urlEncoded.append('otp', otp);
-    urlEncoded.append('newPassword', newPassword);
+    urlEncoded.append('newPassword', newPassword); 
+    urlEncoded.append('password', newPassword); // Fallback depending on exactly how your backend expects it
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/verifyforgetPasswordOtp', {
-        method: 'POST',
+      const res = await fetch('https://apitest.binnycash.com/api/user/resetPassword', {
+        method: 'POST', // Most reset endpoints are POST, occasionally PUT
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
       });
@@ -422,15 +464,12 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
         setView('login');
         setToast('Password reset successful! Please login.');
       } else {
-        // If backend says OTP is invalid, show error and send user back to OTP screen with cleared boxes!
         setError(data.message || 'Invalid OTP. Please try again.');
         setOtp('');
-        setView('verifyForgotOtp');
       }
     } catch (err) {
       setError('Error resetting password');
       setOtp('');
-      setView('verifyForgotOtp');
     } finally {
       setIsLoading(false);
     }
@@ -514,7 +553,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                 <CheckCircle2 className="w-8 h-8 text-[#00E57A]" strokeWidth={2.5} />
               </div>
            </div>
-           {/* 🔥 REVERTED SUCCESS MESSAGE 🔥 */}
            <h2 className="text-2xl font-black text-white tracking-wide mb-2">Success!</h2>
            <p className="text-[#8F95A3] text-sm">Preparing your dashboard...</p>
         </motion.div>
@@ -565,7 +603,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
         }
       `}</style>
 
-      {/* Toast Popup - replaces native alert() */}
+      {/* Toast Popup */}
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -584,10 +622,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       {/* Main Container */}
       <div className="w-full max-w-[460px] bg-[#05070A] border border-[#1A1D24] rounded-[24px] shadow-[0_20px_60px_rgba(0,0,0,0.9)] relative my-auto overflow-hidden">
         
-        {/* Subtle Tech Grid Pattern */}
         <div className="absolute inset-0 bg-grid-pattern pointer-events-none" />
-        
-        {/* Top Accent Line */}
         <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-[#00E57A] via-[#3DE8A0] to-[#8B5CF6]" />
 
         <div className="p-8 sm:p-10 relative z-10">
@@ -813,7 +848,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
               </motion.div>
             )}
 
-            {/* ======================= VERIFY OTP VIEW (4-Digit) ======================= */}
+            {/* ======================= VERIFY SIGNUP OTP VIEW ======================= */}
             {view === 'verifyOtp' && (
               <motion.div key="otp" {...animConfig} className="relative z-10 flex flex-col items-center">
                 <div className="text-center mb-8">
@@ -860,7 +895,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                 
                 <div className="mt-8 text-center">
                   <button 
-                    onClick={handleResendOtp} 
+                    onClick={handleResendSignupOtp} 
                     className="text-[13px] text-[#8F95A3] hover:text-white transition-colors cursor-pointer"
                   >
                     Didn't receive it? <span className="font-bold underline text-[#00E57A]">Resend</span>
@@ -869,7 +904,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
               </motion.div>
             )}
 
-            {/* ======================= FORGOT PASSWORD VIEW (Step 1) ======================= */}
+            {/* ======================= FORGOT PASSWORD STEP 1 (Email Only) ======================= */}
             {view === 'forgotPassword' && (
               <motion.div key="forgot" {...animConfig} className="relative z-10">
                 <BrandHeader title="Reset Identity" subtitle="Enter your email to receive a recovery code." />
@@ -914,13 +949,13 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
               </motion.div>
             )}
 
-            {/* ======================= FORGOT PASSWORD STEP 2 (OTP ONLY LOCALLY) ======================= */}
-            {view === 'verifyForgotOtp' && (
-              <motion.div key="verify-forgot" {...animConfig} className="relative z-10 flex flex-col items-center">
+            {/* ======================= FORGOT PASSWORD STEP 2 (Combined OTP + New Password) ======================= */}
+            {view === 'resetPassword' && (
+              <motion.div key="reset-password" {...animConfig} className="relative z-10 flex flex-col items-center">
                 <div className="text-center mb-8">
-                  <h2 className="text-white text-[28px] font-black tracking-tight mb-2">Verify Identity</h2>
+                  <h2 className="text-white text-[28px] font-black tracking-tight mb-2">Reset Password</h2>
                   <p className="text-[#8F95A3] text-[13px]">
-                    Enter the 4-digit code we sent to <br/>
+                    Enter the 4-digit code sent to <br/>
                     <span className="text-white font-medium">{email}</span>
                   </p>
                 </div>
@@ -931,18 +966,9 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                   </motion.div>
                 )}
                 
-                <form 
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (otp.length < 4) {
-                      setError('Please enter all 4 digits.');
-                      return;
-                    }
-                    setError('');
-                    setView('createNewPassword');
-                  }} 
-                  className="w-full flex flex-col gap-6"
-                >
+                <form onSubmit={handleResetPassword} className="w-full flex flex-col gap-6">
+                  
+                  {/* OTP Input */}
                   <div className="flex justify-center gap-3 sm:gap-4" onPaste={handleOtpPaste}>
                     {[0, 1, 2, 3].map((index) => (
                       <input
@@ -958,39 +984,13 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                     ))}
                   </div>
 
-                  <button 
-                    type="submit"
-                    className="cyber-btn mt-4 w-full text-[#05070A] font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    Continue <ArrowRight className="w-4 h-4" />
-                  </button>
-                </form>
-              </motion.div>
-            )}
-
-            {/* ======================= FORGOT PASSWORD STEP 3 (NEW PASSWORD + FINAL API HIT) ======================= */}
-            {view === 'createNewPassword' && (
-              <motion.div key="create-password" {...animConfig} className="relative z-10 flex flex-col items-center">
-                <div className="text-center mb-8">
-                  <h2 className="text-white text-[28px] font-black tracking-tight mb-2">Secure Your Account</h2>
-                  <p className="text-[#8F95A3] text-[13px]">
-                    Create a strong and secure key to protect your earnings.
-                  </p>
-                </div>
-                
-                {error && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 w-full p-3 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs font-bold text-center">
-                    {error}
-                  </motion.div>
-                )}
-                
-                <form onSubmit={handleVerifyForgotOtp} className="w-full flex flex-col gap-6">
-                  <div className="relative group flex items-center w-full">
+                  {/* New Password Input */}
+                  <div className="relative group flex items-center w-full mt-2">
                     <Lock className={iconClass} />
                     <input 
                       type={showPassword ? "text" : "password"} 
                       required 
-                      placeholder="Enter new secure key" 
+                      placeholder="Enter new secure password" 
                       value={newPassword} 
                       onChange={(e) => setNewPassword(e.target.value)} 
                       className={baseInputClass} 
@@ -1015,6 +1015,22 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                     )}
                   </button>
                 </form>
+
+                {/* Resend OTP Timer Logic */}
+                <div className="mt-8 text-center">
+                  {resendTimer > 0 ? (
+                    <span className="text-[13px] text-[#8F95A3]">
+                      You can resend OTP in <span className="font-bold text-white tracking-widest">{formatTime(resendTimer)}</span>
+                    </span>
+                  ) : (
+                    <button 
+                      onClick={handleResendForgotOtp} 
+                      className="text-[13px] text-[#8F95A3] hover:text-white transition-colors cursor-pointer"
+                    >
+                      Didn't receive it? <span className="font-bold underline text-[#00E57A]">Resend OTP</span>
+                    </button>
+                  )}
+                </div>
               </motion.div>
             )}
 
