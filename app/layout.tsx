@@ -1,14 +1,14 @@
 import type { Metadata, Viewport } from 'next';
 import Navbar from '@/components/Navbar';
-import { AuthProvider } from '@/components/AuthContext'; // ✨ Context provider
+import { AuthProvider } from '@/components/AuthContext';
+import { LanguageProvider } from '@/components/LanguageContext'; // 🔥 Naya LanguageProvider import kiya
 import './globals.css';
 
-// 👇 YEH NAYA CODE ADD KIYA HAI MOBILE FIX KE LIYE 👇
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // Isse input click karne par zoom nahi hoga
+  userScalable: false,
 };
 
 export const metadata: Metadata = {
@@ -21,8 +21,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="bg-[#08080C] text-white font-sans">
         <AuthProvider>
-          <Navbar />
-          {children}
+          {/* 🔥 Yahan LanguageProvider se wrap kar diya, purana Auth aur Navbar bilkul safe hain */}
+          <LanguageProvider>
+            <Navbar />
+            {children}
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>

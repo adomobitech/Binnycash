@@ -1,0 +1,114 @@
+{
+  "Navbar": {
+    "selectRegion": "SELECCIONAR REGIÓN",
+    "login": "Iniciar Sesión",
+    "signup": "Registrarse",
+    "links": {
+      "earn": "Ganar",
+      "myOffers": "Mis Ofertas",
+      "affiliate": "Afiliados",
+      "leaderboard": "Clasificación",
+      "cashout": "Retirar",
+      "rewards": "Recompensas"
+    }
+  },
+  "Hero": {
+    "tagline": "El Centro Definitivo de Ganancias",
+    "title1": "Sube de Nivel Tu",
+    "title2": "Billetera Hoy.",
+    "subtitle": "Juega juegos de primer nivel, completa encuestas bien pagadas y retira tu efectivo al instante. Sin tarifas ocultas. Sin límites.",
+    "btnStart": "Empieza a Ganar Ahora",
+    "btnHow": "Cómo Funciona",
+    "stats": {
+      "users": "Guerreros Activos",
+      "live": "Misiones en Vivo",
+      "time": "Pagos Instantáneos",
+      "success": "Tasa de Éxito"
+    }
+  },
+  "Features": {
+    "tagline": "Sube de Nivel Tus Ganancias",
+    "title1": "Construido Para El",
+    "title2": "Esfuerzo",
+    "subtitle": "Completa encuestas bien pagadas y ofertas épicas. Para jugadores y emprendedores.",
+    "f1": { "title": "Gratis Para Jugar", "desc": "No requiere inversión" },
+    "f2": { "title": "Encuestas Premium", "desc": "Recibe pago por tu opinión" },
+    "f3": { "title": "Ofertas Épicas", "desc": "Juega juegos y prueba apps" },
+    "f4": { "title": "Retiros Instantáneos", "desc": "Retira tu botín rápido" },
+    "f5": { "title": "100% Seguro", "desc": "Plataforma segura y verificada" }
+  },
+  "Cashout": {
+    "supported": "Pagos Soportados",
+    "title": "Retiros Instantáneos",
+    "avgTime": "Tiempo Promedio < 60 Segundos",
+    "trusted": "Verificado y Confiable",
+    "trustedDesc": "Algoritmos de plataforma 100% seguros",
+    "latest": "ÚLTIMOS RETIROS",
+    "live": "Red en Vivo",
+    "scanning": "Escaneando Red",
+    "scanDesc": "No se detectaron retiros recientes. Esperando el próximo retiro...",
+    "encrypted": "Pagos Encriptados",
+    "encryptedDesc": "Seguridad API de grado bancario",
+    "automated": "Sistema Automatizado",
+    "automatedDesc": "Sin retenciones de procesamiento manual"
+  },
+  "LowerHero": {
+    "tagline": "Cómo Funciona",
+    "title1": "Gana En",
+    "title2": "4 Sencillos Pasos",
+    "subtitle": "Juega, completa y gana recompensas en efectivo en unos pocos clics",
+    "s1": { "title": "REGÍSTRATE GRATIS", "desc": "Crea tu cuenta gratis en segundos y empieza" },
+    "s2": { "title": "JUEGA Y COMPLETA", "desc": "Juega juegos, prueba apps, haz encuestas y más" },
+    "s3": { "title": "GANA PUNTOS", "desc": "Completa tareas y gana increíbles recompensas" },
+    "s4": { "title": "RETIRA EFECTIVO", "desc": "Retira tus ganancias al instante a tu billetera" },
+    "leaderboard": "LOS QUE MÁS GANAN HOY",
+    "live": "Actualizaciones en Vivo",
+    "noEarners": "Aún no hay usuarios registrados hoy. ¡Empieza a jugar para clasificar primero!",
+    "btnStart": "EMPIEZA A GANAR AHORA",
+    "f1": "100% Encriptado y Seguro",
+    "f2": "Retiros Instantáneos",
+    "f3": "Muros de Ofertas Verificados"
+  },
+  "Testimonials": {
+    "tagline": "COMENTARIOS INICIALES",
+    "title1": "VOCES DE LOS",
+    "title2": "JUGADORES",
+    "subtitle": "Comentarios reales de nuestro equipo inicial de 5 miembros."
+  },
+  "FAQ": {
+    "tagline": "CENTRO DE INTELIGENCIA",
+    "title1": "INFORME DE",
+    "title2": "MISIÓN",
+    "subtitle": "Todo lo que necesitas saber sobre BinnyCash",
+    "q1": "¿Cómo empiezo a ganar?",
+    "a1": "Regístrate, explora tareas, completa ofertas y encuestas, y gana increíbles recompensas.",
+    "q2": "¿Se requiere alguna inversión?",
+    "a2": "No, unirse a BinnyCash y empezar a ganar es 100% gratis.",
+    "q3": "¿Qué tan rápidos son los retiros?",
+    "a3": "Los retiros se procesan al instante. Recibirás tu dinero en minutos.",
+    "q4": "¿Por qué se rechazan algunas encuestas?",
+    "a4": "Las encuestas pueden ser rechazadas si no pasas los controles de atención o tus respuestas son inconsistentes.",
+    "b1": { "t": "100% Gratis", "d": "Sin cargos ocultos" },
+    "b2": { "t": "Seguro y Confiable", "d": "Tus datos están protegidos" },
+    "b3": { "t": "Plataforma Confiable", "d": "Amado por miles" },
+    "b4": { "t": "Pagos Instantáneos", "d": "Retira en minutos" },
+    "contact": "¿Aún tienes preguntas?",
+    "contactDesc": "Nuestro equipo de soporte siempre está aquí para ayudarte.",
+    "btnContact": "CONTACTAR SOPORTE"
+  },
+  "Footer": {
+    "title1": "¿Listo para empezar",
+    "title2": "a ganar?",
+    "subtitle": "Únete a BinnyCash hoy y obtén tu primer pago en minutos.",
+    "p1": "Registro Rápido",
+    "p2": "Completa Tareas",
+    "p3": "Recibe Pago",
+    "btnCreate": "CREAR CUENTA GRATIS",
+    "freeNote": "¡Es gratis y solo toma un minuto!",
+    "desc": "La principal plataforma para jugadores y emprendedores para ganar dinero real.",
+    "platform": "Plataforma",
+    "support": "Soporte",
+    "legal": "Legal",
+    "copyright": "Construido para emprendedores. Respaldado por ti."
+  }
+}

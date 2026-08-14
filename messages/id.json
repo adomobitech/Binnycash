@@ -1,0 +1,114 @@
+{
+  "Navbar": {
+    "selectRegion": "PILIH WILAYAH",
+    "login": "Masuk",
+    "signup": "Daftar",
+    "links": {
+      "earn": "Hasilkan",
+      "myOffers": "Penawaran Saya",
+      "affiliate": "Afiliasi",
+      "leaderboard": "Papan Peringkat",
+      "cashout": "Tarik Tunai",
+      "rewards": "Hadiah"
+    }
+  },
+  "Hero": {
+    "tagline": "Pusat Penghasilan Utama",
+    "title1": "Tingkatkan",
+    "title2": "Dompet Anda Hari Ini.",
+    "subtitle": "Mainkan game papan atas, selesaikan survei dengan bayaran tinggi, dan tarik uang tunai Anda secara instan. Tanpa biaya tersembunyi. Tanpa batas. Hanya keuntungan murni.",
+    "btnStart": "Mulai Menghasilkan Sekarang",
+    "btnHow": "Cara Kerjanya",
+    "stats": {
+      "users": "Pejuang Aktif",
+      "live": "Misi Langsung",
+      "time": "Pembayaran Instan",
+      "success": "Tingkat Keberhasilan"
+    }
+  },
+  "Features": {
+    "tagline": "Tingkatkan Penghasilan Anda",
+    "title1": "Dibangun Untuk",
+    "title2": "Perjuangan",
+    "subtitle": "Selesaikan survei berbayar tinggi & penawaran epik. Untuk para Gamer & Pejuang.",
+    "f1": { "title": "Gratis Dimainkan", "desc": "Tidak perlu investasi" },
+    "f2": { "title": "Survei Premium", "desc": "Dibayar untuk pendapat Anda" },
+    "f3": { "title": "Penawaran Epik", "desc": "Mainkan game & uji aplikasi" },
+    "f4": { "title": "Penarikan Instan", "desc": "Tarik jarahan Anda dengan cepat" },
+    "f5": { "title": "100% Aman", "desc": "Platform yang aman dan terverifikasi" }
+  },
+  "Cashout": {
+    "supported": "Pembayaran yang Didukung",
+    "title": "Penarikan Instan",
+    "avgTime": "Waktu Rata-rata < 60 Detik",
+    "trusted": "Terverifikasi & Terpercaya",
+    "trustedDesc": "Algoritma platform 100% aman",
+    "latest": "PENARIKAN TERBARU",
+    "live": "Jaringan Langsung",
+    "scanning": "Memindai Jaringan",
+    "scanDesc": "Tidak ada penarikan terbaru yang terdeteksi. Menunggu pencairan berikutnya...",
+    "encrypted": "Pembayaran Terenkripsi",
+    "encryptedDesc": "Keamanan API tingkat bank",
+    "automated": "Sistem Otomatis",
+    "automatedDesc": "Tidak ada penahanan pemrosesan manual"
+  },
+  "LowerHero": {
+    "tagline": "Cara Kerjanya",
+    "title1": "Hasilkan Dalam",
+    "title2": "4 Langkah Mudah",
+    "subtitle": "Mainkan, selesaikan & dapatkan hadiah uang tunai nyata hanya dengan beberapa klik",
+    "s1": { "title": "DAFTAR GRATIS", "desc": "Buat akun gratis Anda dalam hitungan detik" },
+    "s2": { "title": "MAIN & SELESAIKAN", "desc": "Mainkan game, coba aplikasi, ikuti survei" },
+    "s3": { "title": "DAPATKAN POIN", "desc": "Selesaikan tugas dan menangkan hadiah" },
+    "s4": { "title": "TARIK TUNAI", "desc": "Tarik penghasilan Anda ke dompet secara instan" },
+    "leaderboard": "PENGHASIL TERATAS HARI INI",
+    "live": "Pembaruan Langsung",
+    "noEarners": "Belum ada penghasilan yang tercatat untuk hari ini. Mulai bermain untuk menjadi yang pertama!",
+    "btnStart": "MULAI MENGHASILKAN SEKARANG",
+    "f1": "100% Terenkripsi & Aman",
+    "f2": "Penarikan Dompet Instan",
+    "f3": "Dinding Penawaran Terverifikasi"
+  },
+  "Testimonials": {
+    "tagline": "UMPAN BALIK AWAL",
+    "title1": "SUARA DARI",
+    "title2": "PEMAIN",
+    "subtitle": "Umpan balik nyata dari kelompok alfa tertutup 5 anggota awal kami."
+  },
+  "FAQ": {
+    "tagline": "PUSAT INTEL",
+    "title1": "PENGARAHAN",
+    "title2": "MISI",
+    "subtitle": "Semua yang perlu Anda ketahui tentang BinnyCash",
+    "q1": "Bagaimana cara mulai menghasilkan?",
+    "a1": "Daftar, jelajahi tugas, selesaikan penawaran dan survei, dan dapatkan hadiah.",
+    "q2": "Apakah diperlukan investasi?",
+    "a2": "Tidak, BinnyCash 100% gratis untuk bergabung.",
+    "q3": "Seberapa cepat penarikannya?",
+    "a3": "Penarikan diproses secara instan. Anda akan menerima uang dalam beberapa menit.",
+    "q4": "Mengapa beberapa survei ditolak?",
+    "a4": "Survei dapat ditolak jika Anda gagal dalam pemeriksaan perhatian.",
+    "b1": { "t": "100% Gratis", "d": "Tanpa biaya tersembunyi" },
+    "b2": { "t": "Aman & Terlindungi", "d": "Data Anda terlindungi" },
+    "b3": { "t": "Terpercaya", "d": "Disukai oleh ribuan orang" },
+    "b4": { "t": "Pembayaran Instan", "d": "Tarik dalam beberapa menit" },
+    "contact": "Masih memiliki pertanyaan?",
+    "contactDesc": "Tim dukungan kami selalu siap membantu Anda.",
+    "btnContact": "HUBUNGI DUKUNGAN"
+  },
+  "Footer": {
+    "title1": "Siap untuk mulai",
+    "title2": "berjuang?",
+    "subtitle": "Bergabunglah dengan BinnyCash hari ini dan dapatkan pembayaran pertama Anda dalam beberapa menit.",
+    "p1": "Pendaftaran Cepat",
+    "p2": "Selesaikan Tugas",
+    "p3": "Dapatkan Bayaran",
+    "btnCreate": "BUAT AKUN GRATIS",
+    "freeNote": "Ini gratis & hanya membutuhkan satu menit!",
+    "desc": "Platform utama bagi para gamer dan pejuang untuk mendapatkan uang tunai nyata.",
+    "platform": "Platform",
+    "support": "Dukungan",
+    "legal": "Hukum",
+    "copyright": "Dibangun untuk para pejuang. Didukung oleh Anda."
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "Navbar": {
+    "selectRegion": "SÉLECTIONNER LA RÉGION",
+    "login": "Connexion",
+    "signup": "S'inscrire",
+    "links": {
+      "earn": "Gagner",
+      "myOffers": "Mes Offres",
+      "affiliate": "Affiliation",
+      "leaderboard": "Classement",
+      "cashout": "Retrait",
+      "rewards": "Récompenses"
+    }
+  },
+  "Hero": {
+    "tagline": "Le Hub de Gains Ultime",
+    "title1": "Améliorez Votre",
+    "title2": "Portefeuille Aujourd'hui.",
+    "subtitle": "Jouez à des jeux de premier plan, répondez à des sondages rémunérateurs et retirez votre argent instantanément. Pas de frais cachés. Pas de limites. Que du profit.",
+    "btnStart": "Commencer à Gagner",
+    "btnHow": "Comment Ça Marche",
+    "stats": {
+      "users": "Guerriers Actifs",
+      "live": "Missions en Direct",
+      "time": "Paiements Instantanés",
+      "success": "Taux de Réussite"
+    }
+  },
+  "Features": {
+    "tagline": "Augmentez Vos Gains",
+    "title1": "Conçu Pour",
+    "title2": "La Gagne",
+    "subtitle": "Complétez des sondages rémunérateurs et des offres épiques. Pour les joueurs et les fonceurs.",
+    "f1": { "title": "Gratuit à Jouer", "desc": "Aucun investissement" },
+    "f2": { "title": "Sondages Premium", "desc": "Soyez payé pour vos avis" },
+    "f3": { "title": "Offres Épiques", "desc": "Jouez et testez des applications" },
+    "f4": { "title": "Retraits Rapides", "desc": "Retirez votre butin rapidement" },
+    "f5": { "title": "100% Sécurisé", "desc": "Plateforme vérifiée et sûre" }
+  },
+  "Cashout": {
+    "supported": "Paiements Pris en Charge",
+    "title": "Retraits Instantanés",
+    "avgTime": "Temps Moyen < 60 Secondes",
+    "trusted": "Vérifié et de Confiance",
+    "trustedDesc": "Algorithmes 100% sécurisés",
+    "latest": "DERNIERS RETRAITS",
+    "live": "Réseau en Direct",
+    "scanning": "Analyse du Réseau",
+    "scanDesc": "Aucun retrait récent détecté. En attente du prochain retrait...",
+    "encrypted": "Paiements Cryptés",
+    "encryptedDesc": "Sécurité API de niveau bancaire",
+    "automated": "Système Automatisé",
+    "automatedDesc": "Aucun blocage de traitement manuel"
+  },
+  "LowerHero": {
+    "tagline": "Comment Ça Marche",
+    "title1": "Gagnez En",
+    "title2": "4 Étapes Simples",
+    "subtitle": "Jouez, complétez et gagnez de l'argent réel en quelques clics",
+    "s1": { "title": "INSCRIPTION GRATUITE", "desc": "Créez votre compte gratuit en quelques secondes" },
+    "s2": { "title": "JOUEZ ET COMPLÉTEZ", "desc": "Jouez à des jeux, testez des apps, répondez aux sondages" },
+    "s3": { "title": "GAGNEZ DES POINTS", "desc": "Accomplissez des tâches et gagnez des récompenses" },
+    "s4": { "title": "RETIREZ L'ARGENT", "desc": "Retirez instantanément vers votre portefeuille" },
+    "leaderboard": "MEILLEURS GAGNANTS DU JOUR",
+    "live": "Mises à jour en direct",
+    "noEarners": "Aucun gagnant enregistré pour aujourd'hui. Jouez pour être le premier !",
+    "btnStart": "COMMENCEZ À GAGNER",
+    "f1": "100% Crypté et Sécurisé",
+    "f2": "Retraits Instantanés",
+    "f3": "Murs d'Offres Vérifiés"
+  },
+  "Testimonials": {
+    "tagline": "PREMIERS RETOURS",
+    "title1": "LA VOIX DES",
+    "title2": "JOUEURS",
+    "subtitle": "De vrais retours de notre équipe initiale de 5 membres."
+  },
+  "FAQ": {
+    "tagline": "CENTRE DE RENSEIGNEMENTS",
+    "title1": "BRIEFING DE",
+    "title2": "MISSION",
+    "subtitle": "Tout ce que vous devez savoir sur BinnyCash",
+    "q1": "Comment commencer à gagner ?",
+    "a1": "Inscrivez-vous, explorez les tâches, complétez les offres et gagnez des récompenses.",
+    "q2": "Y a-t-il un investissement requis ?",
+    "a2": "Non, BinnyCash est 100% gratuit à rejoindre.",
+    "q3": "À quelle vitesse sont les retraits ?",
+    "a3": "Les retraits sont traités instantanément. Vous recevrez votre argent en quelques minutes.",
+    "q4": "Pourquoi certains sondages sont-ils rejetés ?",
+    "a4": "Les sondages peuvent être rejetés si vous échouez aux contrôles d'attention.",
+    "b1": { "t": "100% Gratuit", "d": "Pas de frais cachés" },
+    "b2": { "t": "Sûr et Sécurisé", "d": "Vos données sont protégées" },
+    "b3": { "t": "Plateforme Fiable", "d": "Aimé par des milliers" },
+    "b4": { "t": "Paiements Rapides", "d": "Retrait en quelques minutes" },
+    "contact": "Vous avez encore des questions ?",
+    "contactDesc": "Notre équipe d'assistance est toujours là pour vous aider.",
+    "btnContact": "CONTACTER LE SUPPORT"
+  },
+  "Footer": {
+    "title1": "Prêt à commencer",
+    "title2": "à gagner ?",
+    "subtitle": "Rejoignez BinnyCash aujourd'hui et obtenez votre premier paiement en quelques minutes.",
+    "p1": "Inscription Rapide",
+    "p2": "Tâches Simples",
+    "p3": "Soyez Payé",
+    "btnCreate": "CRÉER UN COMPTE GRATUIT",
+    "freeNote": "C'est gratuit et ça prend une minute !",
+    "desc": "La meilleure plateforme pour les joueurs pour gagner de l'argent réel en complétant des offres et des sondages.",
+    "platform": "Plateforme",
+    "support": "Support",
+    "legal": "Légal",
+    "copyright": "Conçu pour les fonceurs. Soutenu par vous."
+  }
+}

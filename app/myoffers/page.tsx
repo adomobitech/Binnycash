@@ -3,20 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Gamepad2, X, AlertCircle, Info, QrCode } from 'lucide-react';
+import { Play, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Gamepad2, X, AlertCircle, Info, Sparkles, Smartphone, Laptop } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
 // --- DEVICE ICONS ---
-const AndroidIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] fill-current"><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
+const AndroidIcon = ({ className = "w-[16px] h-[16px]" }) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-current`}><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
 );
 
-const AppleIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] fill-current"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
+const AppleIcon = ({ className = "w-[16px] h-[16px]" }) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-current`}><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
 );
 
-const WindowsIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] fill-current"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
+const WindowsIcon = ({ className = "w-[16px] h-[16px]" }) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-current`}><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
 );
 
 // --- UTILITY FUNCTIONS ---
@@ -52,6 +52,16 @@ function resolveTargetPlatformsString(data: any): string {
   return parts.join(' ').toLowerCase();
 }
 
+function getCurrentDevice(): 'android' | 'ios' | 'windows' | 'mac' | 'unknown' {
+  if (typeof navigator === 'undefined') return 'unknown';
+  const ua = navigator.userAgent.toLowerCase();
+  if (/android/.test(ua)) return 'android';
+  if (/iphone|ipad|ipod/.test(ua)) return 'ios';
+  if (/mac/.test(ua)) return 'mac';
+  if (/windows/.test(ua)) return 'windows';
+  return 'unknown';
+}
+
 export default function MyOffersPage() {
   const router = useRouter();
   const currency = useCurrency();
@@ -74,10 +84,11 @@ export default function MyOffersPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [generatedQrUrl, setGeneratedQrUrl] = useState<string | null>(null);
   
-  // SCAN DEVICE TOGGLE STATE
-  const [scanDevice, setScanDevice] = useState<'android' | 'ios' | 'windows' | 'all'>('all');
+  // QR & UI State
+  const [generatedQrUrl, setGeneratedQrUrl] = useState<string | null>(null);
+  const [requiredDeviceForQR, setRequiredDeviceForQR] = useState<'ios' | 'android' | null>(null);
+  const [userCurrentDevice, setUserCurrentDevice] = useState<'android' | 'ios' | 'windows' | 'mac' | 'unknown'>('unknown');
 
   // Authentication check
   useEffect(() => {
@@ -85,6 +96,7 @@ export default function MyOffersPage() {
     if (!token) {
       router.push('/');
     }
+    setUserCurrentDevice(getCurrentDevice());
   }, [router]);
 
   // Fetch Pending Offers
@@ -157,14 +169,8 @@ export default function MyOffersPage() {
     setIsModalOpen(true);
     setApiError(null);
     setGeneratedQrUrl(null); 
+    setRequiredDeviceForQR(null);
     setIsVerifying(true);
-
-    // Set initial scan device based on available platforms
-    const devices = getDeviceIcons(offer);
-    if (devices.isAndroid) setScanDevice('android');
-    else if (devices.isIos) setScanDevice('ios');
-    else if (devices.isWindows) setScanDevice('windows');
-    else setScanDevice('all');
 
     const token = localStorage.getItem('token');
     const offerId = offer.offerId || offer._id;
@@ -186,7 +192,7 @@ export default function MyOffersPage() {
     }
   };
 
-  // Launch Click
+  // 🔥 UPDATED LAUNCH CLICK LOGIC (Smart Device Mismatch Logic) 🔥
   const handleLaunchOffer = async () => {
     if (!selectedOffer) return;
     setIsLaunching(true);
@@ -227,13 +233,42 @@ export default function MyOffersPage() {
         finalRedirectUrl = selectedOffer.image_url || 'https://binnycash.com'; 
       }
 
-      // Mobile redirect logic
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      // Check current user's device & offer requirements
+      const devices = getDeviceIcons(selectedOffer);
+      const isUniversalOffer = !devices.isAndroid && !devices.isIos && !devices.isWindows;
       
-      if (isMobile) {
-         window.location.href = finalRedirectUrl;
-      } else {
+      let isMismatch = false;
+      let targetForQR: 'ios' | 'android' | null = null;
+
+      // Logic to trigger QR code if Devices don't match
+      if (!isUniversalOffer) {
+         if (devices.isIos && !devices.isAndroid && userCurrentDevice !== 'ios') {
+            isMismatch = true;
+            targetForQR = 'ios';
+         } else if (devices.isAndroid && !devices.isIos && userCurrentDevice !== 'android') {
+            isMismatch = true;
+            targetForQR = 'android';
+         }
+      }
+
+      // If user is on Windows/Mac and it's a mobile specific offer
+      if ((devices.isIos || devices.isAndroid) && (userCurrentDevice === 'windows' || userCurrentDevice === 'mac')) {
+          isMismatch = true;
+          targetForQR = devices.isIos ? 'ios' : 'android';
+      }
+
+      if (isMismatch && targetForQR) {
+         // Show Premium QR Modal because of mismatch
          setGeneratedQrUrl(finalRedirectUrl);
+         setRequiredDeviceForQR(targetForQR);
+      } else {
+         // Direct Redirect logic for correct devices
+         if (userCurrentDevice === 'android' || userCurrentDevice === 'ios') {
+            window.location.href = finalRedirectUrl; // Seamless mobile redirect
+         } else {
+            window.open(finalRedirectUrl, '_blank'); // Open in new tab on PC
+            setIsModalOpen(false); 
+         }
       }
       
     } catch (err) {
@@ -250,7 +285,7 @@ export default function MyOffersPage() {
         <button 
           disabled={current === 1}
           onClick={() => onPageChange(current - 1)}
-          className="w-10 h-10 rounded-xl bg-[#1A1C24] border border-white/5 flex items-center justify-center text-white disabled:opacity-30 hover:bg-white/10 transition-all"
+          className="w-10 h-10 rounded-xl bg-[#1A1C24] border border-white/5 flex items-center justify-center text-white disabled:opacity-30 hover:bg-white/10 transition-all cursor-pointer"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -260,7 +295,7 @@ export default function MyOffersPage() {
         <button 
           disabled={current === total}
           onClick={() => onPageChange(current + 1)}
-          className="w-10 h-10 rounded-xl bg-[#1A1C24] border border-white/5 flex items-center justify-center text-white disabled:opacity-30 hover:bg-white/10 transition-all"
+          className="w-10 h-10 rounded-xl bg-[#1A1C24] border border-white/5 flex items-center justify-center text-white disabled:opacity-30 hover:bg-white/10 transition-all cursor-pointer"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
@@ -283,13 +318,13 @@ export default function MyOffersPage() {
           <div className="flex items-center bg-[#111319] p-1.5 rounded-2xl border border-white/5">
             <button 
               onClick={() => setActiveTab('pending')}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${activeTab === 'pending' ? 'bg-[#8B5CF6] text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${activeTab === 'pending' ? 'bg-[#8B5CF6] text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
             >
               Pending Offers
             </button>
             <button 
               onClick={() => setActiveTab('completed')}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${activeTab === 'completed' ? 'bg-[#00E57A] text-[#05070A] shadow-[0_0_15px_rgba(0,229,122,0.4)]' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${activeTab === 'completed' ? 'bg-[#00E57A] text-[#05070A] shadow-[0_0_15px_rgba(0,229,122,0.4)]' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
             >
               Completed
             </button>
@@ -387,7 +422,7 @@ export default function MyOffersPage() {
         )}
       </main>
 
-      {/* 🔥 MODAL WITH CONDITIONAL QR LOGIC 🔥 */}
+      {/* 🔥 MAIN MODAL (CONDITIONAL RENDER FOR INFO VS PREMIUM QR) 🔥 */}
       <AnimatePresence>
         {isModalOpen && selectedOffer && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -396,45 +431,45 @@ export default function MyOffersPage() {
               onClick={() => setIsModalOpen(false)}
               className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
             />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-[#0E1015] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl z-10 flex flex-col"
-            >
-              {/* Close Button */}
-              <div className="absolute top-4 right-4 z-20">
-                <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white hover:bg-black/60 transition-colors cursor-pointer">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
-              {/* Banner Image */}
-              <div className="w-full h-40 relative">
-                <img src={selectedOffer.image_url || selectedOffer.offerImage} alt={selectedOffer.offerName} className="w-full h-full object-cover opacity-50" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0E1015] to-transparent"></div>
-              </div>
-
-              <div className="px-6 pb-8 -mt-12 relative z-10 flex flex-col items-center text-center">
-                {/* App Icon */}
-                <div className="w-20 h-20 rounded-2xl bg-[#1A1D24] border-4 border-[#0E1015] overflow-hidden shadow-xl mb-3 shrink-0">
-                  <img src={selectedOffer.image_url || selectedOffer.offerImage} alt={selectedOffer.offerName} className="w-full h-full object-cover" />
-                </div>
-                
-                {/* Titles */}
-                <h2 className="text-xl font-black text-white mb-2">{selectedOffer.offerName}</h2>
-                
-                <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
-                  <span className="text-[#8F95A3] font-bold text-xs uppercase tracking-widest">{selectedOffer.network || 'Task'}</span>
-                  <span className="w-1 h-1 rounded-full bg-white/20"></span>
-                  <span className="text-[#A66CFF] font-black text-sm drop-shadow-sm">{formatPrice(Number(selectedOffer.userCredits || 0), currency)}</span>
+            {!generatedQrUrl ? (
+              // --- STATE 1: REGULAR OFFER INFO ---
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="relative w-full max-w-md bg-[#0E1015] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl z-10 flex flex-col"
+              >
+                {/* Close Button */}
+                <div className="absolute top-4 right-4 z-20">
+                  <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white hover:bg-black/60 transition-colors cursor-pointer">
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
 
-                {/* 🔥 DYNAMIC CONTENT (DESCRIPTION vs QR) 🔥 */}
-                {!generatedQrUrl ? (
+                {/* Banner Image */}
+                <div className="w-full h-40 relative">
+                  <img src={selectedOffer.image_url || selectedOffer.offerImage} alt={selectedOffer.offerName} className="w-full h-full object-cover opacity-50" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0E1015] to-transparent"></div>
+                </div>
+
+                <div className="px-6 pb-8 -mt-12 relative z-10 flex flex-col items-center text-center">
+                  {/* App Icon */}
+                  <div className="w-20 h-20 rounded-2xl bg-[#1A1D24] border-4 border-[#0E1015] overflow-hidden shadow-xl mb-3 shrink-0">
+                    <img src={selectedOffer.image_url || selectedOffer.offerImage} alt={selectedOffer.offerName} className="w-full h-full object-cover" />
+                  </div>
+                  
+                  {/* Titles */}
+                  <h2 className="text-xl font-black text-white mb-2">{selectedOffer.offerName}</h2>
+                  
+                  <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+                    <span className="text-[#8F95A3] font-bold text-xs uppercase tracking-widest">{selectedOffer.network || 'Task'}</span>
+                    <span className="w-1 h-1 rounded-full bg-white/20"></span>
+                    <span className="text-[#A66CFF] font-black text-sm drop-shadow-sm">{formatPrice(Number(selectedOffer.userCredits || 0), currency)}</span>
+                  </div>
+
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full flex flex-col items-center">
-                    
                     {/* Device & Category Info */}
                     <div className="flex items-center gap-2 mb-5">
-                       <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg">
+                       <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg text-white">
                          {getDeviceIcons(selectedOffer).isAndroid && <AndroidIcon />}
                          {getDeviceIcons(selectedOffer).isIos && <AppleIcon />}
                          {getDeviceIcons(selectedOffer).isWindows && <WindowsIcon />}
@@ -471,68 +506,72 @@ export default function MyOffersPage() {
                       {isVerifying ? (
                         <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</>
                       ) : isLaunching ? (
-                        <><Loader2 className="w-5 h-5 animate-spin" /> Generating Link...</>
+                        <><Loader2 className="w-5 h-5 animate-spin" /> Opening...</>
                       ) : (
                         <><Play className="w-5 h-5 fill-white" /> Continue Mission</>
                       )}
                     </button>
                   </motion.div>
-                ) : (
-                  
-                  // 🔥 QR CODE VIEW WITH DEVICE SELECTOR 🔥
-                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full flex flex-col items-center">
-                    
-                    {/* Device Toggle Menu */}
-                    <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 mb-4">
-                      {getDeviceIcons(selectedOffer).isAndroid && (
-                        <button 
-                          onClick={() => setScanDevice('android')} 
-                          className={`px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-all cursor-pointer ${scanDevice === 'android' ? 'bg-[#A4C639]/20 text-[#A4C639] shadow-sm' : 'text-[#8F95A3] hover:text-white'}`}
-                        >
-                          <AndroidIcon /> Android
-                        </button>
-                      )}
-                      {getDeviceIcons(selectedOffer).isIos && (
-                        <button 
-                          onClick={() => setScanDevice('ios')} 
-                          className={`px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-all cursor-pointer ${scanDevice === 'ios' ? 'bg-white/20 text-white shadow-sm' : 'text-[#8F95A3] hover:text-white'}`}
-                        >
-                          <AppleIcon /> iOS
-                        </button>
-                      )}
-                      {(!getDeviceIcons(selectedOffer).isAndroid && !getDeviceIcons(selectedOffer).isIos) && (
-                        <button className="px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold bg-white/10 text-white cursor-default">
-                          All Devices
-                        </button>
-                      )}
+                </div>
+              </motion.div>
+            ) : (
+              
+              // --- STATE 2: PREMIUM GLOWING QR VIEW (From your screenshot) ---
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                className="relative w-full max-w-sm bg-[#0B0D14] border border-white/5 rounded-[32px] p-8 flex flex-col items-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-10"
+              >
+                <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors cursor-pointer">
+                  <X className="w-4 h-4" />
+                </button>
+
+                {/* Floating Top Device Icon */}
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-[#1A1D24] border-2 border-[#A66CFF]/30 flex items-center justify-center shadow-[0_0_20px_rgba(166,108,255,0.4)] text-white">
+                  {requiredDeviceForQR === 'ios' ? <AppleIcon className="w-5 h-5" /> : <AndroidIcon className="w-5 h-5" />}
+                </div>
+
+                <h3 className="text-2xl font-black text-white mt-4 mb-2">
+                  Open on {requiredDeviceForQR === 'ios' ? 'iOS' : 'Android'}
+                </h3>
+                
+                <div className="flex items-center gap-2 mb-8 px-4 text-center">
+                  <Sparkles className="w-4 h-4 text-[#A66CFF] shrink-0" />
+                  <p className="text-[#8F95A3] text-sm">
+                    Scan this QR code on a supported {requiredDeviceForQR === 'ios' ? 'iOS' : 'Android'} device to start the offer.
+                  </p>
+                  <Sparkles className="w-4 h-4 text-[#A66CFF] shrink-0" />
+                </div>
+
+                {/* Glowing QR Box */}
+                <div className="relative p-1 rounded-[28px] bg-gradient-to-br from-[#A66CFF] to-[#3B82F6] shadow-[0_0_40px_rgba(166,108,255,0.3)] mb-8">
+                  <div className="bg-white p-3 rounded-[24px]">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(generatedQrUrl)}`}
+                      alt="Scan QR"
+                      className="w-48 h-48 object-contain"
+                    />
+                  </div>
+                </div>
+
+                {/* Current Device Box */}
+                <div className="w-full bg-[#15171E] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-[#8F95A3]">
+                       {userCurrentDevice === 'windows' || userCurrentDevice === 'mac' ? <Laptop className="w-5 h-5" /> : <Smartphone className="w-5 h-5" />}
                     </div>
-
-                    <div className="w-48 h-48 bg-white p-2.5 rounded-2xl shadow-[0_0_30px_rgba(139,92,246,0.2)] mb-4 border border-white/20">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(generatedQrUrl)}`}
-                        alt="Scan QR"
-                        className="w-full h-full object-contain"
-                      />
+                    <div className="flex flex-col text-left">
+                      <span className="text-[10px] font-bold text-[#8F95A3] uppercase tracking-wider">Current Device</span>
+                      <span className="text-white font-bold text-sm capitalize">{userCurrentDevice}</span>
                     </div>
-                    
-                    <h3 className="text-white font-bold text-lg mb-1 flex items-center gap-2">
-                      <QrCode className="w-5 h-5 text-[#00E57A]" /> Scan to Play
-                    </h3>
-                    <p className="text-[#8F95A3] text-xs text-center mb-6 px-2 leading-relaxed">
-                      Point your {scanDevice === 'android' ? 'Android' : scanDevice === 'ios' ? 'iPhone/iPad' : 'phone\'s'} camera at this QR code to continue the mission.
-                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-[#00E57A]">
+                    {userCurrentDevice === 'windows' ? <WindowsIcon className="w-4 h-4" /> : userCurrentDevice === 'mac' ? <AppleIcon className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+                  </div>
+                </div>
 
-                    <button
-                      onClick={() => window.open(generatedQrUrl, '_blank')}
-                      className="w-full py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer"
-                    >
-                      Open Link Directly
-                    </button>
-                  </motion.div>
-                )}
+              </motion.div>
+            )}
 
-              </div>
-            </motion.div>
           </div>
         )}
       </AnimatePresence>

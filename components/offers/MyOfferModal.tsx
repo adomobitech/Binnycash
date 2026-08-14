@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, AlertCircle, CheckCircle2, RotateCcw, Smartphone, ShieldCheck, Sparkles } from 'lucide-react';
-// Hook imported securely
 import { useCurrency, formatPrice } from '@/hooks/useCurrency'; 
 
 const AndroidIcon = () => (
@@ -25,9 +24,7 @@ const WindowsIcon = () => (
 );
 
 function getUserId(): string {
-  // 🔥 HOOK REMOVED FROM HERE TO PREVENT CRASH
   if (typeof window === 'undefined') return '';
-
   const isNumeric = (v: any) => v !== null && v !== undefined && /^\d+$/.test(String(v));
 
   try {
@@ -66,7 +63,6 @@ function getUserId(): string {
 }
 
 export default function MyOfferModal({ isOpen, onClose, offer }: any) {
-  // 🔥 HOOK PLACED SAFELY INSIDE THE COMPONENT
   const currency = useCurrency(); 
 
   const [details, setDetails] = useState<any>(null);
@@ -154,6 +150,7 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
     let showQR = false;
     let generateQRFor = 'Mobile Device';
 
+    // 🔥 CHANGED: Mobile will now show QR instead of giving error!
     if (isDesktop && isStrictlyMobileOffer) {
       showQR = true;
       if (isOfferAndroid && !isOfferIos) generateQRFor = 'Android';
@@ -161,19 +158,16 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
       else generateQRFor = 'Android or iOS';
     } 
     else if (isMobile && isStrictlyDesktopOffer) {
-      setApiError(`This offer is exclusively for ${isOfferWindows && !isOfferMac ? 'Windows' : isOfferMac && !isOfferWindows ? 'Mac' : 'Desktop'} PCs. Please complete this on your computer.`);
-      setIsProcessingClick(false);
-      return; 
+      showQR = true;
+      generateQRFor = isOfferWindows ? 'Windows' : 'Desktop PC';
     }
     else if (isAndroid && isOfferIos && !isOfferAndroid && !isUniversal) {
-      setApiError('This offer is exclusively for iOS devices. Please open it on an iPhone/iPad.');
-      setIsProcessingClick(false);
-      return;
+      showQR = true;
+      generateQRFor = 'iOS';
     }
     else if (isIOS && isOfferAndroid && !isOfferIos && !isUniversal) {
-      setApiError('This offer is exclusively for Android devices. Please open it on an Android device.');
-      setIsProcessingClick(false);
-      return;
+      showQR = true;
+      generateQRFor = 'Android';
     }
 
     const targetId = offer.id ?? offer.offerId ?? offer._id;
@@ -209,11 +203,16 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
       const responseText = await res.text();
       let finalRedirectUrl = '';
       let errorMessage = '';
+      let isDeviceError = false;
 
       try {
         const jsonRes = JSON.parse(responseText);
         if (jsonRes.type === 'error' || jsonRes.status === 'error' || jsonRes.code !== 200) {
           errorMessage = jsonRes.message || 'Device not supported or offer unavailable.';
+          const msgLower = errorMessage.toLowerCase();
+          if (msgLower.includes('device') || msgLower.includes('support') || msgLower.includes('platform') || msgLower.includes('os') || msgLower.includes('not allow')) {
+              isDeviceError = true;
+          }
         }
         finalRedirectUrl = jsonRes?.url || jsonRes?.link || jsonRes?.click_url || jsonRes?.data?.url || jsonRes?.data?.link || jsonRes?.data?.click_url || '';
       } catch (e) {
@@ -227,7 +226,15 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
 
       if (errorMessage && !finalRedirectUrl) {
         if (newTab) newTab.close();
-        setApiError(errorMessage);
+        
+        if (isDeviceError || isDesktop || isMobile) {
+          const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
+          setTargetDeviceName(generateQRFor || 'Mobile Device');
+          setQrCodeUrl(trackingUrl);
+        } else {
+          setApiError(errorMessage);
+        }
+        
         setIsProcessingClick(false);
         return;
       }

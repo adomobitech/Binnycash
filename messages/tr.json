@@ -1,0 +1,114 @@
+{
+  "Navbar": {
+    "selectRegion": "BÖLGE SEÇ",
+    "login": "Giriş Yap",
+    "signup": "Kayıt Ol",
+    "links": {
+      "earn": "Kazan",
+      "myOffers": "Tekliflerim",
+      "affiliate": "Ortaklık",
+      "leaderboard": "Liderlik Tablosu",
+      "cashout": "Para Çek",
+      "rewards": "Ödüller"
+    }
+  },
+  "Hero": {
+    "tagline": "En İyi Kazanç Merkezi",
+    "title1": "Cüzdanınızı",
+    "title2": "Bugün Seviye Atlatın.",
+    "subtitle": "En iyi oyunları oynayın, yüksek ücretli anketleri tamamlayın ve paranızı anında çekin. Gizli ücret yok. Sınır yok. Sadece saf kâr.",
+    "btnStart": "Kazanmaya Şimdi Başla",
+    "btnHow": "Nasıl Çalışır",
+    "stats": {
+      "users": "Aktif Savaşçılar",
+      "live": "Canlı Görevler",
+      "time": "Anında Ödemeler",
+      "success": "Başarı Oranı"
+    }
+  },
+  "Features": {
+    "tagline": "Kazançlarınızı Artırın",
+    "title1": "Kazanmak İçin",
+    "title2": "Tasarlandı",
+    "subtitle": "Yüksek kazançlı anketleri ve epik teklifleri tamamlayın. Oyuncular ve girişimciler için.",
+    "f1": { "title": "Oynaması Ücretsiz", "desc": "Yatırım gerektirmez" },
+    "f2": { "title": "Premium Anketler", "desc": "Fikirleriniz için ödeme alın" },
+    "f3": { "title": "Epik Teklifler", "desc": "Oyun oynayın ve uygulamaları test edin" },
+    "f4": { "title": "Anında Çekim", "desc": "Ganimetinizi hızlıca çekin" },
+    "f5": { "title": "%100 Güvenli", "desc": "Güvenli ve doğrulanmış platform" }
+  },
+  "Cashout": {
+    "supported": "Desteklenen Ödemeler",
+    "title": "Anında Para Çekme",
+    "avgTime": "Ortalama Süre < 60 Saniye",
+    "trusted": "Doğrulanmış ve Güvenilir",
+    "trustedDesc": "%100 güvenli platform algoritmaları",
+    "latest": "SON ÇEKİMLER",
+    "live": "Canlı Ağ",
+    "scanning": "Ağ Taranıyor",
+    "scanDesc": "Canlı havuzda yeni çekim tespit edilmedi. Sonraki ödeme bekleniyor...",
+    "encrypted": "Şifrelenmiş Ödemeler",
+    "encryptedDesc": "Banka düzeyinde API güvenliği",
+    "automated": "Otomatik Sistem",
+    "automatedDesc": "Manuel işlem bekletmesi yok"
+  },
+  "LowerHero": {
+    "tagline": "Nasıl Çalışır",
+    "title1": "4 Basit Adımda",
+    "title2": "Kazan",
+    "subtitle": "Sadece birkaç tıklamayla oynayın, tamamlayın ve gerçek nakit kazanın",
+    "s1": { "title": "ÜCRETSİZ KAYIT OL", "desc": "Saniyeler içinde ücretsiz hesabınızı oluşturun" },
+    "s2": { "title": "OYNA VE TAMAMLA", "desc": "Oyun oynayın, uygulama deneyin, anket çözün" },
+    "s3": { "title": "PUAN KAZAN", "desc": "Görevleri tamamlayın ve ödüller kazanın" },
+    "s4": { "title": "NAKİT ÇEK", "desc": "Kazançlarınızı anında cüzdanınıza çekin" },
+    "leaderboard": "BUGÜNÜN EN ÇOK KAZANANLARI",
+    "live": "Canlı Güncellemeler",
+    "noEarners": "Bugün henüz kazanan kaydedilmedi. Birinci olmak için oynamaya başlayın!",
+    "btnStart": "KAZANMAYA ŞİMDİ BAŞLA",
+    "f1": "%100 Şifreli ve Güvenli",
+    "f2": "Anında Cüzdan Çekimi",
+    "f3": "Doğrulanmış Teklif Duvarları"
+  },
+  "Testimonials": {
+    "tagline": "İLK GERİ BİLDİRİMLER",
+    "title1": "OYUNCULARIN",
+    "title2": "SESİ",
+    "subtitle": "İlk 5 kişilik alfa grubumuzdan gerçek geri bildirimler."
+  },
+  "FAQ": {
+    "tagline": "BİLGİ MERKEZİ",
+    "title1": "GÖREV",
+    "title2": "BİLGİLENDİRMESİ",
+    "subtitle": "BinnyCash hakkında bilmeniz gereken her şey",
+    "q1": "Nasıl kazanmaya başlayabilirim?",
+    "a1": "Kayıt olun, görevleri keşfedin, teklifleri tamamlayın ve heyecan verici ödüller kazanın.",
+    "q2": "Herhangi bir yatırım gerekiyor mu?",
+    "a2": "Hayır, BinnyCash'e katılmak tamamen ücretsizdir.",
+    "q3": "Para çekme işlemleri ne kadar hızlı?",
+    "a3": "Çekimler anında işlenir. Paranızı dakikalar içinde alırsınız.",
+    "q4": "Bazı anketler neden reddediliyor?",
+    "a4": "Dikkat kontrollerinde başarısız olursanız anketler reddedilebilir.",
+    "b1": { "t": "%100 Ücretsiz", "d": "Gizli ücret yok" },
+    "b2": { "t": "Güvenli ve Emniyetli", "d": "Verileriniz korunmaktadır" },
+    "b3": { "t": "Güvenilir Platform", "d": "Binlerce kişi tarafından seviliyor" },
+    "b4": { "t": "Anında Ödeme", "d": "Dakikalar içinde para çekme" },
+    "contact": "Hâlâ sorularınız mı var?",
+    "contactDesc": "Destek ekibimiz size yardım etmek için her zaman burada.",
+    "btnContact": "DESTEK İLE İLETİŞİME GEÇ"
+  },
+  "Footer": {
+    "title1": "Kazanmaya başlamak için",
+    "title2": "hazır mısınız?",
+    "subtitle": "Bugün BinnyCash'e katılın ve ilk ödemenizi dakikalar içinde alın.",
+    "p1": "Hızlı Kayıt",
+    "p2": "Görevleri Tamamla",
+    "p3": "Ödeme Al",
+    "btnCreate": "ÜCRETSİZ HESAP OLUŞTUR",
+    "freeNote": "Ücretsizdir ve sadece bir dakika sürer!",
+    "desc": "Oyuncuların ve girişimcilerin teklifleri tamamlayarak gerçek para kazanmaları için birinci sınıf platform.",
+    "platform": "Platform",
+    "support": "Destek",
+    "legal": "Yasal",
+    "copyright": "Girişimciler için tasarlandı. Sizin tarafınızdan destekleniyor."
+  }
+}

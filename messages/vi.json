@@ -1,0 +1,114 @@
+{
+  "Navbar": {
+    "selectRegion": "CHỌN KHU VỰC",
+    "login": "Đăng nhập",
+    "signup": "Đăng ký",
+    "links": {
+      "earn": "Kiếm tiền",
+      "myOffers": "Ưu đãi của tôi",
+      "affiliate": "Đối tác",
+      "leaderboard": "Bảng xếp hạng",
+      "cashout": "Rút tiền",
+      "rewards": "Phần thưởng"
+    }
+  },
+  "Hero": {
+    "tagline": "Trung tâm kiếm tiền tối thượng",
+    "title1": "Nâng Cấp",
+    "title2": "Ví Của Bạn Hôm Nay.",
+    "subtitle": "Chơi các trò chơi hàng đầu, hoàn thành các khảo sát trả lương cao và rút tiền mặt ngay lập tức. Không có phí ẩn. Không có giới hạn. Lợi nhuận thuần túy.",
+    "btnStart": "Bắt Đầu Kiếm Tiền Ngay",
+    "btnHow": "Cách Thức Hoạt Động",
+    "stats": {
+      "users": "Chiến Binh Đang Hoạt Động",
+      "live": "Nhiệm Vụ Trực Tiếp",
+      "time": "Thanh Toán Tức Thì",
+      "success": "Tỷ Lệ Thành Công"
+    }
+  },
+  "Features": {
+    "tagline": "Tăng Thu Nhập Của Bạn",
+    "title1": "Được Xây Dựng Cho",
+    "title2": "Sự Cày Cuốc",
+    "subtitle": "Hoàn thành các khảo sát trả lương cao & ưu đãi hấp dẫn. Dành cho game thủ và người nỗ lực.",
+    "f1": { "title": "Chơi Miễn Phí", "desc": "Không cần đầu tư" },
+    "f2": { "title": "Khảo Sát Cao Cấp", "desc": "Được trả tiền cho ý kiến" },
+    "f3": { "title": "Ưu Đãi Tuyệt Vời", "desc": "Chơi game & thử ứng dụng" },
+    "f4": { "title": "Rút Tiền Tức Thì", "desc": "Rút chiến lợi phẩm nhanh" },
+    "f5": { "title": "An Toàn 100%", "desc": "Nền tảng xác minh, an toàn" }
+  },
+  "Cashout": {
+    "supported": "Phương Thức Hỗ Trợ",
+    "title": "Rút Tiền Tức Thì",
+    "avgTime": "Thời Gian TB < 60 Giây",
+    "trusted": "Được Xác Minh & Tin Cậy",
+    "trustedDesc": "Thuật toán nền tảng an toàn 100%",
+    "latest": "RÚT TIỀN MỚI NHẤT",
+    "live": "Mạng Trực Tiếp",
+    "scanning": "Đang Quét Mạng",
+    "scanDesc": "Không phát hiện lệnh rút tiền gần đây. Đang chờ lần rút tiếp theo...",
+    "encrypted": "Thanh Toán Mã Hóa",
+    "encryptedDesc": "Bảo mật API cấp ngân hàng",
+    "automated": "Hệ Thống Tự Động",
+    "automatedDesc": "Không có thời gian chờ xử lý thủ công"
+  },
+  "LowerHero": {
+    "tagline": "Cách Thức Hoạt Động",
+    "title1": "Kiếm Tiền Qua",
+    "title2": "4 Bước Đơn Giản",
+    "subtitle": "Chơi, hoàn thành & kiếm phần thưởng tiền mặt thực sự chỉ với vài cú nhấp chuột",
+    "s1": { "title": "ĐĂNG KÝ MIỄN PHÍ", "desc": "Tạo tài khoản miễn phí trong vài giây" },
+    "s2": { "title": "CHƠI & HOÀN THÀNH", "desc": "Chơi game, thử ứng dụng, làm khảo sát" },
+    "s3": { "title": "KIẾM ĐIỂM", "desc": "Hoàn thành nhiệm vụ để nhận thưởng" },
+    "s4": { "title": "RÚT TIỀN MẶT", "desc": "Rút tiền ngay lập tức về ví của bạn" },
+    "leaderboard": "NGƯỜI KIẾM NHIỀU NHẤT HÔM NAY",
+    "live": "Cập Nhật Trực Tiếp",
+    "noEarners": "Chưa có ai kiếm được tiền hôm nay. Hãy bắt đầu chơi để xếp hạng nhất!",
+    "btnStart": "BẮT ĐẦU KIẾM TIỀN NGAY",
+    "f1": "100% Mã Hóa & An Toàn",
+    "f2": "Rút Tiền Tức Thì Về Ví",
+    "f3": "Tường Ưu Đãi Được Xác Minh"
+  },
+  "Testimonials": {
+    "tagline": "PHẢN HỒI SỚM",
+    "title1": "TIẾNG NÓI TỪ",
+    "title2": "NGƯỜI CHƠI",
+    "subtitle": "Phản hồi thực tế từ nhóm alpha kín gồm 5 thành viên ban đầu của chúng tôi."
+  },
+  "FAQ": {
+    "tagline": "TRUNG TÂM THÔNG TIN",
+    "title1": "TÓM TẮT",
+    "title2": "NHIỆM VỤ",
+    "subtitle": "Mọi thứ bạn cần biết về BinnyCash",
+    "q1": "Làm thế nào để bắt đầu kiếm tiền?",
+    "a1": "Đăng ký, khám phá nhiệm vụ, hoàn thành ưu đãi và kiếm phần thưởng.",
+    "q2": "Có cần đầu tư gì không?",
+    "a2": "Không, BinnyCash hoàn toàn miễn phí 100%.",
+    "q3": "Rút tiền nhanh như thế nào?",
+    "a3": "Tiền được rút ngay lập tức. Bạn sẽ nhận được tiền trong vài phút.",
+    "q4": "Tại sao một số khảo sát bị từ chối?",
+    "a4": "Khảo sát có thể bị từ chối nếu bạn trả lời không nhất quán hoặc không tập trung.",
+    "b1": { "t": "Miễn Phí 100%", "d": "Không có phí ẩn" },
+    "b2": { "t": "An Toàn & Bảo Mật", "d": "Dữ liệu được bảo vệ" },
+    "b3": { "t": "Đáng Tin Cậy", "d": "Được hàng ngàn người yêu thích" },
+    "b4": { "t": "Rút Tiền Tức Thì", "d": "Nhận tiền trong vài phút" },
+    "contact": "Vẫn còn câu hỏi?",
+    "contactDesc": "Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ.",
+    "btnContact": "LIÊN HỆ HỖ TRỢ"
+  },
+  "Footer": {
+    "title1": "Sẵn sàng để bắt đầu",
+    "title2": "cày cuốc?",
+    "subtitle": "Tham gia BinnyCash hôm nay và nhận khoản thanh toán đầu tiên trong vài phút.",
+    "p1": "Đăng ký nhanh",
+    "p2": "Hoàn thành nhiệm vụ",
+    "p3": "Nhận Tiền",
+    "btnCreate": "TẠO TÀI KHOẢN MIỄN PHÍ",
+    "freeNote": "Nó miễn phí & chỉ mất một phút!",
+    "desc": "Nền tảng hàng đầu dành cho game thủ để kiếm tiền thật bằng cách hoàn thành ưu đãi.",
+    "platform": "Nền Tảng",
+    "support": "Hỗ Trợ",
+    "legal": "Pháp Lý",
+    "copyright": "Xây dựng cho những người nỗ lực. Được hỗ trợ bởi bạn."
+  }
+}

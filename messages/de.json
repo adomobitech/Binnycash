@@ -1,0 +1,114 @@
+{
+  "Navbar": {
+    "selectRegion": "REGION WÄHLEN",
+    "login": "Anmelden",
+    "signup": "Registrieren",
+    "links": {
+      "earn": "Verdienen",
+      "myOffers": "Meine Angebote",
+      "affiliate": "Partner",
+      "leaderboard": "Bestenliste",
+      "cashout": "Auszahlung",
+      "rewards": "Belohnungen"
+    }
+  },
+  "Hero": {
+    "tagline": "Der Ultimative Verdienst-Hub",
+    "title1": "Level Deine",
+    "title2": "Wallet Heute Auf.",
+    "subtitle": "Spiele Top-Spiele, nimm an gut bezahlten Umfragen teil und hebe dein Bargeld sofort ab. Keine versteckten Gebühren. Keine Limits. Nur reiner Profit.",
+    "btnStart": "Jetzt Verdienen",
+    "btnHow": "Wie Es Funktioniert",
+    "stats": {
+      "users": "Aktive Krieger",
+      "live": "Live-Missionen",
+      "time": "Sofortige Auszahlungen",
+      "success": "Erfolgsquote"
+    }
+  },
+  "Features": {
+    "tagline": "Steigere Deine Einnahmen",
+    "title1": "Gebaut Für Den",
+    "title2": "Grind",
+    "subtitle": "Absolviere gut bezahlte Umfragen & epische Angebote. Für Gamer und Hustler.",
+    "f1": { "title": "Kostenlos Spielen", "desc": "Keine Investition erforderlich" },
+    "f2": { "title": "Premium Umfragen", "desc": "Werde für deine Meinung bezahlt" },
+    "f3": { "title": "Epische Angebote", "desc": "Spiele & teste Apps" },
+    "f4": { "title": "Sofortige Auszahlungen", "desc": "Heb deine Beute schnell ab" },
+    "f5": { "title": "100% Sicher", "desc": "Sichere, verifizierte Plattform" }
+  },
+  "Cashout": {
+    "supported": "Unterstützte Auszahlungen",
+    "title": "Sofortige Abhebungen",
+    "avgTime": "Durchschnittszeit < 60 Sekunden",
+    "trusted": "Verifiziert & Vertrauenswürdig",
+    "trustedDesc": "100% sichere Plattform-Algorithmen",
+    "latest": "LETZTE AUSZAHLUNGEN",
+    "live": "Live-Netzwerk",
+    "scanning": "Netzwerk wird gescannt",
+    "scanDesc": "Keine kürzlichen Abhebungen im Live-Pool erkannt. Warte auf nächste Auszahlung...",
+    "encrypted": "Verschlüsselte Auszahlungen",
+    "encryptedDesc": "Bankübliche API-Sicherheit",
+    "automated": "Automatisiertes System",
+    "automatedDesc": "Keine manuellen Bearbeitungspausen"
+  },
+  "LowerHero": {
+    "tagline": "Wie Es Funktioniert",
+    "title1": "Verdiene In",
+    "title2": "4 Einfachen Schritten",
+    "subtitle": "Spiele, schließe ab & verdiene echtes Geld in nur wenigen Klicks",
+    "s1": { "title": "KOSTENLOS REGISTRIEREN", "desc": "Erstelle dein kostenloses Konto in Sekunden" },
+    "s2": { "title": "SPIELEN & ABSCHLIESSEN", "desc": "Spiele Games, teste Apps & Umfragen" },
+    "s3": { "title": "PUNKTE VERDIENEN", "desc": "Erledige Aufgaben und verdiene Belohnungen" },
+    "s4": { "title": "GELD ABHEBEN", "desc": "Heb deine Einnahmen sofort auf dein Wallet ab" },
+    "leaderboard": "HEUTIGE TOP-VERDIENER",
+    "live": "Live-Updates",
+    "noEarners": "Heute noch keine Verdiener registriert. Fang an zu spielen, um Erster zu werden!",
+    "btnStart": "JETZT VERDIENEN",
+    "f1": "100% Verschlüsselt & Sicher",
+    "f2": "Sofortige Wallet-Auszahlungen",
+    "f3": "Verifizierte Angebotswände"
+  },
+  "Testimonials": {
+    "tagline": "FRÜHES FEEDBACK",
+    "title1": "STIMMEN DER",
+    "title2": "GAMER",
+    "subtitle": "Echtes Feedback von unserer anfänglichen 5-köpfigen Alpha-Kohorte."
+  },
+  "FAQ": {
+    "tagline": "INTEL ZENTRUM",
+    "title1": "MISSIONS-",
+    "title2": "BRIEFING",
+    "subtitle": "Alles, was du über BinnyCash wissen musst",
+    "q1": "Wie beginne ich zu verdienen?",
+    "a1": "Melde dich an, entdecke Aufgaben, schließe Angebote ab und verdiene Belohnungen.",
+    "q2": "Ist eine Investition erforderlich?",
+    "a2": "Nein, BinnyCash ist zu 100% kostenlos.",
+    "q3": "Wie schnell sind die Auszahlungen?",
+    "a3": "Auszahlungen werden sofort verarbeitet. Du erhältst dein Geld in Minuten.",
+    "q4": "Warum werden einige Umfragen abgelehnt?",
+    "a4": "Umfragen können abgelehnt werden, wenn Aufmerksamkeitsprüfungen fehlschlagen.",
+    "b1": { "t": "100% Kostenlos", "d": "Keine versteckten Gebühren" },
+    "b2": { "t": "Sicher & Geschützt", "d": "Deine Daten sind sicher" },
+    "b3": { "t": "Vertrauenswürdig", "d": "Von Tausenden geliebt" },
+    "b4": { "t": "Sofortige Auszahlungen", "d": "Abhebung in Minuten" },
+    "contact": "Hast du noch Fragen?",
+    "contactDesc": "Unser Support-Team ist immer für dich da.",
+    "btnContact": "SUPPORT KONTAKTIEREN"
+  },
+  "Footer": {
+    "title1": "Bereit zum",
+    "title2": "Verdienen?",
+    "subtitle": "Tritt BinnyCash noch heute bei und erhalte deine erste Auszahlung in Minuten.",
+    "p1": "Schnelle Anmeldung",
+    "p2": "Aufgaben Erledigen",
+    "p3": "Bezahlt Werden",
+    "btnCreate": "KOSTENLOSES KONTO ERSTELLEN",
+    "freeNote": "Es ist kostenlos & dauert nur eine Minute!",
+    "desc": "Die führende Plattform für Gamer und Hustler, um echtes Geld zu verdienen.",
+    "platform": "Plattform",
+    "support": "Support",
+    "legal": "Rechtliches",
+    "copyright": "Gebaut für Hustler. Unterstützt von dir."
+  }
+}

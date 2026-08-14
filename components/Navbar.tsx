@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from './AuthContext';
+import { useTranslation } from './LanguageContext';
 import { 
   Bell, Rocket, Trophy, Wallet, ChevronDown, User, 
   LogOut, MessageSquare, HelpCircle, Gift, 
@@ -13,9 +14,6 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
 import ChatDrawer from '@/components/chat/ChatDrawer';
-
-let globalLastWalletFetch = 0;
-let globalLastUserFetch = 0;
 
 const getDynamicColor = (name: string) => {
   const colors = [
@@ -29,13 +27,6 @@ const getDynamicColor = (name: string) => {
   }
   return colors[Math.abs(hash) % colors.length];
 };
-
-declare global {
-  interface Window {
-    googleTranslateElementInit: () => void;
-    google: any;
-  }
-}
 
 function getUserId(): string {
   if (typeof window === 'undefined') return '';
@@ -71,7 +62,6 @@ function getUserId(): string {
   return '';
 }
 
-// 🔥 EXACT LANGUAGES MATCHING YOUR SCREENSHOTS 🔥
 const LANGUAGES = [
   { code: 'en', name: 'English', tag: 'us' },
   { code: 'hi', name: 'Hindi', tag: 'in' },
@@ -93,20 +83,13 @@ const LANGUAGES = [
   { code: 'ur', name: 'Urdu', tag: 'pk' }
 ];
 
-const MAIN_LINKS = [
-  { name: 'Earn', href: '/dashboard' },
-  { name: 'My Offers', href: '/myoffers' },
-  { name: 'Affiliate', href: '/affiliate' },
-  { name: 'Leaderboard', href: '/leaderboard' },
-  { name: 'Cashout', href: '/cashout' },
-  { name: 'Rewards', href: '/rewards' },
-];
-
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { openLogin, openRegister } = useAuth();
+  
+  const { locale, t, changeLanguage } = useTranslation();
   
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -139,6 +122,15 @@ export default function Navbar() {
 
   const navRef = useRef<HTMLElement>(null);
 
+  const MAIN_LINKS = [
+    { name: t.Navbar?.links?.earn || 'Earn', href: '/dashboard' },
+    { name: t.Navbar?.links?.myOffers || 'My Offers', href: '/myoffers' },
+    { name: t.Navbar?.links?.affiliate || 'Affiliate', href: '/affiliate' },
+    { name: t.Navbar?.links?.leaderboard || 'Leaderboard', href: '/leaderboard' },
+    { name: t.Navbar?.links?.cashout || 'Cashout', href: '/cashout' },
+    { name: t.Navbar?.links?.rewards || 'Rewards', href: '/rewards' },
+  ];
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && token !== 'undefined' && pathname === '/') {
@@ -151,83 +143,15 @@ export default function Navbar() {
   }, [pathname, isLoggedIn]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && typeof Node === 'function' && Node.prototype) {
-      // @ts-ignore
-      const nativeRemoveChild = Node.prototype.removeChild;
-      // @ts-ignore
-      Node.prototype.removeChild = function (child) {
-        if (child && child.parentNode !== this) {
-          return child; 
-        }
-        return nativeRemoveChild.call(this, child);
-      };
-
-      // @ts-ignore
-      const nativeInsertBefore = Node.prototype.insertBefore;
-      // @ts-ignore
-      Node.prototype.insertBefore = function (newNode, referenceNode) {
-        if (referenceNode && referenceNode.parentNode !== this) {
-          return newNode; 
-        }
-        return nativeInsertBefore.call(this, newNode, referenceNode);
-      };
-    }
-  }, []);
-
-  // 🔥 BULLETPROOF PRODUCTION TRANSLATION SYNC 🔥
-  useEffect(() => {
-    let currentLang = 'en';
-    const savedLang = localStorage.getItem('preferredLang');
-
-    if (savedLang) {
-      currentLang = savedLang;
-      const host = window.location.hostname;
-      document.cookie = `googtrans=/en/${savedLang}; path=/;`;
-      document.cookie = `googtrans=/en/${savedLang}; path=/; domain=${host}`;
-      document.cookie = `googtrans=/en/${savedLang}; path=/; domain=.${host}`;
-    } else {
-      const cookies = document.cookie.split(';');
-      for (let cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'googtrans' && value) {
-          currentLang = value.split('/')[2] || 'en';
-        }
-      }
-    }
-
-    const found = LANGUAGES.find(l => l.code === currentLang);
-    if (found) setSelectedLang(found);
-
-    if (currentLang !== 'en') {
-      const triggerTranslate = () => {
-        const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
-        if (select && select.value !== currentLang) {
-          select.value = currentLang;
-          select.dispatchEvent(new Event('change'));
-        }
-      };
-      setTimeout(triggerTranslate, 300);
-      setTimeout(triggerTranslate, 800);
-      setTimeout(triggerTranslate, 1500);
-    }
-
+    const currentLangObj = LANGUAGES.find(l => l.code === locale) || LANGUAGES[0];
+    setSelectedLang(currentLangObj);
     setIsMobileMenuOpen(false);
-  }, [pathname]);
+  }, [locale]);
 
-const handleLanguageChange = (lang: any) => {
+  const handleLanguageChange = (lang: any) => {
     setSelectedLang(lang);
     setIsLangModalOpen(false);
-    
-    // Save locally
-    localStorage.setItem('preferredLang', lang.code);
-    
-    // 🔥 FIX FOR LIVE (VERCEL/NETLIFY) DOMAINS 🔥
-    // Remove complex wildcard domains that browsers block. Just use path=/
-    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie = `googtrans=/en/${lang.code}; path=/;`;
-
-    // Force reload to apply clean translation across the live domain
-    window.location.reload();
+    changeLanguage(lang.code);
   };
 
   const handleForceLogout = () => {
@@ -487,36 +411,6 @@ const handleLanguageChange = (lang: any) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (!document.getElementById('google-translate-overrides')) {
-      const style = document.createElement('style');
-      style.id = 'google-translate-overrides';
-      style.innerHTML = `
-        .goog-te-banner-frame.skiptranslate, iframe.goog-te-banner-frame, .goog-te-banner-frame { display: none !important; visibility: hidden !important; height: 0 !important; width: 0 !important; }
-        body { top: 0px !important; position: static !important; }
-        .goog-te-balloon-frame, #goog-gt-tt { display: none !important; }
-        .goog-text-highlight { background-color: transparent !important; box-shadow: none !important; }
-        .skiptranslate { display: none !important; }
-      `;
-      document.head.appendChild(style);
-    }
-    
-    if (window.google && window.google.translate) return;
-    window.googleTranslateElementInit = () => {
-      new window.google.translate.TranslateElement(
-        { pageLanguage: 'en', autoDisplay: false, includedLanguages: LANGUAGES.map(l => l.code).join(',') },
-        'google_translate_element'
-      );
-    };
-    if (!document.getElementById('google-translate-script')) {
-      const script = document.createElement('script');
-      script.id = 'google-translate-script';
-      script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-      script.async = true;
-      document.body.appendChild(script);
-    }
-  }, []);
-
   const handleLogoutConfirm = async () => {
     setShowLogoutConfirm(false);
     setIsTransitioning(true);
@@ -555,12 +449,7 @@ const handleLanguageChange = (lang: any) => {
         {isTransitioning && (
           <motion.div key="transitioning-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#070913] overflow-hidden font-sans">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#8B5CF6]/15 blur-[120px] rounded-full pointer-events-none" />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="relative flex flex-col items-center z-10"
-            >
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.4, ease: "easeOut" }} className="relative flex flex-col items-center z-10">
                <div className="relative flex items-center justify-center mb-10 mt-[-50px]">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} className="absolute w-32 h-32 rounded-full border-2 border-transparent border-t-[#8B5CF6] border-r-[#8B5CF6] opacity-80" />
                   <motion.div animate={{ rotate: -360 }} transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }} className="absolute w-36 h-36 rounded-full border border-dashed border-white/10" />
@@ -588,12 +477,7 @@ const handleLanguageChange = (lang: any) => {
         {isRouting && (
           <motion.div key="routing-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#070913] overflow-hidden font-sans">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#8B5CF6]/15 blur-[120px] rounded-full pointer-events-none" />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="relative flex flex-col items-center z-10"
-            >
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.4, ease: "easeOut" }} className="relative flex flex-col items-center z-10">
                <div className="relative flex items-center justify-center mb-10 mt-[-50px]">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} className="absolute w-32 h-32 rounded-full border-2 border-transparent border-t-[#8B5CF6] border-r-[#8B5CF6] opacity-80" />
                   <motion.div animate={{ rotate: -360 }} transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }} className="absolute w-36 h-36 rounded-full border border-dashed border-white/10" />
@@ -664,64 +548,60 @@ const handleLanguageChange = (lang: any) => {
           )}
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0 ml-auto md:ml-0">
-            <div id="google_translate_element" style={{ display: 'none' }}></div>
             
-            <div className="relative">
-              <button 
-                onClick={() => setIsLangModalOpen(!isLangModalOpen)} 
-                className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 px-2 md:px-3 py-1.5 md:py-2.5 rounded-xl transition-all cursor-pointer shadow-sm group"
-              >
-                <Globe className="w-4 h-4 text-[#8B5CF6] group-hover:animate-spin-slow" />
-                <span className="hidden sm:inline text-white text-[11px] md:text-xs font-bold uppercase tracking-wider">{selectedLang.code.split('-')[0]}</span>
-                <ChevronDown className={`w-3 h-3 text-[#8F95A3] transition-transform hidden sm:block ${isLangModalOpen ? 'rotate-180' : ''}`} />
-              </button>
+            {/* 🔥 TRANSLATOR DROPDOWN (ONLY ON HOMEPAGE WHEN LOGGED OUT) 🔥 */}
+            {!isLoggedIn && pathname === '/' && (
+              <div className="relative">
+                <button 
+                  onClick={() => setIsLangModalOpen(!isLangModalOpen)} 
+                  className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 px-2 md:px-3 py-1.5 md:py-2.5 rounded-xl transition-all cursor-pointer shadow-sm group"
+                >
+                  <Globe className="w-4 h-4 text-[#8B5CF6] group-hover:animate-spin-slow" />
+                  <span className="hidden sm:inline text-white text-[11px] md:text-xs font-bold uppercase tracking-wider">{selectedLang.code.split('-')[0]}</span>
+                  <ChevronDown className={`w-3 h-3 text-[#8F95A3] transition-transform hidden sm:block ${isLangModalOpen ? 'rotate-180' : ''}`} />
+                </button>
 
-              <AnimatePresence>
-                {isLangModalOpen && (
-                  <motion.div 
-                    key="lang-dropdown"
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                    animate={{ opacity: 1, y: 0, scale: 1 }} 
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }} 
-                    transition={{ duration: 0.2 }} 
-                    className="absolute right-0 mt-3 w-[260px] md:w-[340px] bg-[#12151C]/95 backdrop-blur-xl border border-[#8B5CF6]/20 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.5)] py-2 z-50 overflow-hidden"
-                  >
-                    <div className="px-4 py-2 border-b border-white/5 mb-2 flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-[#8B5CF6]" />
-                      <span className="text-white text-xs font-bold uppercase tracking-wider">SELECT REGION</span>
-                    </div>
-                    {/* 🔥 2-COLUMN GRID MATCHING YOUR EXACT LIST WITH FLAGS 🔥 */}
-                    <div className="grid grid-cols-2 gap-1 px-2 max-h-[300px] overflow-y-auto custom-scrollbar pb-2">
-                      {LANGUAGES.map((lang) => (
-                        <button 
-                          key={lang.code} 
-                          onClick={() => handleLanguageChange(lang)} 
-                          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                            selectedLang.code === lang.code 
-                              ? 'bg-[#8B5CF6]/15 text-[#A855F7] border border-[#8B5CF6]/30' 
-                              : 'text-[#8F95A3] hover:text-white hover:bg-white/5 border border-transparent'
-                          }`}
-                        >
-                          <span className={`fi fi-${lang.tag} w-4 h-3 rounded-[2px] shadow-sm`}></span>
-                          <span className="truncate">{lang.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                <AnimatePresence>
+                  {isLangModalOpen && (
+                    <motion.div 
+                      key="lang-dropdown"
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                      animate={{ opacity: 1, y: 0, scale: 1 }} 
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }} 
+                      transition={{ duration: 0.2 }} 
+                      className="absolute right-0 mt-3 w-[260px] md:w-[340px] bg-[#12151C]/95 backdrop-blur-xl border border-[#8B5CF6]/20 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.5)] py-2 z-50 overflow-hidden"
+                    >
+                      <div className="px-4 py-2 border-b border-white/5 mb-2 flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-[#8B5CF6]" />
+                        <span className="text-white text-xs font-bold uppercase tracking-wider">{t.Navbar?.selectRegion || 'SELECT REGION'}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1 px-2 max-h-[300px] overflow-y-auto custom-scrollbar pb-2">
+                        {LANGUAGES.map((lang) => (
+                          <button 
+                            key={lang.code} 
+                            onClick={() => handleLanguageChange(lang)} 
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                              selectedLang.code === lang.code 
+                                ? 'bg-[#8B5CF6]/15 text-[#A855F7] border border-[#8B5CF6]/30' 
+                                : 'text-[#8F95A3] hover:text-white hover:bg-white/5 border border-transparent'
+                            }`}
+                          >
+                            <span className={`fi fi-${lang.tag} w-4 h-3 rounded-[2px] shadow-sm`}></span>
+                            <span className="truncate">{lang.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
 
             {isLoggedIn ? (
               <div className="flex items-center gap-2 md:gap-3">
-                
                 <div className="hidden lg:flex items-center justify-center gap-1.5 bg-[#2B164D] px-3.5 py-2 rounded-xl border border-[#A855F7]/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
-                  <span className="text-[#A855F7] font-black text-[17px] leading-none">
-                    {isCoin ? 'C' : '$'}
-                  </span>
-                  <span className="text-white font-black text-[17px] leading-none tracking-tight">
-                    {isCoin ? Number(balance) * 1000 : balance}
-                  </span>
+                  <span className="text-[#A855F7] font-black text-[17px] leading-none">{isCoin ? 'C' : '$'}</span>
+                  <span className="text-white font-black text-[17px] leading-none tracking-tight">{isCoin ? Number(balance) * 1000 : balance}</span>
                 </div>
 
                 <div className="relative hidden sm:block">
@@ -749,27 +629,15 @@ const handleLanguageChange = (lang: any) => {
                           <h3 className="text-white font-bold text-[17px]">Notifications</h3>
                           <div className="flex items-center gap-4">
                              {inboxMessages.length > 0 && (
-                               <button 
-                                 onClick={handleMarkAllAsRead}
-                                 className="text-[#8F95A3] hover:text-white text-[12px] font-medium transition-colors cursor-pointer"
-                               >
-                                 Mark all read
-                               </button>
+                               <button onClick={handleMarkAllAsRead} className="text-[#8F95A3] hover:text-white text-[12px] font-medium transition-colors cursor-pointer">Mark all read</button>
                              )}
-                             <button 
-                               onClick={() => setIsInboxOpen(false)} 
-                               className="text-[#8F95A3] hover:text-white transition-colors cursor-pointer"
-                             >
-                               <X className="w-5 h-5" />
-                             </button>
+                             <button onClick={() => setIsInboxOpen(false)} className="text-[#8F95A3] hover:text-white transition-colors cursor-pointer"><X className="w-5 h-5" /></button>
                           </div>
                         </div>
 
                         <div className="p-4 max-h-[380px] overflow-y-auto custom-scrollbar">
                           {isInboxLoading ? (
-                            <div className="flex flex-col items-center justify-center py-10 gap-3">
-                              <Loader2 className="w-6 h-6 text-white/50 animate-spin" />
-                            </div>
+                            <div className="flex flex-col items-center justify-center py-10 gap-3"><Loader2 className="w-6 h-6 text-white/50 animate-spin" /></div>
                           ) : inboxMessages.length === 0 ? (
                             <div className="bg-[#12141A] border border-white/5 rounded-2xl py-12 flex items-center justify-center">
                               <span className="text-[#8F95A3] text-sm font-medium">No new notifications</span>
@@ -813,12 +681,7 @@ const handleLanguageChange = (lang: any) => {
                 <div className="relative">
                   <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] p-1 pr-2 rounded-xl transition-all cursor-pointer border border-white/5">
                     {userAvatar && !imageError ? (
-                      <img 
-                        src={userAvatar} 
-                        alt="Profile" 
-                        className="w-6 h-6 md:w-8 md:h-8 rounded-lg object-cover shadow-sm" 
-                        onError={() => setImageError(true)} 
-                      />
+                      <img src={userAvatar} alt="Profile" className="w-6 h-6 md:w-8 md:h-8 rounded-lg object-cover shadow-sm" onError={() => setImageError(true)} />
                     ) : (
                       <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg ${getDynamicColor(userName)} flex items-center justify-center text-white text-[12px] md:text-[15px] font-black shadow-sm uppercase`}>
                         {userName ? userName.charAt(0) : '?'}
@@ -872,9 +735,7 @@ const handleLanguageChange = (lang: any) => {
                         </div>
 
                         <div className="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-2xl p-3.5 mb-1 transition-all hover:bg-white/[0.04]">
-                          <span className="text-[14px] font-black text-white tracking-wide pl-2">
-                            {currency.toUpperCase()}
-                          </span>
+                          <span className="text-[14px] font-black text-white tracking-wide pl-2">{currency.toUpperCase()}</span>
                           <button 
                             onClick={(e) => { e.stopPropagation(); toggleCurrency(); }}
                             disabled={isCurrencySwitching}
@@ -892,7 +753,7 @@ const handleLanguageChange = (lang: any) => {
                           </button>
                         </div>
 
-                        <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="relative w-full group flex items-center justify-between bg-[#FF5D73]/5 hover:bg-[#FF5D73]/10 border border-[#FF5D73]/20 hover:border-[#FF5D73]/40 rounded-2xl p-3.5 transition-all text-left">
+                        <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="relative w-full group flex items-center justify-between bg-[#FF5D73]/5 hover:bg-[#FF5D73]/10 border border-[#FF5D73]/20 hover:border-[#FF5D73]/40 rounded-2xl p-3.5 transition-all text-left cursor-pointer">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-[#FF5D73]/20 group-hover:border-[#FF5D73]/50 transition-colors shadow-inner">
                               <LogOut className="w-4 h-4 text-[#FF5D73]" />
@@ -904,7 +765,6 @@ const handleLanguageChange = (lang: any) => {
                           </div>
                           <ChevronRight className="w-4 h-4 text-[#FF5D73] opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                         </button>
-                        
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -912,8 +772,8 @@ const handleLanguageChange = (lang: any) => {
               </div>
             ) : (
               <div className="flex items-center gap-2 md:gap-3">
-                <button onClick={openLogin} className="text-xs md:text-sm font-bold text-white hover:text-[#8B5CF6] transition-colors cursor-pointer">Login</button>
-                <button onClick={openRegister} className="text-xs md:text-sm font-bold text-white bg-[#8B5CF6] hover:bg-[#7c3aed] px-3 md:px-4 py-1.5 md:py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(139,92,246,0.3)] cursor-pointer">Sign Up</button>
+                <button onClick={openLogin} className="text-xs md:text-sm font-bold text-white hover:text-[#8B5CF6] transition-colors cursor-pointer">{t.Navbar?.login || 'Login'}</button>
+                <button onClick={openRegister} className="text-xs md:text-sm font-bold text-white bg-[#8B5CF6] hover:bg-[#7c3aed] px-3 md:px-4 py-1.5 md:py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(139,92,246,0.3)] cursor-pointer">{t.Navbar?.signup || 'Sign Up'}</button>
               </div>
             )}
           </div>
@@ -924,9 +784,6 @@ const handleLanguageChange = (lang: any) => {
         <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       )}
 
-      {/* =========================================
-          MOBILE BOTTOM NAVIGATION (Fixed at Bottom)
-      ========================================= */}
       {isLoggedIn && (
         <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0E111E]/95 backdrop-blur-xl border-t border-white/10 z-50 flex items-center justify-around px-2 py-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-[65px]">
           <Link href="/myoffers" className="flex flex-col items-center gap-1 p-2 w-[20%]">
@@ -960,24 +817,11 @@ const handleLanguageChange = (lang: any) => {
         </div>
       )}
 
-      {/* =========================================
-          MOBILE SIDE DRAWER (Slides from Left)
-      ========================================= */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] cursor-pointer"
-            />
-            
-            <motion.div 
-              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="lg:hidden fixed top-0 left-0 h-full w-[280px] bg-[#111319] border-r border-white/10 z-[70] flex flex-col shadow-2xl"
-            >
-              {/* Premium Header */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] cursor-pointer" />
+            <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="lg:hidden fixed top-0 left-0 h-full w-[280px] bg-[#111319] border-r border-white/10 z-[70] flex flex-col shadow-2xl">
               <div className="h-24 border-b border-white/5 flex items-center justify-between px-6 shrink-0 bg-gradient-to-b from-white/[0.02] to-transparent">
                 <div className="flex items-center gap-3">
                    <img src="/logo.png" alt="BinnyCash" className="h-10 w-auto object-contain drop-shadow-md" />
@@ -991,45 +835,31 @@ const handleLanguageChange = (lang: any) => {
                 </button>
               </div>
 
-              {/* Navigation Links */}
               <div className="flex flex-col py-6 px-4 gap-2 overflow-y-auto">
-                <Link href="/surveys" onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group ${pathname === '/surveys' ? 'bg-[#8B5CF6]/10 text-[#A855F7] border border-[#8B5CF6]/30 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent'}`}>
-                  <ClipboardCheck className={`w-5 h-5 ${pathname === '/surveys' ? 'text-[#A855F7]' : 'text-[#8D89A8] group-hover:text-white'}`} />
+                <Link href="/surveys" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
+                  <ClipboardCheck className="w-5 h-5" />
                   <span className="text-sm font-bold">Surveys</span>
                 </Link>
-
-                <Link href="/offers" onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group ${pathname === '/offers' ? 'bg-[#8B5CF6]/10 text-[#A855F7] border border-[#8B5CF6]/30 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent'}`}>
-                  <Flame className={`w-5 h-5 ${pathname === '/offers' ? 'text-[#A855F7]' : 'text-[#8D89A8] group-hover:text-white'}`} />
+                <Link href="/offers" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
+                  <Flame className="w-5 h-5" />
                   <span className="text-sm font-bold">Offers</span>
                 </Link>
-
-                <Link href="/leaderboard" onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group ${pathname === '/leaderboard' ? 'bg-[#8B5CF6]/10 text-[#A855F7] border border-[#8B5CF6]/30 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent'}`}>
-                  <BarChart3 className={`w-5 h-5 ${pathname === '/leaderboard' ? 'text-[#A855F7]' : 'text-[#8D89A8] group-hover:text-white'}`} />
+                <Link href="/leaderboard" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
+                  <BarChart3 className="w-5 h-5" />
                   <span className="text-sm font-bold">Leaderboard</span>
                 </Link>
-
-                <Link href="/affiliate" onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group ${pathname === '/affiliate' ? 'bg-[#8B5CF6]/10 text-[#A855F7] border border-[#8B5CF6]/30 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent'}`}>
-                  <Users className={`w-5 h-5 ${pathname === '/affiliate' ? 'text-[#A855F7]' : 'text-[#8D89A8] group-hover:text-white'}`} />
+                <Link href="/affiliate" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
+                  <Users className="w-5 h-5" />
                   <span className="text-sm font-bold">Affiliates</span>
                 </Link>
-
-                <button onClick={() => { setIsMobileMenuOpen(false); setIsChatOpen(true); }} className="flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group hover:bg-white/5 text-[#8D89A8] hover:text-white border border-transparent cursor-pointer w-full text-left">
-                  <div className="relative">
-                    <MessageSquare className="w-5 h-5 text-[#8D89A8] group-hover:text-white transition-colors" />
-                    {unreadChatCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#00E57A] border-2 border-[#111319] rounded-full"></span>
-                    )}
-                  </div>
+                <button onClick={() => { setIsMobileMenuOpen(false); setIsChatOpen(true); }} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all cursor-pointer w-full text-left">
+                  <MessageSquare className="w-5 h-5" />
                   <span className="text-sm font-bold">Chat Room</span>
                 </button>
               </div>
 
-              {/* Bottom Balance Card */}
               <div className="mt-auto p-6 border-t border-white/5 bg-gradient-to-t from-black/20 to-transparent">
                 <div className="bg-gradient-to-br from-[#1A1725] to-[#110E18] border border-white/5 rounded-2xl p-5 flex flex-col items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-[#00E57A]/10 rounded-bl-full pointer-events-none"></div>
-                  <div className="absolute bottom-0 left-0 w-12 h-12 bg-[#8B5CF6]/10 rounded-tr-full pointer-events-none"></div>
-                  
                   <span className="text-[10px] font-bold text-[#8D89A8] mb-1 uppercase tracking-widest relative z-10">Available Balance</span>
                   <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00E57A] to-[#3DE8A0] drop-shadow-md relative z-10">
                     {isCoin ? Number(balance) * 1000 : balance}

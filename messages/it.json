@@ -1,0 +1,114 @@
+{
+  "Navbar": {
+    "selectRegion": "SELEZIONA REGIONE",
+    "login": "Accedi",
+    "signup": "Iscriviti",
+    "links": {
+      "earn": "Guadagna",
+      "myOffers": "Le Mie Offerte",
+      "affiliate": "Affiliazione",
+      "leaderboard": "Classifica",
+      "cashout": "Preleva",
+      "rewards": "Premi"
+    }
+  },
+  "Hero": {
+    "tagline": "L'Hub Definitivo per i Guadagni",
+    "title1": "Aumenta di Livello il",
+    "title2": "Tuo Portafoglio Oggi.",
+    "subtitle": "Gioca ai migliori giochi, completa sondaggi ben pagati e preleva i tuoi contanti all'istante. Nessun costo nascosto. Nessun limite. Solo puro profitto.",
+    "btnStart": "Inizia a Guadagnare Ora",
+    "btnHow": "Come Funziona",
+    "stats": {
+      "users": "Guerrieri Attivi",
+      "live": "Missioni Live",
+      "time": "Pagamenti Immediati",
+      "success": "Tasso di Successo"
+    }
+  },
+  "Features": {
+    "tagline": "Aumenta i Tuoi Guadagni",
+    "title1": "Costruito Per",
+    "title2": "Vincere",
+    "subtitle": "Completa sondaggi premium e offerte epiche. Per giocatori e hustler.",
+    "f1": { "title": "Gratis da Giocare", "desc": "Nessun investimento" },
+    "f2": { "title": "Sondaggi Premium", "desc": "Fatti pagare per le tue opinioni" },
+    "f3": { "title": "Offerte Epiche", "desc": "Gioca e testa le app" },
+    "f4": { "title": "Prelievi Rapidi", "desc": "Ritira il tuo bottino velocemente" },
+    "f5": { "title": "Sicuro al 100%", "desc": "Piattaforma verificata e sicura" }
+  },
+  "Cashout": {
+    "supported": "Pagamenti Supportati",
+    "title": "Prelievi Istantanei",
+    "avgTime": "Tempo Medio < 60 Secondi",
+    "trusted": "Verificato e Affidabile",
+    "trustedDesc": "Algoritmi della piattaforma sicuri al 100%",
+    "latest": "ULTIMI PRELIEVI",
+    "live": "Rete Live",
+    "scanning": "Scansione della Rete",
+    "scanDesc": "Nessun prelievo recente rilevato nel pool. In attesa del prossimo...",
+    "encrypted": "Pagamenti Criptati",
+    "encryptedDesc": "Sicurezza API di livello bancario",
+    "automated": "Sistema Automatizzato",
+    "automatedDesc": "Nessun blocco di elaborazione manuale"
+  },
+  "LowerHero": {
+    "tagline": "Come Funziona",
+    "title1": "Guadagna In",
+    "title2": "4 Semplici Passi",
+    "subtitle": "Gioca, completa e guadagna premi in denaro in pochi clic",
+    "s1": { "title": "ISCRIVITI GRATIS", "desc": "Crea il tuo account gratuito in pochi secondi" },
+    "s2": { "title": "GIOCA E COMPLETA", "desc": "Gioca, prova app, partecipa a sondaggi" },
+    "s3": { "title": "GUADAGNA PUNTI", "desc": "Completa le attività e vinci premi" },
+    "s4": { "title": "PRELEVA CONTANTI", "desc": "Ritira i tuoi guadagni all'istante" },
+    "leaderboard": "I MIGLIORI GUADAGNI DI OGGI",
+    "live": "Aggiornamenti in Tempo Reale",
+    "noEarners": "Nessun guadagno registrato per oggi. Inizia a giocare per essere il primo!",
+    "btnStart": "INIZIA A GUADAGNARE",
+    "f1": "Criptato e Sicuro al 100%",
+    "f2": "Prelievi Istantanei sul Portafoglio",
+    "f3": "Offer Wall Verificati"
+  },
+  "Testimonials": {
+    "tagline": "PRIMI FEEDBACK",
+    "title1": "VOCI DEI",
+    "title2": "GIOCATORI",
+    "subtitle": "Feedback reale dal nostro gruppo alfa iniziale di 5 membri."
+  },
+  "FAQ": {
+    "tagline": "CENTRO INFORMAZIONI",
+    "title1": "BRIEFING DELLA",
+    "title2": "MISSIONE",
+    "subtitle": "Tutto ciò che devi sapere su BinnyCash",
+    "q1": "Come inizio a guadagnare?",
+    "a1": "Iscriviti, esplora le attività, completa offerte e guadagna fantastici premi.",
+    "q2": "È richiesto un investimento?",
+    "a2": "No, BinnyCash è gratuito al 100%.",
+    "q3": "Quanto sono veloci i prelievi?",
+    "a3": "I prelievi vengono elaborati all'istante. Riceverai i tuoi soldi in pochi minuti.",
+    "q4": "Perché alcuni sondaggi vengono rifiutati?",
+    "a4": "I sondaggi possono essere rifiutati se non superi i controlli di attenzione.",
+    "b1": { "t": "Gratuito al 100%", "d": "Nessun costo nascosto" },
+    "b2": { "t": "Sicuro e Protetto", "d": "I tuoi dati sono al sicuro" },
+    "b3": { "t": "Piattaforma Affidabile", "d": "Amata da migliaia di utenti" },
+    "b4": { "t": "Pagamenti Istantanei", "d": "Prelievi in minuti" },
+    "contact": "Hai ancora domande?",
+    "contactDesc": "Il nostro team di supporto è sempre pronto ad aiutarti.",
+    "btnContact": "CONTATTA IL SUPPORTO"
+  },
+  "Footer": {
+    "title1": "Pronto per iniziare",
+    "title2": "a guadagnare?",
+    "subtitle": "Unisciti a BinnyCash oggi e ottieni il tuo primo pagamento in pochi minuti.",
+    "p1": "Registrazione Rapida",
+    "p2": "Completa Attività",
+    "p3": "Vieni Pagato",
+    "btnCreate": "CREA ACCOUNT GRATUITO",
+    "freeNote": "È gratis e richiede solo un minuto!",
+    "desc": "La piattaforma leader per i giocatori per guadagnare soldi reali completando offerte e sondaggi.",
+    "platform": "Piattaforma",
+    "support": "Supporto",
+    "legal": "Legale",
+    "copyright": "Costruito per chi si dà da fare. Supportato da te."
+  }
+}

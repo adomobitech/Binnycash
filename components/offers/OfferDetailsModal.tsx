@@ -118,8 +118,13 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
         
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
-          const jsonRes = await res.json();
-          setDetails(jsonRes?.data || jsonRes);
+          try {
+             const text = await res.text();
+             const jsonRes = text ? JSON.parse(text) : null;
+             setDetails(jsonRes?.data || jsonRes || offer);
+          } catch(e) {
+             setDetails(offer);
+          }
         } else {
           setDetails(offer);
         }
@@ -141,18 +146,65 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     else setActiveInnerTab('details');
   }, [details, offer]);
 
+  // 🔥 ADDED SMART PRE-CHECK LOGIC HERE TOO 🔥
   const handlePlayClick = async () => {
     setIsProcessingClick(true);
     setApiError(null);
-    
-    const ua = navigator.userAgent;
-    const isDesktop = !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
     const targetId = offer.id ?? offer._id ?? offer.offer_id;
     const userId = getUserId();
 
     if (!userId) {
       setApiError('Could not identify your account. Please log in again and retry.');
+      setIsProcessingClick(false);
+      return;
+    }
+
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(ua);
+    const isMobile = isIOS || isAndroid || /Mobi|Tablet/i.test(ua);
+    const isDesktop = !isMobile;
+
+    const currentData = details || offer;
+    const targetPlatforms = String(currentData?.device || currentData?.devices || currentData?.browsers || currentData?.platform || currentData?.os || currentData?.device_type || '').toLowerCase();
+    
+    const isUniversal = targetPlatforms === 'all' || targetPlatforms === 'global' || targetPlatforms === '';
+    const isOfferAndroid = targetPlatforms.includes('android');
+    const isOfferIos = targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad');
+    const isOfferWindows = targetPlatforms.includes('windows') || targetPlatforms.includes('desktop') || targetPlatforms.includes('pc') || targetPlatforms.includes('win');
+    const isOfferMac = targetPlatforms.includes('mac') || targetPlatforms.includes('osx');
+
+    const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isOfferMac || isUniversal);
+    const isStrictlyDesktopOffer = (isOfferWindows || isOfferMac) && !(isOfferAndroid || isOfferIos || isUniversal);
+
+    let showQR = false;
+    let generateQRFor = 'Mobile Device';
+
+    // 🔥 Mobile will now show QR on mismatch!
+    if (isDesktop && isStrictlyMobileOffer) {
+      showQR = true;
+      if (isOfferAndroid && !isOfferIos) generateQRFor = 'Android';
+      else if (isOfferIos && !isOfferAndroid) generateQRFor = 'iOS';
+      else generateQRFor = 'Android or iOS';
+    } 
+    else if (isMobile && isStrictlyDesktopOffer) {
+      showQR = true;
+      generateQRFor = isOfferWindows ? 'Windows' : 'Desktop PC';
+    }
+    else if (isAndroid && isOfferIos && !isOfferAndroid && !isUniversal) {
+      showQR = true;
+      generateQRFor = 'iOS';
+    }
+    else if (isIOS && isOfferAndroid && !isOfferIos && !isUniversal) {
+      showQR = true;
+      generateQRFor = 'Android';
+    }
+
+    if (showQR) {
+      const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
+      setTargetDeviceName(generateQRFor);
+      setQrCodeUrl(trackingUrl);
       setIsProcessingClick(false);
       return;
     }
@@ -178,7 +230,6 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       try {
         const jsonRes = JSON.parse(responseText);
         
-        // 🔥 FIX: Let the API decide if device is supported 🔥
         if (jsonRes.type === 'error' || jsonRes.status === 'error' || jsonRes.code !== 200) {
           errorMessage = jsonRes.message || 'Offer unavailable.';
           const msgLower = errorMessage.toLowerCase();
@@ -200,21 +251,9 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       if (errorMessage && !finalRedirectUrl) {
         if (newTab) newTab.close();
         
-        // 🔥 SHOW QR ONLY IF BACKEND REJECTED DUE TO DEVICE OR WE'RE ON PC WITH ERROR 🔥
-        if (isDeviceError || isDesktop) {
+        if (isDeviceError || isDesktop || isMobile) {
           const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
-          
-          let generateQRFor = 'Mobile Device';
-          const currentData = details || offer;
-          const targetPlatforms = String(currentData?.device || currentData?.browsers || currentData?.platform || currentData?.os || '').toLowerCase();
-          
-          if (targetPlatforms.includes('ios') || targetPlatforms.includes('iphone') || targetPlatforms.includes('ipad')) {
-             generateQRFor = 'iOS';
-          } else if (targetPlatforms.includes('android')) {
-             generateQRFor = 'Android';
-          }
-          
-          setTargetDeviceName(generateQRFor);
+          setTargetDeviceName(generateQRFor || 'Mobile Device');
           setQrCodeUrl(trackingUrl);
         } else {
           setApiError(errorMessage);
@@ -521,7 +560,7 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
           </motion.div>
         )}
 
-        {/* 🔥 PAYOUT MODAL POPUP 🔥 */}
+        {/* 櫨 PAYOUT MODAL POPUP 櫨 */}
         {isPayoutModalOpen && (
           <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
             <motion.div

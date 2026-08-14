@@ -2,27 +2,29 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Star, CheckCircle2, AlertCircle, Smartphone, ShieldCheck, Sparkles, PlayCircle, RotateCcw, Headphones, ChevronRight } from "lucide-react";
+import { X, Play, Star, CheckCircle2, AlertCircle, Smartphone, ShieldCheck, Sparkles, RotateCcw, Headphones, ChevronRight, Laptop } from "lucide-react";
 import SurveyModal from '@/components/surveys/SurveyModal';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency'; 
 import Link from 'next/link';
 
-interface OfferCardProps {
+// 🔥 FIX: Added missing OfferCardProps interface here
+export interface OfferCardProps {
   offer: any;
   onClick?: () => void;
   isSurveyCard?: boolean; 
 }
 
-const AndroidIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[11px] h-[11px] fill-[#A4C639]"><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
+// --- DEVICE ICONS ---
+const AndroidIcon = ({ className = "w-[14px] h-[14px]" }) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-current`}><path d="M17.523 15.341c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm-11.046 0c.551 0 .998.447.998.998s-.447.998-.998.998-.998-.447-.998-.998.447-.998.998-.998zm11.38-5.343l2.05-3.551a.498.498 0 00-.182-.682.498.498 0 00-.682.182l-2.079 3.602c-1.472-.673-3.132-1.049-4.888-1.049s-3.416.376-4.888 1.049L5.341 5.767a.498.498 0 00-.682-.182.498.498 0 00-.182.682l2.05 3.551C3.518 11.458 1.5 14.869 1.5 18.828h21c0-3.959-2.018-7.37-5.023-8.83z"/></svg>
 );
 
-const AppleIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[11px] h-[11px] fill-white"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
+const AppleIcon = ({ className = "w-[14px] h-[14px]" }) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-current`}><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.72.845-1.391 2.275-1.222 3.637 1.35.104 2.623-.624 3.51-1.625z" /></svg>
 );
 
-const WindowsIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-[11px] h-[11px] fill-[#00A4EF]"><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
+const WindowsIcon = ({ className = "w-[14px] h-[14px]" }) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-current`}><path d="M0 3.448l9.143-1.25v8.714H0V3.448zm10.286-1.411L24 0v10.793H10.286V2.037zM0 12.828h9.143v8.714L0 20.294V12.828zm10.286 0H24V24l-13.714-1.931v-9.241z"/></svg>
 );
 
 function getUserId(): string {
@@ -50,6 +52,16 @@ const getCleanString = (val: any) => {
   return s;
 };
 
+function getCurrentDevice(): 'android' | 'ios' | 'windows' | 'mac' | 'unknown' {
+  if (typeof navigator === 'undefined') return 'unknown';
+  const ua = navigator.userAgent.toLowerCase();
+  if (/android/.test(ua)) return 'android';
+  if (/iphone|ipad|ipod/.test(ua)) return 'ios';
+  if (/mac/.test(ua)) return 'mac';
+  if (/windows/.test(ua)) return 'windows';
+  return 'unknown';
+}
+
 export const DeviceIcon = ({ offer }: { offer: any }) => {
   const rawDevice = String(offer?.device || offer?.devices || offer?.browsers || offer?.platform || offer?.os || offer?.device_type || '').toLowerCase().trim();
   
@@ -60,47 +72,39 @@ export const DeviceIcon = ({ offer }: { offer: any }) => {
 
   if (isAll) {
     return (
-      <div className="flex items-center gap-0.5 opacity-90">
-        <AndroidIcon/>
-        <AppleIcon/>
-        <WindowsIcon/>
+      <div className="flex items-center gap-0.5 opacity-90 text-[#8F95A3]">
+        <AndroidIcon className="w-[11px] h-[11px]" />
+        <AppleIcon className="w-[11px] h-[11px]" />
+        <WindowsIcon className="w-[11px] h-[11px]" />
       </div>
     );
   }
   
   return (
-    <div className="flex items-center gap-0.5 opacity-90">
-      {isAndroid && <AndroidIcon />}
-      {isIos && <AppleIcon />}
-      {isWindows && <WindowsIcon />}
+    <div className="flex items-center gap-0.5 opacity-90 text-[#8F95A3]">
+      {isAndroid && <AndroidIcon className="w-[11px] h-[11px]" />}
+      {isIos && <AppleIcon className="w-[11px] h-[11px]" />}
+      {isWindows && <WindowsIcon className="w-[11px] h-[11px]" />}
     </div>
   );
 };
 
-function OfferDetailsModal({ offer, isOpen, onClose }: any) {
+export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   const currency = useCurrency();
   const [details, setDetails] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessingClick, setIsProcessingClick] = useState(false);
+  
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [targetDeviceName, setTargetDeviceName] = useState<string>('Android');
-  const [currentOS, setCurrentOS] = useState<string>('Windows');
-  const [apiError, setApiError] = useState<string | null>(null); 
+  const [userCurrentDevice, setUserCurrentDevice] = useState<'android' | 'ios' | 'windows' | 'mac' | 'unknown'>('unknown');
   
+  const [apiError, setApiError] = useState<string | null>(null); 
   const [activeInnerTab, setActiveInnerTab] = useState<'rewards' | 'details'>('rewards');
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const ua = navigator.userAgent;
-      const isIOSUA = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      if (/Android/i.test(ua)) setCurrentOS('Android');
-      else if (isIOSUA) setCurrentOS('iOS');
-      else if (ua.includes('Win')) setCurrentOS('Windows');
-      else if (ua.includes('Mac')) setCurrentOS('macOS');
-      else if (ua.includes('Linux')) setCurrentOS('Linux');
-      else setCurrentOS('Desktop');
-    }
+    setUserCurrentDevice(getCurrentDevice());
   }, []);
 
   useEffect(() => {
@@ -169,13 +173,6 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       return;
     }
 
-    // 🔥 PRE-CHECK LOGIC TO PREVENT UI FLASH/REFRESH 🔥
-    const ua = navigator.userAgent;
-    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isAndroid = /Android/i.test(ua);
-    const isMobile = isIOS || isAndroid || /Mobi|Tablet/i.test(ua);
-    const isDesktop = !isMobile;
-
     const currentData = details || offer;
     const targetPlatforms = String(currentData?.device || currentData?.devices || currentData?.browsers || currentData?.platform || currentData?.os || currentData?.device_type || '').toLowerCase();
     
@@ -185,43 +182,33 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     const isOfferWindows = targetPlatforms.includes('windows') || targetPlatforms.includes('desktop') || targetPlatforms.includes('pc') || targetPlatforms.includes('win');
     const isOfferMac = targetPlatforms.includes('mac') || targetPlatforms.includes('osx');
 
-    const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isOfferMac || isUniversal);
-    const isStrictlyDesktopOffer = (isOfferWindows || isOfferMac) && !(isOfferAndroid || isOfferIos || isUniversal);
+    let isMismatch = false;
+    let targetForQR: 'ios' | 'android' | null = null;
 
-    let showQR = false;
-    let generateQRFor = 'Mobile Device';
-
-    if (isDesktop && isStrictlyMobileOffer) {
-      showQR = true;
-      if (isOfferAndroid && !isOfferIos) generateQRFor = 'Android';
-      else if (isOfferIos && !isOfferAndroid) generateQRFor = 'iOS';
-      else generateQRFor = 'Android or iOS';
-    } 
-    else if (isMobile && isStrictlyDesktopOffer) {
-      setApiError(`This offer is exclusively for ${isOfferWindows && !isOfferMac ? 'Windows' : isOfferMac && !isOfferWindows ? 'Mac' : 'Desktop'} PCs. Please complete this on your computer.`);
-      setIsProcessingClick(false);
-      return; 
-    }
-    else if (isAndroid && isOfferIos && !isOfferAndroid && !isUniversal) {
-      showQR = true;
-      generateQRFor = 'iOS';
-    }
-    else if (isIOS && isOfferAndroid && !isOfferIos && !isUniversal) {
-      showQR = true;
-      generateQRFor = 'Android';
+    if (!isUniversal) {
+       if (isOfferIos && !isOfferAndroid && userCurrentDevice !== 'ios') {
+          isMismatch = true;
+          targetForQR = 'ios';
+       } else if (isOfferAndroid && !isOfferIos && userCurrentDevice !== 'android') {
+          isMismatch = true;
+          targetForQR = 'android';
+       }
     }
 
-    // 🚀 If pre-check says it needs QR, generate instantly WITHOUT opening a new tab!
-    if (showQR) {
+    if ((isOfferIos || isOfferAndroid) && (userCurrentDevice === 'windows' || userCurrentDevice === 'mac')) {
+        isMismatch = true;
+        targetForQR = isOfferIos ? 'ios' : 'android';
+    }
+
+    if (isMismatch && targetForQR) {
       const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
-      setTargetDeviceName(generateQRFor);
+      setTargetDeviceName(targetForQR === 'ios' ? 'iOS' : 'Android');
       setQrCodeUrl(trackingUrl);
       setIsProcessingClick(false);
       return;
     }
 
-    // 🟢 ONLY if device is COMPATIBLE, we open the blank tab and wait for API.
-    const newTab: Window | null = window.open('about:blank', '_blank');
+    const newTab: Window | null = (userCurrentDevice === 'windows' || userCurrentDevice === 'mac') ? window.open('about:blank', '_blank') : null;
 
     try {
       const token = localStorage.getItem('token') || '';
@@ -237,18 +224,12 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       const responseText = await res.text();
       let finalRedirectUrl = '';
       let errorMessage = '';
-      let isDeviceError = false;
 
       try {
         const jsonRes = JSON.parse(responseText);
         
         if (jsonRes.type === 'error' || jsonRes.status === 'error' || jsonRes.code !== 200) {
           errorMessage = jsonRes.message || 'Offer unavailable.';
-          const msgLower = errorMessage.toLowerCase();
-          
-          if (msgLower.includes('device') || msgLower.includes('support') || msgLower.includes('platform') || msgLower.includes('os') || msgLower.includes('not allow')) {
-              isDeviceError = true;
-          }
         }
         finalRedirectUrl = jsonRes?.url || jsonRes?.link || jsonRes?.click_url || jsonRes?.data?.url || jsonRes?.data?.link || jsonRes?.data?.click_url || '';
       } catch (e) {
@@ -260,18 +241,9 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
         }
       }
 
-      // If backend explicitly rejected due to device mismatch even after our pre-check
       if (errorMessage && !finalRedirectUrl) {
         if (newTab) newTab.close();
-        
-        if (isDeviceError || isDesktop) {
-          const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
-          setTargetDeviceName('Mobile Device');
-          setQrCodeUrl(trackingUrl);
-        } else {
-          setApiError(errorMessage);
-        }
-        
+        setApiError(errorMessage);
         setIsProcessingClick(false);
         return;
       }
@@ -283,7 +255,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       if (newTab) {
         newTab.location.href = finalRedirectUrl;
       } else {
-        window.open(finalRedirectUrl, '_blank');
+        window.location.href = finalRedirectUrl;
       }
       onClose();
 
@@ -325,7 +297,7 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm">
         
         {qrCodeUrl ? (
           <motion.div 
@@ -343,9 +315,9 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
 
             <div className="relative p-6 pt-12 sm:p-8 sm:pt-14 flex flex-col items-center text-center w-full">
               <div className="absolute -top-7">
-                <div className="p-[2px] rounded-full bg-gradient-to-r from-purple-500 to-blue-500 shadow-[0_0_20px_rgba(168,85,247,0.6)]">
-                  <div className="bg-[#12121a] p-3 rounded-full flex items-center justify-center">
-                    {targetDeviceName.toLowerCase().includes('android') ? <AndroidIcon /> : targetDeviceName.toLowerCase().includes('windows') ? <WindowsIcon /> : <AppleIcon />}
+                <div className="p-[2px] rounded-full bg-gradient-to-r from-[#A855F7] to-[#3B82F6] shadow-[0_0_20px_rgba(168,85,247,0.6)]">
+                  <div className="bg-[#12121a] p-3 rounded-full flex items-center justify-center text-white">
+                    {targetDeviceName === 'Android' ? <AndroidIcon className="w-5 h-5" /> : targetDeviceName === 'iOS' ? <AppleIcon className="w-5 h-5" /> : <WindowsIcon className="w-5 h-5" />}
                   </div>
                 </div>
               </div>
@@ -353,13 +325,13 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
               <div className="mt-2 text-center space-y-3">
                 <h2 className="text-2xl font-extrabold text-white tracking-wide">Open on {targetDeviceName}</h2>
                 <div className="flex items-start justify-center gap-2 text-[#8F95A3] text-sm px-2">
-                  <Sparkles size={16} className="text-purple-400 shrink-0 mt-0.5" />
+                  <Sparkles size={16} className="text-[#A855F7] shrink-0 mt-0.5" />
                   <p className="leading-relaxed">Scan this QR code on a supported {targetDeviceName} device to start the offer.</p>
-                  <Sparkles size={16} className="text-purple-400 shrink-0 mt-0.5" />
+                  <Sparkles size={16} className="text-[#A855F7] shrink-0 mt-0.5" />
                 </div>
               </div>
 
-              <div className="mt-8 mb-8 p-1 rounded-[28px] bg-gradient-to-br from-purple-500 via-purple-400 to-blue-500 shadow-[0_0_35px_rgba(168,85,247,0.35)]">
+              <div className="mt-8 mb-8 p-1 rounded-[28px] bg-gradient-to-br from-[#A855F7] via-[#A855F7] to-[#3B82F6] shadow-[0_0_35px_rgba(168,85,247,0.35)]">
                 <div className="bg-white p-3 sm:p-4 rounded-[24px]">
                   <img 
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrCodeUrl)}&margin=10`} 
@@ -371,20 +343,20 @@ function OfferDetailsModal({ offer, isOpen, onClose }: any) {
 
               <div className="w-full bg-black/40 rounded-2xl p-3 flex items-center justify-between border border-gray-800/50">
                 <div className="flex items-center gap-4">
-                  <div className="bg-gray-800/60 p-2.5 rounded-xl text-purple-400">
-                    <Smartphone size={20} />
+                  <div className="bg-gray-800/60 p-2.5 rounded-xl text-[#A855F7]">
+                    {userCurrentDevice === 'windows' || userCurrentDevice === 'mac' ? <Laptop size={20} /> : <Smartphone size={20} />}
                   </div>
                   <div className="flex flex-col text-left">
                     <span className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">
                       Current device
                     </span>
-                    <span className="text-white font-bold text-base leading-tight">
-                      {currentOS}
+                    <span className="text-white font-bold text-base leading-tight capitalize">
+                      {userCurrentDevice}
                     </span>
                   </div>
                 </div>
-                <div className="bg-white/5 p-2.5 rounded-xl border border-white/5 flex items-center justify-center w-10 h-10">
-                  {currentOS === 'Windows' ? <WindowsIcon /> : currentOS === 'Android' ? <AndroidIcon /> : <AppleIcon />}
+                <div className="bg-white/5 p-2.5 rounded-xl border border-white/5 flex items-center justify-center w-10 h-10 text-[#00E57A]">
+                  {userCurrentDevice === 'windows' ? <WindowsIcon className="w-4 h-4" /> : userCurrentDevice === 'mac' ? <AppleIcon className="w-4 h-4" /> : userCurrentDevice === 'ios' ? <AppleIcon className="w-4 h-4" /> : <AndroidIcon className="w-4 h-4" />}
                 </div>
               </div>
             </div>

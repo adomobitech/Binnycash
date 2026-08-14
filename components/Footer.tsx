@@ -2,28 +2,23 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from './AuthContext'; // AuthContext hook for register modal
+import { useAuth } from './AuthContext';
+import { useTranslation } from './LanguageContext';
 
 export default function Footer() {
   const { openRegister } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
 
-  // Helper Function for Auth & Routing logic
   const handleAuthNavigation = (e: React.MouseEvent<HTMLAnchorElement>, path: string, targetId?: string) => {
-    e.preventDefault(); // Default link navigation ko roko
-    
-    // Check if user is logged in
+    e.preventDefault();
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
     if (!token) {
-      // User login nahi hai -> Form kholo
       openRegister();
     } else {
-      // User login hai -> Us route par bhejo
       if (targetId) {
-        // Agar id mili hai toh Dashboard open kar ke waha scroll karna hai
         router.push(path);
-        // Timeout isliye taaki naya page mount ho sake
         setTimeout(() => {
           const section = document.getElementById(targetId);
           if (section) {
@@ -81,48 +76,35 @@ export default function Footer() {
     <footer className="w-full bg-[#050208] pt-16 pb-12 px-6 relative overflow-hidden font-sans border-t border-white/[0.04]">
       <div className="max-w-[1250px] mx-auto relative z-10">
         
-        {/* Top CTA Banner */}
         <div className="w-full bg-[#080512] border border-[#2e1065] rounded-3xl p-8 md:p-10 flex flex-col lg:flex-row items-center justify-between mb-16 shadow-[0_0_50px_rgba(126,34,206,0.15)] relative overflow-hidden">
           
-          {/* Left Text & Sub-points */}
           <div className="flex flex-col items-center lg:items-start text-center lg:text-left mb-6 lg:mb-0 z-10">
             <h3 className="text-white font-black text-2xl md:text-3xl tracking-tight mb-2">
-              Ready to start <span className="text-[#a855f7]">grinding</span>?
+              {t.Footer?.title1 || 'Ready to start'} <span className="text-[#a855f7]">{t.Footer?.title2 || 'grinding?'}</span>
             </h3>
             <p className="text-[#8F95A3] text-xs md:text-sm font-medium mb-6">
-              Join BinnyCash today and get your first payout in minutes.
+              {t.Footer?.subtitle || 'Join BinnyCash today and get your first payout in minutes.'}
             </p>
 
-            {/* Sub-features list */}
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs font-bold text-[#8F95A3]">
-              <div className="flex items-center gap-2">
-                <span className="text-[#a855f7]">👤</span> Quick Signup
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[#00E57A]">📋</span> Complete Tasks
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-yellow-400">💳</span> Get Paid
-              </div>
+              <div className="flex items-center gap-2"><span className="text-[#a855f7]">👤</span> {t.Footer?.p1 || 'Quick Signup'}</div>
+              <div className="flex items-center gap-2"><span className="text-[#00E57A]">📋</span> {t.Footer?.p2 || 'Complete Tasks'}</div>
+              <div className="flex items-center gap-2"><span className="text-yellow-400">💳</span> {t.Footer?.p3 || 'Get Paid'}</div>
             </div>
           </div>
 
-          {/* Right Button & Helper text */}
           <div className="flex flex-col items-center lg:items-end z-10">
             <button 
               onClick={openRegister}
               className="bg-gradient-to-r from-[#7e22ce] to-[#9333ea] hover:from-[#6d28d9] hover:to-[#7e22ce] text-white font-black text-xs uppercase tracking-widest px-8 py-4 rounded-xl transition-all shadow-[0_0_25px_rgba(168,85,247,0.4)] cursor-pointer flex items-center gap-2"
             >
-              <span>👤+</span> CREATE FREE ACCOUNT
+              <span>👤+</span> {t.Footer?.btnCreate || 'CREATE FREE ACCOUNT'}
             </button>
-            <span className="text-[11px] text-[#8F95A3] mt-2 font-medium">It's free & only takes a minute!</span>
+            <span className="text-[11px] text-[#8F95A3] mt-2 font-medium">{t.Footer?.freeNote || "It's free & only takes a minute!"}</span>
           </div>
         </div>
 
-        {/* Main Footer Links Container */}
         <div className="bg-[#070310] border border-[#1a102f] rounded-3xl p-8 md:p-12 grid grid-cols-1 md:grid-cols-12 gap-10 mb-12 shadow-inner">
-          
-          {/* Brand Col */}
           <div className="col-span-1 md:col-span-5 flex flex-col items-start">
             <Link href="/" className="inline-flex items-center gap-3 mb-4 group">
               <img src="/logo.png" alt="BinnyCash Logo" className="h-9 w-auto object-contain group-hover:scale-105 transition-transform" />
@@ -130,79 +112,44 @@ export default function Footer() {
             </Link>
 
             <p className="text-[#8F95A3] text-xs md:text-sm leading-relaxed mb-6 max-w-sm">
-              The premier platform for gamers and hustlers to earn real cash by completing offers, premium surveys, and leveling the leaderboard.
+              {t.Footer?.desc || 'The premier platform for gamers and hustlers to earn real cash by completing offers, premium surveys, and leveling the leaderboard.'}
             </p>
 
-            {/* Social Icons */}
             <div className="flex items-center gap-3">
               {socialLinks.map((social, i) => (
-                <a 
-                  key={i} 
-                  href={social.url} 
-                  target="_blank" 
-                  rel="noreferrer"
-                  title={social.name}
-                  className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white hover:border-[#a855f7] hover:bg-[#a855f7]/20 transition-all duration-300"
-                >
+                <a key={i} href={social.url} target="_blank" rel="noreferrer" title={social.name} className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white hover:border-[#a855f7] hover:bg-[#a855f7]/20 transition-all duration-300">
                   {social.icon}
                 </a>
               ))}
             </div>
           </div>
 
-          {/* Links Cols */}
           <div className="col-span-1 md:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-8">
             <div>
               <h4 className="text-white font-bold text-xs tracking-[0.2em] uppercase mb-5 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#a855f7]"></span> Platform
+                <span className="w-1.5 h-1.5 rounded-full bg-[#a855f7]"></span> {t.Footer?.platform || 'Platform'}
               </h4>
               <ul className="space-y-3 text-[#8F95A3] text-xs font-medium">
-                {/* Custom Auth Navigations applied here */}
-                <li>
-                  <a href="/dashboard" onClick={(e) => handleAuthNavigation(e, '/dashboard', 'offerwalls')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
-                    <span className="text-[#a855f7]">›</span> Offerwalls
-                  </a>
-                </li>
-                <li>
-                  <a href="/dashboard" onClick={(e) => handleAuthNavigation(e, '/dashboard', 'surveys')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
-                    <span className="text-[#a855f7]">›</span> Premium Surveys
-                  </a>
-                </li>
-                <li>
-                  <a href="/leaderboard" onClick={(e) => handleAuthNavigation(e, '/leaderboard')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
-                    <span className="text-[#a855f7]">›</span> Live Leaderboard
-                  </a>
-                </li>
-                <li>
-                  <a href="/cashout" onClick={(e) => handleAuthNavigation(e, '/cashout')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
-                    <span className="text-[#a855f7]">›</span> Cashout Options
-                  </a>
-                </li>
+                <li><a href="/dashboard" onClick={(e) => handleAuthNavigation(e, '/dashboard', 'offerwalls')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer"><span className="text-[#a855f7]">›</span> Offerwalls</a></li>
+                <li><a href="/dashboard" onClick={(e) => handleAuthNavigation(e, '/dashboard', 'surveys')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer"><span className="text-[#a855f7]">›</span> Premium Surveys</a></li>
+                <li><a href="/leaderboard" onClick={(e) => handleAuthNavigation(e, '/leaderboard')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer"><span className="text-[#a855f7]">›</span> Live Leaderboard</a></li>
+                <li><a href="/cashout" onClick={(e) => handleAuthNavigation(e, '/cashout')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer"><span className="text-[#a855f7]">›</span> Cashout Options</a></li>
               </ul>
             </div>
 
             <div>
               <h4 className="text-white font-bold text-xs tracking-[0.2em] uppercase mb-5 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00E57A]"></span> Support
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00E57A]"></span> {t.Footer?.support || 'Support'}
               </h4>
               <ul className="space-y-3 text-[#8F95A3] text-xs font-medium">
-                {/* Help/Support Navigation modified here */}
-                <li>
-                  <a href="/support" onClick={(e) => handleAuthNavigation(e, '/support')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
-                    <span className="text-[#00E57A]">›</span> Help Center / FAQ
-                  </a>
-                </li>
-                <li>
-                  <a href="https://discord.gg/binnycash" target="_blank" rel="noreferrer" className="hover:text-white transition-colors flex items-center gap-2">
-                    <span className="text-[#00E57A]">›</span> Community Discord
-                  </a>
-                </li>
+                <li><a href="/support" onClick={(e) => handleAuthNavigation(e, '/support')} className="hover:text-white transition-colors flex items-center gap-2 cursor-pointer"><span className="text-[#00E57A]">›</span> Help Center / FAQ</a></li>
+                <li><a href="https://discord.gg/binnycash" target="_blank" rel="noreferrer" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-[#00E57A]">›</span> Community Discord</a></li>
               </ul>
             </div>
 
             <div className="col-span-2 md:col-span-1">
               <h4 className="text-white font-bold text-xs tracking-[0.2em] uppercase mb-5 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span> Legal
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span> {t.Footer?.legal || 'Legal'}
               </h4>
               <ul className="space-y-3 text-[#8F95A3] text-xs font-medium">
                 <li><Link href="/terms" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-sky-400">›</span> Terms of Service</Link></li>
@@ -211,17 +158,14 @@ export default function Footer() {
               </ul>
             </div>
           </div>
-
         </div>
 
-        {/* Bottom Copyright & Disclaimer */}
         <div className="border-t border-white/[0.04] pt-8 flex flex-col md:flex-row items-center justify-between text-[#8F95A3] text-xs font-medium gap-4">
           <p>© {new Date().getFullYear()} BinnyCash. All rights reserved.</p>
           <div className="flex items-center gap-1.5 text-xs">
-            <span>Built for hustlers. Backed by you.</span>
+            <span>{t.Footer?.copyright || 'Built for hustlers. Backed by you.'}</span>
           </div>
          </div>
-
       </div>
     </footer>
   );

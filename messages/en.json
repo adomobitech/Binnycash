@@ -1,0 +1,114 @@
+{
+  "Navbar": {
+    "selectRegion": "SELECT REGION",
+    "login": "Login",
+    "signup": "Sign Up",
+    "links": {
+      "earn": "Earn",
+      "myOffers": "My Offers",
+      "affiliate": "Affiliate",
+      "leaderboard": "Leaderboard",
+      "cashout": "Cashout",
+      "rewards": "Rewards"
+    }
+  },
+  "Hero": {
+    "tagline": "The Ultimate Earning Hub",
+    "title1": "Level Up Your",
+    "title2": "Wallet Today.",
+    "subtitle": "Play top-tier games, conquer high-paying surveys, and withdraw your cash instantly. No hidden fees. No limits. Just pure profit.",
+    "btnStart": "Start Grinding Now",
+    "btnHow": "How It Works",
+    "stats": {
+      "users": "Active Warriors",
+      "live": "Live Missions",
+      "time": "Instant Payouts",
+      "success": "Success Rate"
+    }
+  },
+  "Features": {
+    "tagline": "Level Up Your Earnings",
+    "title1": "Built For The",
+    "title2": "Grind",
+    "subtitle": "Complete high-paying surveys & epic offers. For Gamers, Hustlers & Dreamers.",
+    "f1": { "title": "Free To Play", "desc": "No investment required" },
+    "f2": { "title": "Premium Surveys", "desc": "Get paid for your opinions" },
+    "f3": { "title": "Epic Offers", "desc": "Play games & test apps" },
+    "f4": { "title": "Instant Cashouts", "desc": "Withdraw your loot fast" },
+    "f5": { "title": "100% Secure", "desc": "Safe, verified platform" }
+  },
+  "Cashout": {
+    "supported": "Supported Payouts",
+    "title": "Instant Withdrawals",
+    "avgTime": "Avg. Time < 60 Seconds",
+    "trusted": "Verified & Trusted",
+    "trustedDesc": "100% secure platform algorithms",
+    "latest": "LATEST WITHDRAWALS",
+    "live": "Live Network",
+    "scanning": "Scanning Network",
+    "scanDesc": "No recent withdrawals detected in the live pool. Awaiting next cashout...",
+    "encrypted": "Encrypted Payouts",
+    "encryptedDesc": "Bank-grade API security",
+    "automated": "Automated System",
+    "automatedDesc": "No manual processing holds"
+  },
+  "LowerHero": {
+    "tagline": "How It Works",
+    "title1": "Earn In",
+    "title2": "4 Simple Steps",
+    "subtitle": "Play, complete & earn real cash rewards in just a few clicks",
+    "s1": { "title": "SIGN UP FREE", "desc": "Create your free account in seconds and get started" },
+    "s2": { "title": "PLAY & COMPLETE", "desc": "Play games, try apps, take surveys & more" },
+    "s3": { "title": "EARN POINTS", "desc": "Complete tasks and earn exciting rewards" },
+    "s4": { "title": "WITHDRAW CASH", "desc": "Withdraw your earnings instantly to your wallet" },
+    "leaderboard": "DAILY TOP EARNERS",
+    "live": "Live Updates",
+    "noEarners": "No earners logged for today yet. Start playing to rank first!",
+    "btnStart": "START EARNING NOW",
+    "f1": "100% Encrypted & Safe",
+    "f2": "Instant Wallet Withdrawals",
+    "f3": "Verified Offer Walls"
+  },
+  "Testimonials": {
+    "tagline": "EARLY FEEDBACK",
+    "title1": "VOICES FROM THE",
+    "title2": "GRIND",
+    "subtitle": "Real feedback from our initial 5-member closed alpha cohort."
+  },
+  "FAQ": {
+    "tagline": "INTEL CENTER",
+    "title1": "MISSION",
+    "title2": "BRIEFING",
+    "subtitle": "Everything you need to know about BinnyCash",
+    "q1": "How do I start earning?",
+    "a1": "Sign up, explore tasks, complete offers and surveys, and earn exciting rewards.",
+    "q2": "Is there any investment required?",
+    "a2": "No, BinnyCash is 100% free to join and start earning.",
+    "q3": "How fast are the cashouts?",
+    "a3": "Cashouts are processed instantly. You'll receive your money in minutes.",
+    "q4": "Why do some surveys get rejected?",
+    "a4": "Surveys may be rejected if attention checks fail or answers are inconsistent.",
+    "b1": { "t": "100% Free", "d": "No hidden charges" },
+    "b2": { "t": "Safe & Secure", "d": "Your data is protected" },
+    "b3": { "t": "Trusted Platform", "d": "Loved by thousands" },
+    "b4": { "t": "Instant Payouts", "d": "Withdraw in minutes" },
+    "contact": "Still have questions?",
+    "contactDesc": "Our support team is always here to help you.",
+    "btnContact": "CONTACT SUPPORT"
+  },
+  "Footer": {
+    "title1": "Ready to start",
+    "title2": "grinding?",
+    "subtitle": "Join BinnyCash today and get your first payout in minutes.",
+    "p1": "Quick Signup",
+    "p2": "Complete Tasks",
+    "p3": "Get Paid",
+    "btnCreate": "CREATE FREE ACCOUNT",
+    "freeNote": "It's free & only takes a minute!",
+    "desc": "The premier platform for gamers and hustlers to earn real cash by completing offers, premium surveys, and leveling the leaderboard.",
+    "platform": "Platform",
+    "support": "Support",
+    "legal": "Legal",
+    "copyright": "Built for hustlers. Backed by you."
+  }
+}
