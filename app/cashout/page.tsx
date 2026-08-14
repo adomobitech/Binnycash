@@ -6,7 +6,7 @@ import {
   Wallet, Coins, CreditCard, IndianRupee,
   Clock, ShieldCheck, ChevronRight, Zap, 
   Landmark, CircleDollarSign, User, Calendar, 
-  MapPin, Building, Hash, UploadCloud, X, ChevronDown, CheckCircle2, AlertCircle, Camera, Loader2, Smartphone, Mail, RefreshCw
+  MapPin, Building, Hash, UploadCloud, X, ChevronDown, CheckCircle2, AlertCircle, Camera, Loader2, Smartphone, Mail, RefreshCw, AlertTriangle
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -28,6 +28,19 @@ function getUserId(): string {
   } catch {}
   return '';
 }
+
+// --- SAFE JSON PARSER (Fixes <!DOCTYPE HTML> Error) ---
+const safeJsonParse = async (res: Response) => {
+  try {
+    const text = await res.text();
+    if (text && !text.trim().startsWith('<')) {
+      return JSON.parse(text);
+    }
+    return { code: 500, data: null, message: "HTML returned instead of JSON" };
+  } catch (error) {
+    return { code: 500, data: null, message: "Parse Failed" };
+  }
+};
 
 // --- CUSTOM SVG ICONS ---
 const UPIIcon = () => (
@@ -71,7 +84,6 @@ const features = [
   { icon: <ShieldCheck className="w-5 h-5 text-[#8B5CF6]" />, title: '24/7 Support', desc: "We're here to help you anytime" },
 ];
 
-// Database of major Indian cities for fallback checking
 const indianCities = [
   'delhi', 'mumbai', 'bangalore', 'bengaluru', 'hyderabad', 'chennai', 'kolkata', 'pune', 'ahmedabad', 
   'jaipur', 'surat', 'lucknow', 'kanpur', 'nagpur', 'indore', 'thane', 'bhopal', 'visakhapatnam', 
@@ -144,17 +156,12 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
         body: data,
       });
 
-      const responseText = await res.text();
-      try {
-        const json = JSON.parse(responseText);
-        if (res.ok || json.responseCode === 0 || json.code === 200 || json.type === 'success') {
-          setMessage('KYC Submitted Successfully!');
-          setTimeout(() => { onSuccess(); onClose(); }, 1500);
-        } else {
-          setMessage(json.responseMessage || json.message || 'Submission failed.');
-        }
-      } catch {
-        setMessage('Server error: API endpoint invalid.');
+      const json = await safeJsonParse(res);
+      if (res.ok || json.responseCode === 0 || json.code === 200 || json.type === 'success') {
+        setMessage('KYC Submitted Successfully!');
+        setTimeout(() => { onSuccess(); onClose(); }, 1500);
+      } else {
+        setMessage(json.responseMessage || json.message || 'Submission failed.');
       }
     } catch (err) {
       setMessage('Network error. Please try again.');
@@ -357,16 +364,62 @@ function VerificationAlertModal({ isOpen, onClose, onVerifyNow, kycStatus }: { i
   );
 }
 
-// --- INSUFFICIENT BALANCE ALERT MODAL ---
-function InsufficientBalanceModal({ isOpen, onClose, minText }: { isOpen: boolean; onClose: () => void; minText: string }) {
+// --- 🔥 NEW PREMIUM INSUFFICIENT BALANCE ALERT MODAL 🔥 ---
+function InsufficientBalanceModal({ isOpen, onClose, minText, currentBalance, isCoin, currency }: { isOpen: boolean; onClose: () => void; minText: string, currentBalance: number, isCoin: boolean, currency: string }) {
   if (!isOpen) return null;
+
+  const minRequired = isCoin ? 5000 : 5;
+  const progressPercent = Math.min((currentBalance / minRequired) * 100, 100);
+  const remainingAmount = Math.max(minRequired - currentBalance, 0);
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#070913]/85 backdrop-blur-md p-4">
-      <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="relative w-full max-w-[440px] bg-[#0E111E] border border-[#8B5CF6]/30 rounded-[32px] p-6 sm:p-8 text-center text-white shadow-2xl">
-        <AlertCircle className="w-14 h-14 text-amber-400 mx-auto mb-4" />
-        <h3 className="text-2xl font-black mb-2.5">Minimum Balance Required</h3>
-        <p className="text-sm text-[#8F95A3] mb-8 px-2">Your available balance is below the minimum withdrawal limit. You need at least {minText} to request a withdrawal.</p>
-        <button onClick={onClose} className="w-full py-3.5 bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] rounded-2xl font-bold text-sm hover:opacity-90 cursor-pointer">Got it</button>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+        animate={{ opacity: 1, scale: 1, y: 0 }} 
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="relative w-full max-w-sm bg-[#111319] border border-white/10 rounded-3xl p-6 sm:p-8 text-center shadow-2xl overflow-hidden"
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="w-16 h-16 rounded-full bg-rose-500/10 border-2 border-rose-500/20 flex items-center justify-center mx-auto mb-5">
+          <AlertTriangle className="w-7 h-7 text-rose-500" />
+        </div>
+
+        <h3 className="text-xl font-black text-white mb-2">Insufficient Balance</h3>
+        <p className="text-sm text-[#8F95A3] mb-6">
+          You need at least <span className="font-bold text-white">{minText}</span> to request a withdrawal. Keep completing tasks to reach the goal!
+        </p>
+
+        {/* Progress Bar Section */}
+        <div className="bg-[#1A1C24] rounded-2xl p-4 mb-6 border border-white/5">
+          <div className="flex justify-between text-xs font-bold text-white mb-2">
+            <span>{formatPrice(currentBalance, currency)}</span>
+            <span className="text-[#8F95A3]">{minText}</span>
+          </div>
+          <div className="w-full h-3 rounded-full bg-white/5 overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }} 
+              animate={{ width: `${progressPercent}%` }} 
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#A66CFF] rounded-full relative"
+            >
+               <div className="absolute inset-0 bg-white/20 w-full h-full transform -skew-x-12 animate-[shimmer_2s_infinite]"></div>
+            </motion.div>
+          </div>
+          <p className="text-[11px] text-[#A66CFF] font-bold mt-3 text-center">
+            Only {formatPrice(remainingAmount, currency)} more to go!
+          </p>
+        </div>
+
+        <button 
+          onClick={onClose} 
+          className="w-full py-3.5 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] rounded-2xl font-bold text-sm text-white shadow-[0_4px_15px_rgba(139,92,246,0.3)] hover:shadow-[0_4px_20px_rgba(139,92,246,0.5)] transition-all cursor-pointer"
+        >
+          Earn More
+        </button>
       </motion.div>
     </div>
   );
@@ -409,35 +462,32 @@ export default function CashoutPage() {
       const token = localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 
-      const resEarning = await fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', { method: 'GET', headers });
-      const jsonEarning = await resEarning.json();
+      const [resEarning, resView, resUserData] = await Promise.all([
+        fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', { method: 'GET', headers }),
+        fetch('https://apitest.binnycash.com/api/user/wallet/view', { method: 'GET', headers }),
+        fetch('https://apitest.binnycash.com/api/user/viewData', { method: 'GET', headers })
+      ]);
+
+      const [jsonEarning, jsonView, jsonUserData] = await Promise.all([
+        safeJsonParse(resEarning),
+        safeJsonParse(resView),
+        safeJsonParse(resUserData)
+      ]);
+
       if (jsonEarning.code === 200 && jsonEarning.data) setTotalEarning(jsonEarning.data);
-
-      const resView = await fetch('https://apitest.binnycash.com/api/user/wallet/view', { method: 'GET', headers });
-      const jsonView = await resView.json();
       if (jsonView.code === 200 && jsonView.data) setPendingAmount(jsonView.data.totalPendingAmount ?? '0.00');
-
-      const resUserData = await fetch('https://apitest.binnycash.com/api/user/viewData', { method: 'GET', headers });
-      const jsonUserData = await resUserData.json();
       
       if (jsonUserData.code === 200) {
         const user = jsonUserData.data?.user || jsonUserData.data;
         if (user) {
-          // Dynamic Country Verification for Withdrawal Options
           const countryStr = String(user.country || '').toLowerCase().trim();
           const cityStr = String(user.city || '').toLowerCase().trim();
           
-          let isIndia = true; // Default
-
+          let isIndia = true;
           if (countryStr) {
-            if (countryStr === 'india' || countryStr === 'in' || countryStr === 'ind') {
-              isIndia = true;
-            } else {
-              // Not India, but cross check city just in case
-              isIndia = indianCities.includes(cityStr);
-            }
+            if (countryStr === 'india' || countryStr === 'in' || countryStr === 'ind') isIndia = true;
+            else isIndia = indianCities.includes(cityStr);
           } else if (cityStr) {
-            // Only city exists
             isIndia = indianCities.includes(cityStr);
           }
           
@@ -466,7 +516,7 @@ export default function CashoutPage() {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
       });
-      const json = await res.json();
+      const json = await safeJsonParse(res);
       if (json.code === 200 && json.data?.list) {
         setWithdrawals(json.data.list);
       }
@@ -581,7 +631,7 @@ export default function CashoutPage() {
         body: payload
       });
 
-      const data = await res.json();
+      const data = await safeJsonParse(res);
 
       if (res.ok || data.code === 200 || data.type === 'success') {
         setMsg({ text: data.message || 'Withdrawal request submitted successfully!', type: 'success' });
@@ -1007,7 +1057,16 @@ export default function CashoutPage() {
 
       <KycModal isOpen={isKycOpen} onClose={() => setIsKycOpen(false)} onSuccess={() => { setKycStatus('pending'); fetchUserData(); }} />
       <VerificationAlertModal isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} onVerifyNow={() => { setIsAlertOpen(false); setIsKycOpen(true); }} kycStatus={kycStatus} />
-      <InsufficientBalanceModal isOpen={isBalanceAlertOpen} onClose={() => setIsBalanceAlertOpen(false)} minText={isCoin ? '5000 Coins' : '$5.00'} />
+      
+      {/* 🔥 NEW INSUFFICIENT BALANCE MODAL 🔥 */}
+      <InsufficientBalanceModal 
+        isOpen={isBalanceAlertOpen} 
+        onClose={() => setIsBalanceAlertOpen(false)} 
+        minText={isCoin ? '5000 Coins' : '$5.00'} 
+        currentBalance={Number(totalEarning)}
+        isCoin={isCoin}
+        currency={currency}
+      />
 
     </div>
   );

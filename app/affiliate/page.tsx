@@ -6,7 +6,7 @@ import {
   Copy, Users, ShieldAlert, Clock, Wallet, DollarSign,
   CheckCircle2, Circle, ShieldCheck, Medal, Star, Crown,
   ArrowRight, Percent, Infinity, Zap, BarChart2, Headphones, Info, X, Loader2,
-  Award, Sparkles, Shield
+  Award, Sparkles, Shield, Lock
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 import Link from 'next/link';
@@ -117,11 +117,11 @@ export default function AffiliatePage() {
   const [isLearnMoreOpen, setIsLearnMoreOpen] = useState(false);
 
   const [dashboardData, setDashboardData] = useState<any>({
-    totalReferUsers: 0,
+    totalRefer: 0,
     totalReferEarning: 0,
-    totalProcessingAmount: 0,
-    totalReferReverse: 0,
-    totalNetCommission: 0
+    totalPendingAmount: 0,
+    totalReversalAmount: 0,
+    totalCommission: 0
   });
   
   const [availableBalance, setAvailableBalance] = useState<string>('0.00');
@@ -131,7 +131,6 @@ export default function AffiliatePage() {
   const [claimHistory, setClaimHistory] = useState<any[]>([]);
   const [affiliateUsers, setAffiliateUsers] = useState<any[]>([]);
   const [topAffiliates, setTopAffiliates] = useState<any[]>([]); 
-  const [referHistory, setReferHistory] = useState<any[]>([]); 
 
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -146,21 +145,39 @@ export default function AffiliatePage() {
       const userId = getUserId();
       if (!userId) { setIsLoading(false); return; }
 
+      const safeParse = async (res: Response) => {
+        try {
+          const text = await res.text();
+          if (text && !text.trim().startsWith('<')) {
+            return JSON.parse(text);
+          }
+          return { code: 500, data: null, message: "HTML returned instead of JSON" };
+        } catch (error) {
+          return { code: 500, data: null, message: "Parse Failed" };
+        }
+      };
+
       try {
-        const [dashRes, balanceRes, profileRes, tierRes, historyRes, affiliateListRes, topReferRes, walletTierRes, referHistoryRes] = await Promise.all([
-          fetch(`https://apitest.binnycash.com/api/user/affiliate_dashboard?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        const [dashRes, balanceRes, profileRes, tierRes, historyRes, affiliateListRes, topReferRes, walletTierRes] = await Promise.all([
+          fetch(`https://apitest.binnycash.com/api/user/affiliate_overview`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/wallet/refer-earning-balance`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/viewData?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`https://apitest.binnycash.com/api/user/affiliateTierLevel?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`https://apitest.binnycash.com/api/user/affiliateTierLevel`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/wallet/claim-earning-history`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/UserReferList?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/topRefer`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`https://apitest.binnycash.com/api/user/wallet/tier-level`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`https://apitest.binnycash.com/api/user/wallet/refer-earning-report`, { headers: { 'Authorization': `Bearer ${token}` } })
+          fetch(`https://apitest.binnycash.com/api/user/wallet/tier-level`, { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
 
-        const [dashJson, balanceJson, profileJson, tierJson, historyJson, affiliateListJson, topReferJson, walletTierJson, referHistoryJson] = await Promise.all([
-          dashRes.json(), balanceRes.json(), profileRes.json(), tierRes.json(), historyRes.json(), affiliateListRes.json(), topReferRes.json(), walletTierRes.json(), referHistoryRes.json()
+        const [dashJson, balanceJson, profileJson, tierJson, historyJson, affiliateListJson, topReferJson, walletTierJson] = await Promise.all([
+          safeParse(dashRes), 
+          safeParse(balanceRes), 
+          safeParse(profileRes), 
+          safeParse(tierRes), 
+          safeParse(historyRes), 
+          safeParse(affiliateListRes), 
+          safeParse(topReferRes), 
+          safeParse(walletTierRes)
         ]);
 
         if (dashJson.code === 200 && dashJson.data) setDashboardData(dashJson.data);
@@ -178,7 +195,6 @@ export default function AffiliatePage() {
         }
 
         if (walletTierJson.code === 200 && walletTierJson.data) setCurrentBonusInfo(walletTierJson.data);
-        if (referHistoryJson.code === 200 && Array.isArray(referHistoryJson.data)) setReferHistory(referHistoryJson.data);
 
       } catch (error) {
         console.error('Error fetching affiliate data:', error);
@@ -251,9 +267,9 @@ export default function AffiliatePage() {
           <div className="flex gap-4 w-full md:w-auto overflow-x-auto no-scrollbar pb-2 md:pb-0">
             {[
               { icon: Users, color: '#A855F7', bg: 'bg-[#8B5CF6]/20', text: 'Total Earnings', value: formatPrice(Number(dashboardData?.totalReferEarning) || 0, currency) },
-              { icon: DollarSign, color: '#10B981', bg: 'bg-[#10B981]/20', text: 'Total Referrals', value: dashboardData?.totalReferUsers || 0 },
-              { icon: ShieldAlert, color: '#F59E0B', bg: 'bg-[#F59E0B]/20', text: 'Pending Earnings', value: formatPrice(Number(dashboardData?.totalProcessingAmount) || 0, currency) },
-              { icon: Wallet, color: '#3B82F6', bg: 'bg-[#3B82F6]/20', text: 'Paid Earnings', value: formatPrice(Number(dashboardData?.totalNetCommission) || 0, currency) },
+              { icon: DollarSign, color: '#10B981', bg: 'bg-[#10B981]/20', text: 'Total Referrals', value: dashboardData?.totalRefer || 0 },
+              { icon: ShieldAlert, color: '#F59E0B', bg: 'bg-[#F59E0B]/20', text: 'Pending Earnings', value: formatPrice(Number(dashboardData?.totalPendingAmount) || 0, currency) },
+              { icon: Wallet, color: '#3B82F6', bg: 'bg-[#3B82F6]/20', text: 'Paid Earnings', value: formatPrice(Number(dashboardData?.totalCommission) || 0, currency) },
             ].map((stat, i) => (
               <motion.div key={i} variants={fadeUp} custom={i} whileHover={{ y: -5 }} className="bg-[#161821] border border-white/5 rounded-2xl p-4 flex flex-col justify-between w-[160px] shrink-0 shadow-lg relative overflow-hidden transition-colors hover:border-white/10">
                  <div className="flex items-center gap-3 relative z-10">
@@ -304,7 +320,7 @@ export default function AffiliatePage() {
                 {isWithdrawing ? 'Processing...' : 'Withdraw Now'}
               </motion.button>
               <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#8F95A3] font-medium mt-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#8B5CF6]" /> Secure payout 窶｢ Processed instantly
+                <ShieldCheck className="w-3.5 h-3.5 text-[#8B5CF6]" /> Secure payout • Processed instantly
               </div>
             </div>
           </motion.div>
@@ -457,7 +473,6 @@ export default function AffiliatePage() {
             {[
               { id: 'tier', label: 'Level Structure' },
               { id: 'affiliate', label: 'Affiliate Stats' },
-              { id: 'history', label: 'Referral History' },
               { id: 'payouts', label: 'Payout History' },
             ].map((tab) => (
               <button
@@ -474,51 +489,80 @@ export default function AffiliatePage() {
           </div>
 
           <AnimatePresence mode="wait">
-          {/* LEVEL TAB CONTENT */}
+          
+          {/* 🔥 DYNAMIC LEVEL TAB CONTENT 🔥 */}
           {activeTab === 'tier' && (
             <motion.div key="tier" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
+              
+              {/* Optional Progress bar for visual upgrade */}
+              <div className="mb-6 flex flex-col gap-2 bg-[#0B0D14] border border-white/5 p-4 rounded-2xl">
+                 <div className="flex justify-between items-center text-sm font-bold">
+                    <span className="text-white flex items-center gap-2">
+                       <Award className="w-4 h-4 text-[#8B5CF6]"/> Current Earnings
+                    </span>
+                    <span className="text-[#00E57A]">{formatPrice(Number(tierData?.currentReferralEarning || 0), currency)}</span>
+                 </div>
+              </div>
+
               <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
                 {tierData?.levels?.map((tier: any, idx: number) => {
                   const levelNum = tier.level;
                   const isCurrent = levelNum === tierData.currentTier;
-                  const req = `${tier.referralAmount}+ Active Referrals`;
+                  const isCompleted = levelNum < tierData.currentTier;
+                  const isLocked = levelNum > tierData.currentTier;
+                  
+                  const reqEarnings = Number(tier.referralAmount) || 0;
+                  const reqText = `${formatPrice(reqEarnings, currency)}+ Referral Earnings`;
                   const comm = tier.commissionPercent;
 
                   return (
-                    <motion.div key={idx} variants={fadeUp} custom={idx} whileHover={{ y: -4, scale: 1.015 }} transition={{ type: 'spring', stiffness: 260, damping: 20 }} className={`relative bg-[#0B0D14] border ${isCurrent ? 'border-[#8B5CF6] shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'border-white/5'} rounded-2xl p-4 flex flex-col`}>
+                    <motion.div 
+                      key={idx} 
+                      variants={fadeUp} 
+                      custom={idx} 
+                      whileHover={{ y: -4, scale: 1.015 }} 
+                      transition={{ type: 'spring', stiffness: 260, damping: 20 }} 
+                      className={`relative bg-[#0B0D14] border ${isCurrent ? 'border-[#8B5CF6] shadow-[0_0_15px_rgba(139,92,246,0.15)]' : isCompleted ? 'border-[#00E57A]/40' : 'border-white/5'} rounded-2xl p-4 flex flex-col ${isLocked ? 'opacity-60 grayscale-[50%]' : ''}`}
+                    >
                         {isCurrent && (
                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.1 }} className="absolute -top-2 right-4 px-2 py-0.5 rounded text-[9px] font-black tracking-widest bg-[#c084fc] text-white uppercase shadow-md">
                             Current
                           </motion.div>
                         )}
+                        {isCompleted && (
+                          <div className="absolute -top-2 right-4 px-2 py-0.5 rounded text-[9px] font-black tracking-widest bg-[#00E57A] text-[#05070A] uppercase shadow-md flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Done
+                          </div>
+                        )}
                         
                         <div className="flex justify-between items-center mb-5">
                           <div className="flex items-center gap-2">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                              isLocked ? 'bg-white/5 text-[#8F95A3]' :
                               levelNum <= 2 ? 'bg-[#8B5CF6]/20 text-[#A855F7]' : 
                               levelNum <= 4 ? 'bg-[#EC4899]/20 text-[#EC4899]' : 
                               levelNum <= 6 ? 'bg-[#10B981]/20 text-[#10B981]' : 
                               'bg-amber-500/20 text-amber-500'
                             }`}>
-                              {getAchievementIcon(levelNum)}
+                              {isLocked ? <Lock className="w-4 h-4" /> : getAchievementIcon(levelNum)}
                             </div>
                             <span className="font-bold text-white text-sm">Level {levelNum}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-xs font-bold text-[#8F95A3]">
-                            <Users className="w-3.5 h-3.5" /> {comm}%
+                          <div className={`flex items-center gap-1 text-xs font-bold ${isLocked ? 'text-[#8F95A3]' : 'text-white'}`}>
+                            <Users className="w-3.5 h-3.5 text-[#8B5CF6]" /> {comm}%
                           </div>
                         </div>
 
                         <div className="space-y-3">
                           <div>
-                            <span className="text-[10px] text-[#8F95A3] block mb-1">Requirements</span>
+                            <span className="text-[10px] text-[#8F95A3] block mb-1">Target Requirements</span>
                             <div className="flex items-center gap-1.5 text-xs text-white font-medium">
-                              <CheckCircle2 className={`w-3.5 h-3.5 ${isCurrent || levelNum < tierData.currentTier ? 'text-[#8B5CF6]' : 'text-white/20'}`} />
-                              {req}
+                              <CheckCircle2 className={`w-3.5 h-3.5 ${isCurrent || isCompleted ? 'text-[#00E57A]' : 'text-white/20'}`} />
+                              {reqText}
                             </div>
                           </div>
                           <div>
-                            <span className="text-[10px] text-[#8F95A3] block mb-1">Commission</span>
+                            <span className="text-[10px] text-[#8F95A3] block mb-1">Commission Rate</span>
                             <span className="text-xs text-white font-medium">{comm}% on every payout</span>
                           </div>
                         </div>
@@ -529,7 +573,7 @@ export default function AffiliatePage() {
               
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="w-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 rounded-xl p-3 flex items-center gap-2">
                 <Info className="w-4 h-4 text-[#8B5CF6] shrink-0" />
-                <p className="text-xs text-[#8F95A3]">Levels are based on total active referrals. Once you reach a new level, the higher commission rate applies automatically.</p>
+                <p className="text-xs text-[#8F95A3]">Levels are based on your total referral earnings. Once you hit the required earnings target, your commission rate upgrades automatically.</p>
               </motion.div>
             </motion.div>
           )}
@@ -544,7 +588,7 @@ export default function AffiliatePage() {
                     <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Earn</th>
                     <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Pending</th>
                     <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Reversed</th>
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Net Commission</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Total Commission</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -566,36 +610,7 @@ export default function AffiliatePage() {
             </motion.div>
           )}
 
-          {/* REFERRAL HISTORY TAB */}
-          {activeTab === 'history' && (
-            <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left border-collapse min-w-[700px]">
-                <thead>
-                  <tr className="border-b border-white/5">
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Date</th>
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">User</th>
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Amount Earned</th>
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {referHistory.length === 0 ? (
-                    <tr><td colSpan={4} className="py-10 text-center text-[#8F95A3] text-sm">No referral earning rows found.</td></tr>
-                  ) : (
-                    referHistory.map((row, idx) => (
-                      <motion.tr key={idx} custom={idx} initial="hidden" animate="visible" variants={rowFade} className="border-b border-white/5 hover:bg-white/[0.02]">
-                        <td className="py-3 px-4 text-xs text-[#8F95A3]">{row.createdAt || row.date ? new Date(row.createdAt || row.date).toLocaleDateString() : 'N/A'}</td>
-                        <td className="py-3 px-4 text-xs text-white">{row.userName || row.referredUser || 'N/A'}</td>
-                        <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(row.amount || row.commission || 0), currency)}</td>
-                        <td className="py-3 px-4 text-xs text-white capitalize">{row.status || 'Completed'}</td>
-                      </motion.tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </motion.div>
-          )}
-
+         
           {/* PAYOUT HISTORY TAB */}
           {activeTab === 'payouts' && (
             <motion.div key="payouts" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
