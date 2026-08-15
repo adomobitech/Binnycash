@@ -99,7 +99,13 @@ export default function Navbar() {
   const [isRouting, setIsRouting] = useState(false);
   
   const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
-  const [balance, setBalance] = useState('0.00');
+  
+  const [balance, setBalance] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('cached_balance') || '0.00';
+    }
+    return '0.00';
+  });
   
   const [userName, setUserName] = useState('Profile');
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
@@ -121,6 +127,9 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navRef = useRef<HTMLElement>(null);
+  
+  // 🔥 REFINED COOLDOWN REF TO PREVENT API SPAM 🔥
+  const lastFetchRef = useRef<number>(0);
 
   const MAIN_LINKS = [
     { name: t.Navbar?.links?.earn || 'Earn', href: '/dashboard' },
@@ -160,56 +169,71 @@ export default function Navbar() {
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('userDetails');
+    localStorage.removeItem('cached_balance');
     setIsLoggedIn(false);
     if (pathname !== '/') {
       router.replace('/');
     }
   };
 
+  // 🔥 HIGHLY OPTIMIZED WALLET FETCH WITH STRICT 60s COOLDOWN 🔥
   useEffect(() => {
-    const checkAuth = () => {
-      if (window.location.pathname.startsWith('/admin')) return;
+    let isMounted = true;
+
+    const fetchWalletBalance = async (force = false) => {
+      if (typeof window === 'undefined' || window.location.pathname.startsWith('/admin')) return;
 
       const token = localStorage.getItem('token');
-      if (token && token !== 'undefined' && !token.includes('[object Object]')) {
-        setIsLoggedIn(true);
+      if (!token || token === 'undefined' || token.includes('[object Object]')) {
+        if (isMounted) setIsLoggedIn(false);
+        return;
+      }
 
-        const now = Date.now();
-        const lastFetchTime = localStorage.getItem('lastWalletFetch');
-        if (lastFetchTime && now - parseInt(lastFetchTime) < 30000) {
-           return; 
-        }
-        localStorage.setItem('lastWalletFetch', now.toString());
+      if (isMounted) setIsLoggedIn(true);
 
-        fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', {
+      const now = Date.now();
+      // 60 seconds cooldown check to protect server from heavy load
+      if (!force && now - lastFetchRef.current < 60000) {
+        return;
+      }
+      lastFetchRef.current = now;
+
+      try {
+        const res = await fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', {
           method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-          .then(async res => {
-            if (res.status === 401 || res.status === 404) {
-               handleForceLogout();
-               return null;
-            }
-            const text = await res.text();
-            if (!text || text.trim().startsWith('<')) return null;
-            try { return JSON.parse(text); } catch (e) { return null; }
-          })
-          .then(data => { 
-            if (data && data.data !== undefined) setBalance(data.data); 
-          })
-          .catch(err => {
-             console.error("Wallet fetch error:", err);
-             localStorage.removeItem('lastWalletFetch');
-          });
-      } else {
-        setIsLoggedIn(false);
+          headers: { 'Authorization': `Bearer ${token}` },
+          cache: 'no-store'
+        });
+
+        if (res.status === 401 || res.status === 404) {
+           handleForceLogout();
+           return;
+        }
+
+        const text = await res.text();
+        if (!text || text.trim().startsWith('<')) return;
+        const data = JSON.parse(text);
+
+        if (isMounted && data && data.data !== undefined) {
+          setBalance(data.data);
+          localStorage.setItem('cached_balance', data.data);
+        }
+      } catch (err) {
+         console.error("Wallet fetch error:", err);
       }
     };
-    checkAuth();
-    window.addEventListener('storage', checkAuth);
-    const interval = setInterval(checkAuth, 30000); 
+
+    fetchWalletBalance(true); // Initial fetch on mount
+
+    const handleWalletUpdate = () => fetchWalletBalance(true); // Force fetch on custom event
+    window.addEventListener('walletUpdated', handleWalletUpdate);
+
+    // Periodic check set to 60 seconds to avoid spamming
+    const interval = setInterval(() => fetchWalletBalance(false), 60000);
+
     return () => {
-      window.removeEventListener('storage', checkAuth);
+      isMounted = false;
+      window.removeEventListener('walletUpdated', handleWalletUpdate);
       clearInterval(interval);
     };
   }, []);
@@ -225,13 +249,6 @@ export default function Navbar() {
 
     const token = localStorage.getItem('token');
     if (!token || token.includes('[object Object]')) return;
-
-    const now = Date.now();
-    const lastUserFetchTime = localStorage.getItem('lastUserFetch');
-    if (lastUserFetchTime && now - parseInt(lastUserFetchTime) < 30000) {
-       return; 
-    }
-    localStorage.setItem('lastUserFetch', now.toString());
 
     fetch('https://apitest.binnycash.com/api/user/userDetails', {
       method: 'GET',
@@ -269,7 +286,6 @@ export default function Navbar() {
     })
     .catch(err => {
        console.error("Profile fetch error:", err);
-       localStorage.removeItem('lastUserFetch');
     });
   };
 
@@ -277,7 +293,6 @@ export default function Navbar() {
     if (isLoggedIn) {
       fetchUserData();
       const handleProfileUpdate = () => {
-        localStorage.removeItem('lastUserFetch');
         fetchUserData();
       };
       window.addEventListener('profileUpdated', handleProfileUpdate);
@@ -426,13 +441,9 @@ export default function Navbar() {
     } catch (error) {
       console.error("Logout API failed:", error);
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('userId'); 
-      localStorage.removeItem('userDetails'); 
-      setIsLoggedIn(false);
+      handleForceLogout();
       setTimeout(() => {
         setIsTransitioning(false);
-        router.replace('/');
       }, 1000);
     }
   };
@@ -549,7 +560,6 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0 ml-auto md:ml-0">
             
-            {/* 🔥 TRANSLATOR DROPDOWN (ONLY ON HOMEPAGE WHEN LOGGED OUT) 🔥 */}
             {!isLoggedIn && pathname === '/' && (
               <div className="relative">
                 <button 

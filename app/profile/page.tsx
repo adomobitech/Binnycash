@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, User, Mail, BookOpen, MapPin, Home,
   Phone, Hash, Camera, UploadCloud, Copy, Globe,
-  Trash2, Image as ImageIcon, CheckCircle2, ChevronRight,
+  Trash2, Image as ImageIcon, CheckCircle2, ChevronRight, ChevronLeft,
   AlertCircle, X, ShieldAlert, ShieldCheck, Wallet, Clock, Loader2,
   KeyRound, Coins, Sparkles, ScanLine, Check, Calendar, Building, ChevronDown, CreditCard,
   Target, Users, ArrowUp
@@ -49,6 +49,20 @@ function getUserId(): string {
   return '';
 }
 
+// --- HELPER: Safe JSON Fetcher ---
+async function safeFetchJson(url: string, options?: RequestInit) {
+  try {
+    const res = await fetch(url, options);
+    const text = await res.text();
+    if (!text || text.trim().startsWith('<')) {
+      return null;
+    }
+    return JSON.parse(text);
+  } catch (err) {
+    return null;
+  }
+}
+
 // 🔥 PREMIUM 3D AI AVATARS (Local Paths) 🔥
 const AVATAR_LIBRARY = [
   '/avatars/1.png',
@@ -83,6 +97,32 @@ function CountUp({ value, prefix = '', suffix = '', decimals = 0 }: { value: num
   }, [value]);
   return <>{prefix}{display.toFixed(decimals)}{suffix}</>;
 }
+
+// --- PAGINATION COMPONENT ---
+const Pagination = ({ current, total, onPageChange }: { current: number, total: number, onPageChange: (p: number) => void }) => {
+  if (total <= 1) return null;
+  return (
+    <div className="flex justify-center items-center gap-4 py-4 border-t border-white/[0.06] bg-[#120F1A]">
+      <button 
+        disabled={current === 1}
+        onClick={() => onPageChange(current - 1)}
+        className="w-8 h-8 rounded-lg bg-[#1A1C24] border border-white/5 flex items-center justify-center text-white disabled:opacity-30 hover:bg-white/10 transition-all cursor-pointer"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+      <span className="text-[#8F95A3] font-medium text-xs">
+        Page <span className="text-white font-bold">{current}</span> of {total}
+      </span>
+      <button 
+        disabled={current === total}
+        onClick={() => onPageChange(current + 1)}
+        className="w-8 h-8 rounded-lg bg-[#1A1C24] border border-white/5 flex items-center justify-center text-white disabled:opacity-30 hover:bg-white/10 transition-all cursor-pointer"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+};
 
 // --- KYC SUBMISSION MODAL ---
 function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
@@ -149,21 +189,20 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
         data.append('documentBackImage', backImage);
       }
 
-      const res = await fetch('https://apitest.binnycash.com/api/user/kyc/submit', {
+      const json = await safeFetchJson('https://apitest.binnycash.com/api/user/kyc/submit', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: data
       });
 
-      const json = await res.json();
-      if (res.ok || json.responseCode === 0 || json.code === 200) {
+      if (json && (json.responseCode === 0 || json.code === 200)) {
         setMessage('KYC Submitted Successfully!');
         setTimeout(() => {
           onSuccess();
           onClose();
         }, 1500);
       } else {
-        setMessage(json.responseMessage || 'Submission failed. Try again.');
+        setMessage(json?.responseMessage || 'Submission failed. Try again.');
       }
     } catch (err) {
       console.error('KYC error:', err);
@@ -443,16 +482,16 @@ export default function ProfilePage() {
 
   const [userData, setUserData] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
-  const [affiliateStats, setAffiliateStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const [imgError, setImgError] = useState(false);
 
-  // Tabs State
-  const [mainTab, setMainTab] = useState<'earning' | 'reversal'>('earning');
-  const [subTab, setSubTab] = useState<'offers' | 'surveys' | 'rewards'>('offers');
+  // --- SINGLE TAB STATE FOR 4 TABS ---
+  const [activeTableTab, setActiveTableTab] = useState<'offers' | 'surveys' | 'rewards' | 'reversals'>('offers');
 
-  // Table Data State
+  // Pagination & Table Data State
+  const [tablePage, setTablePage] = useState(1);
+  const [tableTotalPages, setTableTotalPages] = useState(1);
   const [offersData, setOffersData] = useState<any[]>([]);
   const [surveysData, setSurveysData] = useState<any[]>([]);
   const [rewardsData, setRewardsData] = useState<any[]>([]);
@@ -465,7 +504,7 @@ export default function ProfilePage() {
   const [isKycOpen, setIsKycOpen] = useState(false);
   const [avatarMode, setAvatarMode] = useState<'library' | 'upload'>('library');
 
-  // Form State for Edit Profile (Education Removed)
+  // Form State for Edit Profile
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -475,6 +514,7 @@ export default function ProfilePage() {
     mobileNumber: '',
     zipCode: '',
   });
+  
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
@@ -485,37 +525,31 @@ export default function ProfilePage() {
     const userId = getUserId();
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/viewData', {
+      const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/userDetails?userId=${userId}`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      const json = await res.json();
-      const user = json?.data?.user || json?.data || json;
-      setUserData(user);
+      if (json && (json.code === 200 || json.responseCode === 0)) {
+        const user = json?.data?.user || json?.data || json;
+        setUserData(user);
 
-      setFormData({
-        firstName: user?.firstName || user?.name?.split(' ')[0] || '',
-        lastName: user?.lastName || user?.name?.split(' ')[1] || '',
-        email: user?.email || '',
-        city: user?.city || '',
-        address: user?.address || '',
-        mobileNumber: user?.mobileNumber || '',
-        zipCode: user?.zipCode || '',
-      });
+        setFormData(prev => ({
+          firstName: user?.firstName || prev.firstName || '',
+          lastName: user?.lastName || prev.lastName || '',
+          email: user?.email || prev.email || '',
+          city: user?.city || prev.city || '',
+          address: user?.address || prev.address || '',
+          mobileNumber: user?.mobileNumber || user?.phone || prev.mobileNumber || '',
+          zipCode: user?.zipCode || prev.zipCode || '',
+        }));
+      }
 
-      const resStats = await fetch('https://apitest.binnycash.com/api/user/wallet/view', {
+      const statsJson = await safeFetchJson('https://apitest.binnycash.com/api/user/wallet/view', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const statsJson = await resStats.json();
-      setStats(statsJson?.data);
-
-      const resAffiliate = await fetch(`https://apitest.binnycash.com/api/user/affiliate_dashboard?userId=${userId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const affiliateJson = await resAffiliate.json();
-      if (affiliateJson.code === 200 && affiliateJson.data) {
-        setAffiliateStats(affiliateJson.data);
+      if (statsJson) {
+        setStats(statsJson?.data);
       }
 
     } catch (err) {
@@ -525,6 +559,12 @@ export default function ProfilePage() {
     }
   };
 
+  // Reset page when tab changes
+  useEffect(() => {
+    setTablePage(1);
+    setTableTotalPages(1);
+  }, [activeTableTab]);
+
   useEffect(() => {
     const fetchTableData = async () => {
       const token = localStorage.getItem('token') || '';
@@ -533,35 +573,54 @@ export default function ProfilePage() {
 
       setIsTableLoading(true);
       try {
-        if (mainTab === 'earning') {
-          if (subTab === 'offers' && offersData.length === 0) {
-            const res = await fetch(`https://apitest.binnycash.com/api/user/user_completed_offer?userId=${userId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const json = await res.json();
-            setOffersData(json?.data?.data?.completedOffers || []);
-          }
-          else if (subTab === 'surveys' && surveysData.length === 0) {
-            const res = await fetch(`https://apitest.binnycash.com/api/user/user_completed_survey_api?userId=${userId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const json = await res.json();
-            setSurveysData(json?.data?.data?.completedSurveys || []);
-          }
-          else if (subTab === 'rewards' && rewardsData.length === 0) {
-            const res = await fetch(`https://apitest.binnycash.com/api/user/user_earn_reward?userId=${userId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const json = await res.json();
-            setRewardsData(json?.data?.data?.userReward || []);
-          }
-        }
-        else if (mainTab === 'reversal' && reversalsData.length === 0) {
-          const res = await fetch(`https://apitest.binnycash.com/api/user/userReversalsApi?userId=${userId}`, {
+        if (activeTableTab === 'offers') {
+          const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/user_completed_offer?userId=${userId}&page=${tablePage}&limit=10`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
-          const json = await res.json();
-          setReversalsData(json?.data?.data?.reversals || []);
+          if (json && json.code === 200) {
+            setOffersData(json?.data?.data?.completedOffers || json?.data?.completedOffers || []);
+            setTableTotalPages(json?.data?.data?.pagination?.totalPages || json?.data?.pagination?.totalPages || 1);
+          } else {
+            setOffersData([]);
+            setTableTotalPages(1);
+          }
+        }
+        else if (activeTableTab === 'surveys') {
+          const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/user_completed_survey_api?userId=${userId}&page=${tablePage}&limit=10`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (json && json.code === 200) {
+            setSurveysData(json?.data?.data?.completedSurveys || json?.data?.completedSurveys || []);
+            setTableTotalPages(json?.data?.data?.pagination?.totalPages || json?.data?.pagination?.totalPages || 1);
+          } else {
+            setSurveysData([]);
+            setTableTotalPages(1);
+          }
+        }
+        else if (activeTableTab === 'rewards') {
+          const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/user_earn_reward?userId=${userId}&page=${tablePage}&limit=10`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          // Handling 500 error gracefully by checking code
+          if (json && json.code === 200 && json.type === 'success') {
+            setRewardsData(json?.data?.data?.userReward || json?.data?.userReward || json?.data?.list || []);
+            setTableTotalPages(json?.data?.data?.pagination?.totalPages || json?.data?.pagination?.totalPages || 1);
+          } else {
+            setRewardsData([]);
+            setTableTotalPages(1);
+          }
+        }
+        else if (activeTableTab === 'reversals') {
+          const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/userReversalsApi?userId=${userId}&page=${tablePage}&limit=10`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (json && json.code === 200) {
+            setReversalsData(json?.data?.data?.reversals || json?.data?.reversals || []);
+            setTableTotalPages(json?.data?.data?.pagination?.totalPages || json?.data?.pagination?.totalPages || 1);
+          } else {
+            setReversalsData([]);
+            setTableTotalPages(1);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch table data:", error);
@@ -571,7 +630,7 @@ export default function ProfilePage() {
     };
 
     fetchTableData();
-  }, [mainTab, subTab]);
+  }, [activeTableTab, tablePage]);
 
   useEffect(() => {
     if (!localStorage.getItem('token')) {
@@ -598,7 +657,7 @@ export default function ProfilePage() {
       payload.append('mobileNumber', formData.mobileNumber);
       payload.append('zipCode', formData.zipCode);
 
-      const res = await fetch(`https://apitest.binnycash.com/api/user/editProfile?userId=${userId}`, {
+      const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/editProfile?userId=${userId}`, {
         method: 'PUT',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -607,12 +666,21 @@ export default function ProfilePage() {
         body: payload
       });
 
-      const json = await res.json();
-      if (res.ok || json.code === 200 || json.responseCode === 0) {
+      if (json && (json.code === 200 || json.responseCode === 0)) {
         setMessage({ text: 'Profile updated successfully!', type: 'success' });
+        setUserData((prev: any) => ({
+          ...prev,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          city: formData.city,
+          address: formData.address,
+          mobileNumber: formData.mobileNumber,
+          zipCode: formData.zipCode,
+        }));
         fetchProfileData(); 
       } else {
-        setMessage({ text: json.message || 'Failed to update profile', type: 'error' });
+        setMessage({ text: json?.message || 'Failed to update profile', type: 'error' });
       }
     } catch (err) {
       setMessage({ text: 'Network error or server down', type: 'error' });
@@ -644,15 +712,33 @@ export default function ProfilePage() {
         body: data
       });
 
-      if (!res.ok) {
-        throw new Error(`HTTP Error: ${res.status}`);
+      const text = await res.text();
+      let json: any = {};
+      if (text && !text.trim().startsWith('<')) {
+        try { json = JSON.parse(text); } catch (e) {}
       }
 
-      const json = await res.json();
-      if (json.code === 200 || json.responseCode === 0) {
+      if (res.ok && (json.code === 200 || json.responseCode === 0)) {
         setMessage({ text: 'Avatar updated successfully!', type: 'success' });
+        
+        if (json.data && json.data.imageUrl) {
+            const localRaw = localStorage.getItem('loginResponse') || localStorage.getItem('userDetails');
+            if(localRaw){
+                try {
+                   const parsed = JSON.parse(localRaw);
+                   if(parsed.data && parsed.data.userDetails) {
+                       parsed.data.userDetails.image = json.data.imageUrl;
+                   } else if(parsed.image !== undefined) {
+                       parsed.image = json.data.imageUrl;
+                   }
+                   localStorage.setItem(localStorage.getItem('loginResponse') ? 'loginResponse' : 'userDetails', JSON.stringify(parsed));
+                } catch(e){}
+            }
+        }
+        
         fetchProfileData();
         window.dispatchEvent(new CustomEvent('profileUpdated'));
+        
       } else {
         setMessage({ text: json.message || 'Failed to upload image. Backend error.', type: 'error' });
       }
@@ -667,20 +753,23 @@ export default function ProfilePage() {
     alert('Copied to clipboard!');
   };
 
-  const resolveImage = (imgSrc: string) => {
+  const resolveImage = (imgSrc: string | null | undefined) => {
     if (!imgSrc || imgSrc.trim() === '') return null;
     if (imgSrc.startsWith('http')) return imgSrc;
     return imgSrc.startsWith('/') ? `https://apitest.binnycash.com${imgSrc}` : `https://apitest.binnycash.com/${imgSrc}`;
   };
 
-  const name = userData?.userName || userData?.firstName ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.userName : 'User';
-  
+  const name = [userData?.firstName, userData?.lastName].filter(Boolean).join(' ') || userData?.userName || 'User';
+  const fullNameDisplay = [userData?.firstName, userData?.lastName].filter(Boolean).join(' ') || userData?.userName || 'Not provided';
+  const phoneDisplay = userData?.mobileCode ? `${userData.mobileCode} ${userData.mobileNumber}` : (userData?.mobileNumber || userData?.phone || 'Not provided');
+  const cityZipDisplay = [userData?.city, userData?.zipCode].filter(Boolean).join(' - ') || 'Not provided';
+  const addressDisplay = userData?.address || 'Not provided';
+
   const rawProfilePic = userData?.image || userData?.profilePic;
   const displayImage = resolveImage(rawProfilePic);
 
   const joinDate = userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently';
-  
-  const kycStatus = userData?.documents?.status || userData?.kycStatus || 'Unverified';
+  const kycStatus = userData?.documentStatus || userData?.documents?.status || userData?.kycStatus || 'Unverified';
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -942,7 +1031,7 @@ export default function ProfilePage() {
                      <div className="flex flex-col w-full">
                        <span className="text-xs text-[#8D89A8] font-medium mb-1">Referral Users</span>
                        <span className="text-xl font-bold text-white f-mono mb-1">
-                         {affiliateStats?.totalReferUsers || userData?.referrals || 0}
+                         {userData?.referrals || userData?.referralCount || 0}
                        </span>
                        <span className="text-[10px] text-white/40">Lifetime</span>
                      </div>
@@ -950,29 +1039,25 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Personal Details Card - PERFECT SYMMETRICAL LAYOUT */}
+              {/* Personal Details Card */}
               <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl">
                  <h3 className="text-base font-bold text-white mb-4">Personal Details</h3>
                  <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4">
                    <div className="flex flex-col">
                      <span className="text-xs text-[#8D89A8] mb-1">Full Name</span>
-                     <span className="text-sm text-white font-medium">{userData?.firstName || ''} {userData?.lastName || ''}</span>
+                     <span className="text-sm text-white font-medium">{fullNameDisplay}</span>
                    </div>
                    <div className="flex flex-col">
                      <span className="text-xs text-[#8D89A8] mb-1">Phone Number</span>
-                     <span className="text-sm text-white font-medium">
-                       {userData?.mobileCode ? `${userData.mobileCode} ${userData.mobileNumber}` : (userData?.mobileNumber || 'Not provided')}
-                     </span>
+                     <span className="text-sm text-white font-medium">{phoneDisplay}</span>
                    </div>
                    <div className="flex flex-col">
                      <span className="text-xs text-[#8D89A8] mb-1">City / Zip</span>
-                     <span className="text-sm text-white font-medium">
-                       {userData?.city || 'N/A'} {userData?.zipCode ? `- ${userData.zipCode}` : ''}
-                     </span>
+                     <span className="text-sm text-white font-medium">{cityZipDisplay}</span>
                    </div>
                    <div className="flex flex-col">
                      <span className="text-xs text-[#8D89A8] mb-1">Full Address</span>
-                     <span className="text-sm text-white font-medium truncate">{userData?.address || 'Not provided'}</span>
+                     <span className="text-sm text-white font-medium truncate">{addressDisplay}</span>
                    </div>
                  </div>
               </div>
@@ -980,47 +1065,34 @@ export default function ProfilePage() {
            </div>
         </div>
 
-        {/* BOTTOM TABS & TABLE */}
+        {/* BOTTOM SINGLE TABS ROW & TABLE */}
         <div className="flex flex-col">
-          <div className="relative inline-flex items-center bg-[#120F1A] border border-white/[0.06] rounded-full p-1 mb-5 w-fit">
-            {(['earning', 'reversal'] as const).map((t) => (
+          
+          <div className="flex items-center gap-2 mb-5 overflow-x-auto no-scrollbar">
+            {(['offers', 'surveys', 'rewards', 'reversals'] as const).map((tab) => (
               <button
-                key={t}
-                onClick={() => setMainTab(t)}
-                className={`relative z-10 px-5 py-2 text-sm font-bold rounded-full capitalize transition-colors cursor-pointer ${mainTab === t ? 'text-white' : 'text-[#8D89A8] hover:text-white'}`}
+                key={tab}
+                onClick={() => setActiveTableTab(tab)}
+                className={`relative z-10 px-5 py-2.5 text-[11px] uppercase tracking-wider font-bold rounded-full transition-colors cursor-pointer whitespace-nowrap ${activeTableTab === tab ? 'text-white' : 'text-[#8D89A8] bg-[#120F1A] border border-white/[0.06] hover:text-white'}`}
               >
-                {mainTab === t && (
+                {activeTableTab === tab && (
                   <motion.div
-                    layoutId="mainTabPill"
+                    layoutId="tableTabPill"
                     className="absolute inset-0 bg-gradient-to-r from-[#A66CFF] to-[#7C3AED] rounded-full -z-10 shadow-md shadow-[#A66CFF]/30"
                     transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                   />
                 )}
-                {t}
+                {tab}
               </button>
             ))}
           </div>
-
-          {mainTab === 'earning' && (
-            <div className="flex items-center gap-2 mb-4">
-              {['offers', 'surveys', 'rewards'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setSubTab(tab as any)}
-                  className={`px-4 py-2 rounded-full text-[11px] font-bold tracking-wider uppercase transition-all cursor-pointer ${subTab === tab ? 'bg-[#A66CFF] text-white shadow-md' : 'bg-[#120F1A] border border-white/[0.06] text-[#8D89A8] hover:text-white'}`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-          )}
 
           <div className="w-full bg-[#120F1A] border border-white/[0.06] rounded-[24px] overflow-hidden">
             <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                   <tr className="border-b border-white/[0.06] bg-white/[0.02]">
-                    {mainTab === 'reversal' ? (
+                    {activeTableTab === 'reversals' ? (
                       <>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Name</th>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Amount reversed</th>
@@ -1028,7 +1100,7 @@ export default function ProfilePage() {
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Partner</th>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Date</th>
                       </>
-                    ) : subTab === 'rewards' ? (
+                    ) : activeTableTab === 'rewards' ? (
                       <>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Reward name</th>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Amount</th>
@@ -1059,10 +1131,10 @@ export default function ProfilePage() {
                   ) : (
                     (() => {
                       let currentData: any[] = [];
-                      if (mainTab === 'reversal') currentData = reversalsData;
-                      else if (subTab === 'offers') currentData = offersData;
-                      else if (subTab === 'surveys') currentData = surveysData;
-                      else if (subTab === 'rewards') currentData = rewardsData;
+                      if (activeTableTab === 'reversals') currentData = reversalsData;
+                      else if (activeTableTab === 'offers') currentData = offersData;
+                      else if (activeTableTab === 'surveys') currentData = surveysData;
+                      else if (activeTableTab === 'rewards') currentData = rewardsData;
 
                       if (currentData.length === 0) {
                         return (
@@ -1070,7 +1142,9 @@ export default function ProfilePage() {
                             <td colSpan={5} className="px-6 py-16 text-center">
                               <div className="flex flex-col items-center justify-center gap-2 opacity-60">
                                 <AlertCircle className="w-8 h-8 text-[#8D89A8]" />
-                                <span className="text-sm font-medium text-[#8D89A8]">No {mainTab === 'reversal' ? 'reversal' : 'completed'} data found.</span>
+                                <span className="text-sm font-medium text-[#8D89A8]">
+                                  No {activeTableTab === 'reversals' ? 'reversal' : 'completed'} data found.
+                                </span>
                               </div>
                             </td>
                           </tr>
@@ -1078,7 +1152,7 @@ export default function ProfilePage() {
                       }
 
                       return currentData.map((item: any, idx: number) => {
-                        if (mainTab === 'reversal') {
+                        if (activeTableTab === 'reversals') {
                           const finalImg = resolveImage(item.logo || item.offerImage || item.image_url || item.preview);
                           return (
                             <motion.tr
@@ -1112,7 +1186,7 @@ export default function ProfilePage() {
                           );
                         }
 
-                        if (subTab === 'rewards' && mainTab === 'earning') {
+                        if (activeTableTab === 'rewards') {
                           return (
                             <motion.tr
                               key={item._id || idx}
@@ -1168,6 +1242,15 @@ export default function ProfilePage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Render Pagination only if data exists and is not loading */}
+            {!isTableLoading && (
+              <Pagination 
+                current={tablePage} 
+                total={tableTotalPages} 
+                onPageChange={setTablePage} 
+              />
+            )}
           </div>
         </div>
       </main>
@@ -1237,12 +1320,12 @@ export default function ProfilePage() {
                             </div>
                             <div className="flex flex-col">
                                <span className="text-[11px] text-[#8D89A8] font-medium uppercase tracking-wider">Account ID</span>
-                               <span className="f-mono text-sm font-bold text-white mt-0.5">{userData?.id || 'N/A'}</span>
+                            <span className="f-mono text-sm font-bold text-white mt-0.5">{getUserId() || userData?.id || userData?._id || 'N/A'}</span>
                             </div>
                          </div>
-                         <button onClick={() => copyToClipboard(userData?.id || '')} className="text-[#8D89A8] hover:text-white cursor-pointer transition-colors p-2">
-                           <Copy className="w-4 h-4" />
-                         </button>
+                         <button onClick={() => copyToClipboard(getUserId() || userData?.id || userData?._id || '')} className="text-[#8D89A8] hover:text-white cursor-pointer transition-colors p-2">
+                          <Copy className="w-4 h-4" />
+                        </button>
                       </div>
 
                       <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-4 flex items-center gap-3 group hover:border-white/10 transition-all">
@@ -1277,7 +1360,7 @@ export default function ProfilePage() {
                                 type={f.type}
                                 required
                                 placeholder={f.placeholder}
-                                value={(formData as any)[f.key]}
+                                value={(formData as any)[f.key] || ''}
                                 onChange={e => setFormData({ ...formData, [f.key]: e.target.value })}
                                 className="w-full bg-[#1A1725] border border-white/5 focus:border-[#A66CFF]/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-medium focus:outline-none transition-colors"
                              />
@@ -1296,7 +1379,7 @@ export default function ProfilePage() {
                                 type="text"
                                 required
                                 placeholder="Enter street address"
-                                value={formData.address}
+                                value={formData.address || ''}
                                 onChange={e => setFormData({ ...formData, address: e.target.value })}
                                 className="w-full bg-[#1A1725] border border-white/5 focus:border-[#A66CFF]/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-medium focus:outline-none transition-colors"
                              />
@@ -1310,7 +1393,7 @@ export default function ProfilePage() {
                                 type="text"
                                 required
                                 placeholder="Postal code"
-                                value={formData.zipCode}
+                                value={formData.zipCode || ''}
                                 onChange={e => setFormData({ ...formData, zipCode: e.target.value })}
                                 className="w-full bg-[#1A1725] border border-white/5 focus:border-[#A66CFF]/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-medium focus:outline-none transition-colors"
                              />

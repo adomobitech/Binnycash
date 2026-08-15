@@ -124,19 +124,20 @@ export default function AffiliatePage() {
     totalCommission: 0
   });
   
-  const [availableBalance, setAvailableBalance] = useState<string>('0.00');
   const [referralLink, setReferralLink] = useState('Loading...');
   const [currentBonusInfo, setCurrentBonusInfo] = useState<{level: number, referalBonus: string}>({ level: 1, referalBonus: "3%" });
   const [tierData, setTierData] = useState<any>({ currentTier: 1, currentReferralEarning: 0, levels: [] });
   const [claimHistory, setClaimHistory] = useState<any[]>([]);
   const [affiliateUsers, setAffiliateUsers] = useState<any[]>([]);
-  const [topAffiliates, setTopAffiliates] = useState<any[]>([]); 
 
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawMessage, setWithdrawMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // Available Balance reflects totalReferEarning
+  const availableBalance = dashboardData?.totalReferEarning || 0;
 
   useEffect(() => {
     const fetchAffiliateData = async () => {
@@ -158,40 +159,35 @@ export default function AffiliatePage() {
       };
 
       try {
-        const [dashRes, balanceRes, profileRes, tierRes, historyRes, affiliateListRes, topReferRes, walletTierRes] = await Promise.all([
+        const [dashRes, profileRes, tierRes, historyRes, affiliateListRes, walletTierRes] = await Promise.all([
           fetch(`https://apitest.binnycash.com/api/user/affiliate_overview`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`https://apitest.binnycash.com/api/user/wallet/refer-earning-balance`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`https://apitest.binnycash.com/api/user/viewData?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`https://apitest.binnycash.com/api/user/userDetails?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/affiliateTierLevel`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/wallet/claim-earning-history`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`https://apitest.binnycash.com/api/user/UserReferList?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`https://apitest.binnycash.com/api/user/topRefer`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`https://apitest.binnycash.com/api/user/referList`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/wallet/tier-level`, { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
 
-        const [dashJson, balanceJson, profileJson, tierJson, historyJson, affiliateListJson, topReferJson, walletTierJson] = await Promise.all([
+        const [dashJson, profileJson, tierJson, historyJson, affiliateListJson, walletTierJson] = await Promise.all([
           safeParse(dashRes), 
-          safeParse(balanceRes), 
           safeParse(profileRes), 
           safeParse(tierRes), 
           safeParse(historyRes), 
           safeParse(affiliateListRes), 
-          safeParse(topReferRes), 
-          safeParse(walletTierRes)
+          safeParse(walletTierRes) // <-- Fixed typo here: passing walletTierRes instead of walletTierJson
         ]);
 
         if (dashJson.code === 200 && dashJson.data) setDashboardData(dashJson.data);
-        if (balanceJson.code === 200 && balanceJson.data !== undefined) setAvailableBalance(balanceJson.data);
-        if (profileJson.code === 200 && profileJson.data?.user?.referralUrl) setReferralLink(profileJson.data.user.referralUrl);
+        
+        const userObj = profileJson?.data?.user || profileJson?.data || profileJson;
+        if (userObj?.referralUrl) {
+          setReferralLink(userObj.referralUrl);
+        }
+
         if (tierJson.code === 200 && tierJson.data) setTierData(tierJson.data);
         if (historyJson.code === 200 && Array.isArray(historyJson.data)) setClaimHistory(historyJson.data);
-        if (affiliateListJson.code === 200 && affiliateListJson.data?.users) setAffiliateUsers(affiliateListJson.data.users);
-        
-        if (topReferJson) {
-          const topAffArr = topReferJson?.data?.data || topReferJson?.data || [];
-          if (Array.isArray(topAffArr)) {
-            setTopAffiliates(topAffArr.slice(0, 5));
-          }
+        if (affiliateListJson.code === 200 && Array.isArray(affiliateListJson.data)) {
+          setAffiliateUsers(affiliateListJson.data);
         }
 
         if (walletTierJson.code === 200 && walletTierJson.data) setCurrentBonusInfo(walletTierJson.data);
@@ -232,7 +228,6 @@ export default function AffiliatePage() {
       
       if (res.ok || json.code === 200 || json.type === 'success') {
         setWithdrawMessage({ text: json.message || 'Withdrawal requested successfully!', type: 'success' });
-        setAvailableBalance('0.00');
       } else {
         setWithdrawMessage({ text: json.message || 'Failed to process withdrawal.', type: 'error' });
       }
@@ -263,13 +258,13 @@ export default function AffiliatePage() {
             <p className="text-[#8F95A3] text-sm font-medium">Refer friends, earn more, and grow your passive income.</p>
           </div>
           
-          {/* STATS GRID - 4 CARDS */}
+          {/* STATS GRID - 4 CARDS MAPPED TO AFFILIATE OVERVIEW API FIELDS */}
           <div className="flex gap-4 w-full md:w-auto overflow-x-auto no-scrollbar pb-2 md:pb-0">
             {[
-              { icon: Users, color: '#A855F7', bg: 'bg-[#8B5CF6]/20', text: 'Total Earnings', value: formatPrice(Number(dashboardData?.totalReferEarning) || 0, currency) },
-              { icon: DollarSign, color: '#10B981', bg: 'bg-[#10B981]/20', text: 'Total Referrals', value: dashboardData?.totalRefer || 0 },
-              { icon: ShieldAlert, color: '#F59E0B', bg: 'bg-[#F59E0B]/20', text: 'Pending Earnings', value: formatPrice(Number(dashboardData?.totalPendingAmount) || 0, currency) },
-              { icon: Wallet, color: '#3B82F6', bg: 'bg-[#3B82F6]/20', text: 'Paid Earnings', value: formatPrice(Number(dashboardData?.totalCommission) || 0, currency) },
+              { icon: DollarSign, color: '#A855F7', bg: 'bg-[#8B5CF6]/20', text: 'Total Refer Earnings', value: formatPrice(Number(dashboardData?.totalReferEarning) || 0, currency) },
+              { icon: Clock, color: '#F59E0B', bg: 'bg-[#F59E0B]/20', text: 'Pending Amount', value: formatPrice(Number(dashboardData?.totalPendingAmount) || 0, currency) },
+              { icon: Wallet, color: '#10B981', bg: 'bg-[#10B981]/20', text: 'Paid Amount', value: formatPrice(Number(dashboardData?.totalCommission) || 0, currency) },
+              { icon: ShieldAlert, color: '#EF4444', bg: 'bg-[#EF4444]/20', text: 'Reversal Amount', value: formatPrice(Number(dashboardData?.totalReversalAmount) || 0, currency) },
             ].map((stat, i) => (
               <motion.div key={i} variants={fadeUp} custom={i} whileHover={{ y: -5 }} className="bg-[#161821] border border-white/5 rounded-2xl p-4 flex flex-col justify-between w-[160px] shrink-0 shadow-lg relative overflow-hidden transition-colors hover:border-white/10">
                  <div className="flex items-center gap-3 relative z-10">
@@ -296,7 +291,7 @@ export default function AffiliatePage() {
             
             <div className="relative z-10 mb-6 flex justify-between items-start">
                <div>
-                  <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-1.5">Your Affiliate Balance <Info className="w-3.5 h-3.5 text-[#8F95A3]"/></h3>
+                  <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-1.5">Available Balance <Info className="w-3.5 h-3.5 text-[#8F95A3]"/></h3>
                   <motion.div key={availableBalance} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="text-[32px] font-black text-white tracking-tight">
                     {formatPrice(Number(availableBalance) || 0, currency)}
                   </motion.div>
@@ -380,49 +375,9 @@ export default function AffiliatePage() {
           </motion.div>
         </motion.div>
 
-        {/* NEW 2-COLUMN SECTION: Top Affiliates & Promo Box */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          
-          {/* Top Affiliates Leaderboard */}
-          <div className="bg-[#161821] border border-white/5 rounded-[24px] p-6 shadow-xl flex flex-col h-full">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-                <Medal className="w-4 h-4 text-amber-500" />
-              </div>
-              <h3 className="text-sm font-bold text-white">Top Affiliates</h3>
-            </div>
-            
-            <div className="flex flex-col gap-4 flex-1 justify-center">
-              {topAffiliates.length === 0 ? (
-                <div className="text-center text-xs text-[#8F95A3] py-4">No top affiliates yet.</div>
-              ) : (
-                topAffiliates.map((user, idx) => {
-                  const rank = idx + 1;
-                  return (
-                    <div key={idx} className="flex items-center justify-between hover:translate-x-1 transition-transform cursor-default py-1">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm
-                          ${rank === 1 ? 'bg-amber-400 text-amber-900' : 
-                            rank === 2 ? 'bg-gray-300 text-gray-800' : 
-                            rank === 3 ? 'bg-[#CD7F32] text-white' : 
-                            'bg-[#0B0D14] text-[#8F95A3] border border-white/10'}`}
-                        >
-                          {rank}
-                        </div>
-                        <span className="text-sm font-medium text-white max-w-[200px] truncate">{user.userName || 'User'}</span>
-                      </div>
-                      <div className="flex-1 border-b border-dashed border-white/10 mx-4 relative top-1 hidden sm:block"></div>
-                      <span className="text-sm font-bold text-[#8B5CF6] shrink-0">{user.referralCount} Refs</span>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Promo Box with Native CSS 3D Gift Box */}
-          <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.5, delay: 0.1 }} whileHover={{ scale: 1.015 }} className="bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] rounded-[24px] p-6 sm:p-8 shadow-[0_10px_30px_rgba(139,92,246,0.3)] relative overflow-hidden flex flex-col justify-center h-full border border-white/10">
-            {/* Abstract Background Elements */}
+        {/* PROMO BOX SPANNING FULL WIDTH */}
+        <div className="mb-8">
+          <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.5, delay: 0.1 }} whileHover={{ scale: 1.01 }} className="bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] rounded-[24px] p-6 sm:p-8 shadow-[0_10px_30px_rgba(139,92,246,0.3)] relative overflow-hidden flex flex-col justify-center border border-white/10">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
             <div className="absolute bottom-0 right-0 w-48 h-48 bg-black/10 rounded-full blur-2xl translate-y-1/4 translate-x-1/4"></div>
             
@@ -435,39 +390,29 @@ export default function AffiliatePage() {
               </motion.button>
             </div>
             
-            {/* Awesome CSS 3D Gift Box Graphic */}
             <motion.div 
               animate={{ y: [0, -8, 0] }} 
               transition={{ duration: 3.5, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }} 
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-0 hidden sm:block"
+              className="absolute right-8 top-1/2 -translate-y-1/2 z-0 hidden sm:block"
             >
               <div className="relative w-28 h-28">
                 <div className="absolute inset-0 bg-[#FCD34D]/30 blur-[30px] rounded-full"></div>
                 <div className="relative w-full h-full transform -rotate-12">
-                  {/* Main Box Base */}
                   <div className="absolute bottom-2 left-3 w-20 h-14 bg-gradient-to-br from-[#FBBF24] to-[#D97706] rounded-md shadow-lg border-b-[3px] border-r-[3px] border-[#B45309]/40"></div>
-                  {/* Vertical Ribbon */}
                   <div className="absolute bottom-2 left-[44px] w-4 h-14 bg-gradient-to-b from-[#F43F5E] to-[#BE123C] shadow-sm"></div>
-                  {/* Horizontal Ribbon */}
                   <div className="absolute bottom-7 left-3 w-20 h-4 bg-gradient-to-r from-[#F43F5E] to-[#BE123C] shadow-sm opacity-50"></div>
-                  {/* Box Lid */}
                   <div className="absolute bottom-16 left-1 w-[88px] h-[18px] bg-gradient-to-br from-[#FCD34D] to-[#F59E0B] rounded-[4px] shadow-md border-b-[3px] border-[#B45309]/30 z-10"></div>
-                  {/* Lid Ribbon */}
                   <div className="absolute bottom-16 left-[44px] w-4 h-[18px] bg-gradient-to-b from-[#FB7185] to-[#E11D48] shadow-sm z-10"></div>
-                  {/* Bow Left Loop */}
                   <div className="absolute bottom-[78px] left-[26px] w-6 h-6 border-[4px] border-[#F43F5E] rounded-full transform -rotate-45 skew-x-12 shadow-sm z-10"></div>
-                  {/* Bow Right Loop */}
                   <div className="absolute bottom-[78px] left-[46px] w-6 h-6 border-[4px] border-[#F43F5E] rounded-full transform rotate-45 -skew-x-12 shadow-sm z-10"></div>
-                  {/* Center Knot */}
                   <div className="absolute bottom-[76px] left-[42px] w-3 h-3 bg-[#E11D48] rounded-full z-20 shadow-sm"></div>
                 </div>
               </div>
             </motion.div>
           </motion.div>
-
         </div>
 
-        {/* FULL WIDTH TABS SECTION (Levels & Affiliates) */}
+        {/* FULL WIDTH TABS SECTION */}
         <div className="w-full bg-[#161821] border border-white/5 rounded-[24px] p-6 shadow-xl">
           <div className="flex flex-wrap items-center gap-6 border-b border-white/5 mb-6">
             {[
@@ -490,11 +435,9 @@ export default function AffiliatePage() {
 
           <AnimatePresence mode="wait">
           
-          {/* 🔥 DYNAMIC LEVEL TAB CONTENT 🔥 */}
+          {/* LEVEL STRUCTURE TAB CONTENT */}
           {activeTab === 'tier' && (
             <motion.div key="tier" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
-              
-              {/* Optional Progress bar for visual upgrade */}
               <div className="mb-6 flex flex-col gap-2 bg-[#0B0D14] border border-white/5 p-4 rounded-2xl">
                  <div className="flex justify-between items-center text-sm font-bold">
                     <span className="text-white flex items-center gap-2">
@@ -586,9 +529,9 @@ export default function AffiliatePage() {
                   <tr className="border-b border-white/5">
                     <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">User</th>
                     <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Earn</th>
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Pending</th>
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Reversed</th>
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Total Commission</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Pending Amount</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Reversed Amount</th>
+                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Completed Amount</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -610,7 +553,6 @@ export default function AffiliatePage() {
             </motion.div>
           )}
 
-         
           {/* PAYOUT HISTORY TAB */}
           {activeTab === 'payouts' && (
             <motion.div key="payouts" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
