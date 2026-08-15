@@ -113,7 +113,7 @@ const getAchievementIcon = (level: number) => {
 
 export default function AffiliatePage() {
   const currency = useCurrency();
-  const [activeTab, setActiveTab] = useState<'tier' | 'affiliate' | 'history' | 'payouts'>('tier');
+  const [activeTab, setActiveTab] = useState<'tier' | 'affiliate'>('tier');
   const [isLearnMoreOpen, setIsLearnMoreOpen] = useState(false);
 
   const [dashboardData, setDashboardData] = useState<any>({
@@ -127,7 +127,6 @@ export default function AffiliatePage() {
   const [referralLink, setReferralLink] = useState('Loading...');
   const [currentBonusInfo, setCurrentBonusInfo] = useState<{level: number, referalBonus: string}>({ level: 1, referalBonus: "3%" });
   const [tierData, setTierData] = useState<any>({ currentTier: 1, currentReferralEarning: 0, levels: [] });
-  const [claimHistory, setClaimHistory] = useState<any[]>([]);
   const [affiliateUsers, setAffiliateUsers] = useState<any[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -136,7 +135,6 @@ export default function AffiliatePage() {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawMessage, setWithdrawMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // Available Balance reflects totalReferEarning
   const availableBalance = dashboardData?.totalReferEarning || 0;
 
   useEffect(() => {
@@ -159,22 +157,20 @@ export default function AffiliatePage() {
       };
 
       try {
-        const [dashRes, profileRes, tierRes, historyRes, affiliateListRes, walletTierRes] = await Promise.all([
+        const [dashRes, profileRes, tierRes, affiliateListRes, walletTierRes] = await Promise.all([
           fetch(`https://apitest.binnycash.com/api/user/affiliate_overview`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/userDetails?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/affiliateTierLevel`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`https://apitest.binnycash.com/api/user/wallet/claim-earning-history`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/referList`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/wallet/tier-level`, { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
 
-        const [dashJson, profileJson, tierJson, historyJson, affiliateListJson, walletTierJson] = await Promise.all([
+        const [dashJson, profileJson, tierJson, affiliateListJson, walletTierJson] = await Promise.all([
           safeParse(dashRes), 
           safeParse(profileRes), 
           safeParse(tierRes), 
-          safeParse(historyRes), 
           safeParse(affiliateListRes), 
-          safeParse(walletTierRes) // <-- Fixed typo here: passing walletTierRes instead of walletTierJson
+          safeParse(walletTierRes)
         ]);
 
         if (dashJson.code === 200 && dashJson.data) setDashboardData(dashJson.data);
@@ -185,7 +181,6 @@ export default function AffiliatePage() {
         }
 
         if (tierJson.code === 200 && tierJson.data) setTierData(tierJson.data);
-        if (historyJson.code === 200 && Array.isArray(historyJson.data)) setClaimHistory(historyJson.data);
         if (affiliateListJson.code === 200 && Array.isArray(affiliateListJson.data)) {
           setAffiliateUsers(affiliateListJson.data);
         }
@@ -258,7 +253,7 @@ export default function AffiliatePage() {
             <p className="text-[#8F95A3] text-sm font-medium">Refer friends, earn more, and grow your passive income.</p>
           </div>
           
-          {/* STATS GRID - 4 CARDS MAPPED TO AFFILIATE OVERVIEW API FIELDS */}
+          {/* STATS GRID */}
           <div className="flex gap-4 w-full md:w-auto overflow-x-auto no-scrollbar pb-2 md:pb-0">
             {[
               { icon: DollarSign, color: '#A855F7', bg: 'bg-[#8B5CF6]/20', text: 'Total Refer Earnings', value: formatPrice(Number(dashboardData?.totalReferEarning) || 0, currency) },
@@ -282,7 +277,7 @@ export default function AffiliatePage() {
           </div>
         </motion.div>
 
-        {/* MIDDLE 3 COLUMNS: Balance, Referral Link, Share */}
+        {/* MIDDLE 3 COLUMNS */}
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           
           {/* BALANCE CARD */}
@@ -375,7 +370,7 @@ export default function AffiliatePage() {
           </motion.div>
         </motion.div>
 
-        {/* PROMO BOX SPANNING FULL WIDTH */}
+        {/* PROMO BOX */}
         <div className="mb-8">
           <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.5, delay: 0.1 }} whileHover={{ scale: 1.01 }} className="bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] rounded-[24px] p-6 sm:p-8 shadow-[0_10px_30px_rgba(139,92,246,0.3)] relative overflow-hidden flex flex-col justify-center border border-white/10">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
@@ -412,13 +407,12 @@ export default function AffiliatePage() {
           </motion.div>
         </div>
 
-        {/* FULL WIDTH TABS SECTION */}
+        {/* TABS SECTION */}
         <div className="w-full bg-[#161821] border border-white/5 rounded-[24px] p-6 shadow-xl">
           <div className="flex flex-wrap items-center gap-6 border-b border-white/5 mb-6">
             {[
               { id: 'tier', label: 'Level Structure' },
               { id: 'affiliate', label: 'Affiliate Stats' },
-              { id: 'payouts', label: 'Payout History' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -553,38 +547,7 @@ export default function AffiliatePage() {
             </motion.div>
           )}
 
-          {/* PAYOUT HISTORY TAB */}
-          {activeTab === 'payouts' && (
-            <motion.div key="payouts" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left border-collapse min-w-[700px]">
-                <thead>
-                  <tr className="border-b border-white/5">
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Claim ID</th>
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Date</th>
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Method</th>
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Amount</th>
-                    <th className="py-3 px-4 text-[11px] font-bold text-[#8F95A3] uppercase">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {claimHistory.length === 0 ? (
-                    <tr><td colSpan={5} className="py-10 text-center text-[#8F95A3] text-sm">No payout history found.</td></tr>
-                  ) : (
-                    claimHistory.map((claim, idx) => (
-                      <motion.tr key={idx} custom={idx} initial="hidden" animate="visible" variants={rowFade} className="border-b border-white/5 hover:bg-white/[0.02]">
-                        <td className="py-3 px-4 text-xs text-white">{claim._id || claim.claimId || 'N/A'}</td>
-                        <td className="py-3 px-4 text-xs text-[#8F95A3]">{claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : 'N/A'}</td>
-                        <td className="py-3 px-4 text-xs text-white">{claim.method || 'N/A'}</td>
-                        <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(claim.amount || 0), currency)}</td>
-                        <td className="py-3 px-4 text-xs text-white">{claim.status || 'Completed'}</td>
-                      </motion.tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </motion.div>
-          )}
-          </AnimatePresence>
+         </AnimatePresence>
         </div>
 
         {/* FEATURES BANNER */}
@@ -638,7 +601,7 @@ export default function AffiliatePage() {
 
       </motion.main>
 
-      {/* --- LEARN MORE (BENEFITS) MODAL --- */}
+      {/* --- LEARN MORE MODAL --- */}
       <AnimatePresence>
         {isLearnMoreOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

@@ -6,7 +6,7 @@ import {
   Wallet, Coins, CreditCard, IndianRupee,
   Clock, ShieldCheck, ChevronRight, Zap, 
   Landmark, CircleDollarSign, User, Calendar, 
-  MapPin, Building, Hash, UploadCloud, X, ChevronDown, CheckCircle2, AlertCircle, Camera, Loader2, Smartphone, Mail, RefreshCw, AlertTriangle, Sparkles, Lock
+  MapPin, Building, Hash, UploadCloud, X, ChevronDown, CheckCircle2, AlertCircle, Camera, Loader2, Smartphone, Mail, RefreshCw, AlertTriangle, Sparkles, Lock, ChevronLeft
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -99,13 +99,13 @@ const indianCities = [
   'ambattur', 'tirunelveli', 'malegaon', 'gaya', 'jalgaon', 'udaipur', 'maheshtala', 'davanagere', 'kozhikode', 'alwar'
 ];
 
-// --- KYC SUBMISSION MODAL (FULL SIZE IMAGE WITHOUT BOX) ---
+// --- KYC SUBMISSION MODAL ---
 function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', dob: '', documentNumber: '', documentType: '', customDocumentType: '',
   });
   const [frontImage, setFrontImage] = useState<File | null>(null);
-  const [backImage, setBackImage] = useState<File | null>(null); // API compatibility
+  const [backImage, setBackImage] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -178,12 +178,10 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
         exit={{ opacity: 0, scale: 0.95, y: 20 }} 
         className="relative w-full max-w-[640px] bg-[#0E111E] border border-[#8B5CF6]/30 rounded-[32px] p-6 sm:p-8 text-white shadow-[0_30px_90px_rgba(139,92,246,0.3)] my-auto max-h-[92vh] overflow-y-auto custom-scrollbar"
       >
-        {/* Close Button */}
         <button onClick={onClose} className="absolute top-5 right-5 z-20 w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center cursor-pointer transition-colors">
           <X className="w-5 h-5 text-white" />
         </button>
 
-        {/* Header Branding */}
         <div className="flex items-center gap-4 mb-6 pr-10">
           <div className="w-12 h-12 rounded-2xl bg-[#8B5CF6]/20 border border-[#8B5CF6]/40 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(139,92,246,0.3)]">
             <ShieldCheck className="w-6 h-6 text-[#A78BFA]" />
@@ -251,7 +249,6 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
             <motion.input initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} type="text" required placeholder="Specify Custom Document" className="w-full bg-[#15192C] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:bg-[#1A1E35] focus:border-[#8B5CF6] transition-all" onChange={(e) => setFormData({...formData, customDocumentType: e.target.value})} />
           )}
 
-          {/* 🔥 FULL WIDTH IMAGE WITHOUT BORDER/BOX 🔥 */}
           <div className="mt-2">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-4 h-4 text-[#A78BFA]" />
@@ -265,7 +262,6 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
             </p>
           </div>
 
-          {/* UPLOAD SECTION */}
           <div className="mt-2">
             <label className="block text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider mb-1.5 ml-1">Upload Document Image <span className="text-[#EC4899]">*</span></label>
             <div className={`relative border-2 border-dashed ${frontImage ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-[#8B5CF6]/30 bg-[#15192C]/40 hover:bg-[#15192C]'} rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all`}>
@@ -328,7 +324,7 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
   );
 }
 
-// --- REDESIGNED VERIFICATION ALERT MODAL ---
+// --- VERIFICATION ALERT MODAL ---
 function VerificationAlertModal({ isOpen, onClose, onVerifyNow, kycStatus }: { isOpen: boolean; onClose: () => void; onVerifyNow: () => void; kycStatus: string }) {
   if (!isOpen) return null;
 
@@ -490,8 +486,11 @@ export default function CashoutPage() {
   // Country Logic State
   const [isIndianUser, setIsIndianUser] = useState<boolean>(true);
 
+  // Withdrawals & Pagination State
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [withdrawalsLoading, setWithdrawalsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Modals visibility
   const [isKycOpen, setIsKycOpen] = useState(false);
@@ -554,25 +553,29 @@ export default function CashoutPage() {
 
   useEffect(() => { fetchUserData(); }, []);
 
-  const fetchWithdrawals = async () => {
+  // --- FETCH WITHDRAW HISTORY WITH NEW API & PAGINATION ---
+  const fetchWithdrawals = async (page = 1) => {
+    setWithdrawalsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('https://apitest.binnycash.com/api/user/wallet/cashout-list', {
+      const res = await fetch(`https://apitest.binnycash.com/api/user/withdrawHistory?page=${page}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
       });
       const json = await safeJsonParse(res);
-      if (json.code === 200 && json.data?.list) {
-        setWithdrawals(json.data.list);
+      if (json.code === 200 && json.data) {
+        setWithdrawals(json.data.data || []);
+        setCurrentPage(json.data.currentPage || 1);
+        setTotalPages(json.data.totalPages || 1);
       }
     } catch (err) {
-      console.error('Failed to fetch withdrawals:', err);
+      console.error('Failed to fetch withdrawal history:', err);
     } finally {
       setWithdrawalsLoading(false);
     }
   };
 
-  useEffect(() => { fetchWithdrawals(); }, []);
+  useEffect(() => { fetchWithdrawals(1); }, []);
 
   const availableMethods = isIndianUser ? [
     { id: 'upi', name: 'UPI', desc: 'Transfer to UPI', time: 'Instant', icon: <UPIIcon />, speed: 'fast' },
@@ -685,7 +688,7 @@ export default function CashoutPage() {
         }
         
         fetchUserData(); 
-        fetchWithdrawals();
+        fetchWithdrawals(1);
         setTimeout(() => { setSelectedMethod(null); }, 2000);
       } else {
         setMsg({ text: data.message || 'Failed to process withdrawal.', type: 'error' });
@@ -825,7 +828,7 @@ export default function CashoutPage() {
             {activeTab === 'cash' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 w-full h-[2px] bg-[#8B5CF6]" />}
           </button>
           <button onClick={() => setActiveTab('history')} className={`pb-4 text-sm font-bold relative ${activeTab === 'history' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`}>
-            My Withdrawals
+            Cashout History
             {activeTab === 'history' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 w-full h-[2px] bg-[#8B5CF6]" />}
           </button>
         </div>
@@ -1060,12 +1063,12 @@ export default function CashoutPage() {
             ) : withdrawals.length === 0 ? (
               <div className="py-20 text-center bg-[#111319] border border-white/5 rounded-[20px]">
                 <Clock className="w-12 h-12 text-[#8F95A3] mx-auto mb-4 opacity-50" />
-                <h3 className="text-white font-bold text-lg mb-1">No withdrawals yet</h3>
+                <h3 className="text-white font-bold text-lg mb-1">No cashout history found</h3>
               </div>
             ) : (
               <div className="space-y-3">
                 {withdrawals.map((w) => (
-                  <div key={w._id} className="bg-[#111319] border border-white/5 rounded-[18px] p-4 sm:p-5 flex items-center gap-4">
+                  <div key={w._id || w.id} className="bg-[#111319] border border-white/5 rounded-[18px] p-4 sm:p-5 flex items-center gap-4">
                     <div className="shrink-0">{getMethodIcon(w.method)}</div>
                     <div className="flex-grow min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1079,6 +1082,27 @@ export default function CashoutPage() {
                     </div>
                   </div>
                 ))}
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 px-2">
+                    <button 
+                      onClick={() => fetchWithdrawals(currentPage - 1)} 
+                      disabled={currentPage <= 1}
+                      className="px-4 py-2 rounded-xl bg-[#15192C] hover:bg-[#1E233B] text-xs font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer border border-white/5"
+                    >
+                      <ChevronLeft className="w-4 h-4" /> Previous
+                    </button>
+                    <span className="text-xs text-[#8F95A3] font-medium">Page {currentPage} of {totalPages}</span>
+                    <button 
+                      onClick={() => fetchWithdrawals(currentPage + 1)} 
+                      disabled={currentPage >= totalPages}
+                      className="px-4 py-2 rounded-xl bg-[#15192C] hover:bg-[#1E233B] text-xs font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer border border-white/5"
+                    >
+                      Next <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
