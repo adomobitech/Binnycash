@@ -54,9 +54,11 @@ async function safeFetchJson(url: string, options?: RequestInit) {
   try {
     const res = await fetch(url, options);
     const text = await res.text();
+    // Agar response empty hai ya HTML (like <doctype>) hai toh null return karein
     if (!text || text.trim().startsWith('<')) {
       return null;
     }
+    // Warna valid JSON ko parse karein
     return JSON.parse(text);
   } catch (err) {
     return null;
@@ -525,9 +527,11 @@ export default function ProfilePage() {
     const userId = getUserId();
 
     try {
-      const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/userDetails?userId=${userId}`, {
+      // 🔥 FIX: Added cache buster to bypass Next.js aggressive caching & fetch fresh profile data
+      const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/userDetails?userId=${userId}&t=${Date.now()}`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store'
       });
 
       if (json && (json.code === 200 || json.responseCode === 0)) {
@@ -535,8 +539,8 @@ export default function ProfilePage() {
         setUserData(user);
 
         setFormData(prev => ({
-          firstName: user?.firstName || prev.firstName || '',
-          lastName: user?.lastName || prev.lastName || '',
+          firstName: user?.firstName || user?.first_name || prev.firstName || '',
+          lastName: user?.lastName || user?.last_name || prev.lastName || '',
           email: user?.email || prev.email || '',
           city: user?.city || prev.city || '',
           address: user?.address || prev.address || '',
@@ -545,10 +549,12 @@ export default function ProfilePage() {
         }));
       }
 
-      const statsJson = await safeFetchJson('https://apitest.binnycash.com/api/user/wallet/view', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      // API 2: Fetch Wallet Stats
+      const statsJson = await safeFetchJson(`https://apitest.binnycash.com/api/user/wallet/view?t=${Date.now()}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store'
       });
-      if (statsJson) {
+      if (statsJson && statsJson.code === 200) {
         setStats(statsJson?.data);
       }
 
@@ -574,12 +580,13 @@ export default function ProfilePage() {
       setIsTableLoading(true);
       try {
         if (activeTableTab === 'offers') {
-          const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/user_completed_offer?userId=${userId}&page=${tablePage}&limit=10`, {
+          // --- UPDATED OFFERS API LOGIC ---
+          const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/tracking/completeUserData?page=${tablePage}&limit=10`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (json && json.code === 200) {
-            setOffersData(json?.data?.data?.completedOffers || json?.data?.completedOffers || []);
-            setTableTotalPages(json?.data?.data?.pagination?.totalPages || json?.data?.pagination?.totalPages || 1);
+            setOffersData(json?.data?.list || []);
+            setTableTotalPages(json?.data?.totalPages || 1);
           } else {
             setOffersData([]);
             setTableTotalPages(1);
@@ -601,7 +608,6 @@ export default function ProfilePage() {
           const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/user_earn_reward?userId=${userId}&page=${tablePage}&limit=10`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
-          // Handling 500 error gracefully by checking code
           if (json && json.code === 200 && json.type === 'success') {
             setRewardsData(json?.data?.data?.userReward || json?.data?.userReward || json?.data?.list || []);
             setTableTotalPages(json?.data?.data?.pagination?.totalPages || json?.data?.pagination?.totalPages || 1);
@@ -668,6 +674,8 @@ export default function ProfilePage() {
 
       if (json && (json.code === 200 || json.responseCode === 0)) {
         setMessage({ text: 'Profile updated successfully!', type: 'success' });
+        
+        // Optimistic update
         setUserData((prev: any) => ({
           ...prev,
           firstName: formData.firstName,
@@ -678,6 +686,8 @@ export default function ProfilePage() {
           mobileNumber: formData.mobileNumber,
           zipCode: formData.zipCode,
         }));
+        
+        // Fetch fresh data with cache buster
         fetchProfileData(); 
       } else {
         setMessage({ text: json?.message || 'Failed to update profile', type: 'error' });
@@ -759,11 +769,11 @@ export default function ProfilePage() {
     return imgSrc.startsWith('/') ? `https://apitest.binnycash.com${imgSrc}` : `https://apitest.binnycash.com/${imgSrc}`;
   };
 
-  const name = [userData?.firstName, userData?.lastName].filter(Boolean).join(' ') || userData?.userName || 'User';
-  const fullNameDisplay = [userData?.firstName, userData?.lastName].filter(Boolean).join(' ') || userData?.userName || 'Not provided';
-  const phoneDisplay = userData?.mobileCode ? `${userData.mobileCode} ${userData.mobileNumber}` : (userData?.mobileNumber || userData?.phone || 'Not provided');
-  const cityZipDisplay = [userData?.city, userData?.zipCode].filter(Boolean).join(' - ') || 'Not provided';
-  const addressDisplay = userData?.address || 'Not provided';
+  // 🔥 FIX: Robust name mapping logic prioritizing form data/updated backend fields
+  const fName = userData?.firstName || userData?.first_name || '';
+  const lName = userData?.lastName || userData?.last_name || '';
+  
+  const name = [fName, lName].filter(Boolean).join(' ').trim() || userData?.userName || 'User';
 
   const rawProfilePic = userData?.image || userData?.profilePic;
   const displayImage = resolveImage(rawProfilePic);
@@ -922,8 +932,8 @@ export default function ProfilePage() {
           </div>
 
           <div className="bg-[#120F1A]/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 min-w-[280px] z-10 mt-8 md:mt-0 shadow-xl shrink-0">
-              <p className="text-white/60 text-xs font-medium mb-2">Total Earnings</p>
-              <h2 className="text-3xl font-black text-white f-mono mb-1">{formatPrice(Number(stats?.totalEarning || 0), currency)}</h2>
+              <p className="text-white/60 text-xs font-medium mb-2">Available Balance</p>
+              <h2 className="text-3xl font-black text-white f-mono mb-1">{formatPrice(Number(stats?.totalAmount || 0), currency)}</h2>
           </div>
         </div>
 
@@ -1005,9 +1015,9 @@ export default function ProfilePage() {
                        <Target className="w-6 h-6 text-[#A66CFF]" />
                      </div>
                      <div className="flex flex-col w-full">
-                       <span className="text-xs text-[#8D89A8] font-medium mb-1">Total Offers</span>
+                       <span className="text-xs text-[#8D89A8] font-medium mb-1">Total Completed Offers</span>
                        <span className="text-xl font-bold text-white f-mono mb-1">
-                         <CountUp value={Number(stats?.totalCompletedOffers || offersData.length || 0)} />
+                         <CountUp value={Number(userData?.offer_completion_count || 0)} />
                        </span>
                        <span className="text-[10px] text-white/40">Completed</span>
                      </div>
@@ -1018,8 +1028,8 @@ export default function ProfilePage() {
                        <Wallet className="w-6 h-6 text-[#00E57A]" />
                      </div>
                      <div className="flex flex-col w-full">
-                       <span className="text-xs text-[#8D89A8] font-medium mb-1">Total Earnings</span>
-                       <span className="text-xl font-bold text-white f-mono mb-1">{formatPrice(Number(stats?.totalEarning || 0), currency)}</span>
+                       <span className="text-xs text-[#8D89A8] font-medium mb-1">Total Referral Earning</span>
+                       <span className="text-xl font-bold text-white f-mono mb-1">{formatPrice(Number(stats?.tillReferEarning || 0), currency)}</span>
                        <span className="text-[10px] text-white/40">Lifetime</span>
                      </div>
                    </div>
@@ -1031,35 +1041,12 @@ export default function ProfilePage() {
                      <div className="flex flex-col w-full">
                        <span className="text-xs text-[#8D89A8] font-medium mb-1">Referral Users</span>
                        <span className="text-xl font-bold text-white f-mono mb-1">
-                         {userData?.referrals || userData?.referralCount || 0}
+                         {userData?.referralCount || 0}
                        </span>
                        <span className="text-[10px] text-white/40">Lifetime</span>
                      </div>
                    </div>
                 </div>
-              </div>
-
-              {/* Personal Details Card */}
-              <div className="bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl">
-                 <h3 className="text-base font-bold text-white mb-4">Personal Details</h3>
-                 <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4">
-                   <div className="flex flex-col">
-                     <span className="text-xs text-[#8D89A8] mb-1">Full Name</span>
-                     <span className="text-sm text-white font-medium">{fullNameDisplay}</span>
-                   </div>
-                   <div className="flex flex-col">
-                     <span className="text-xs text-[#8D89A8] mb-1">Phone Number</span>
-                     <span className="text-sm text-white font-medium">{phoneDisplay}</span>
-                   </div>
-                   <div className="flex flex-col">
-                     <span className="text-xs text-[#8D89A8] mb-1">City / Zip</span>
-                     <span className="text-sm text-white font-medium">{cityZipDisplay}</span>
-                   </div>
-                   <div className="flex flex-col">
-                     <span className="text-xs text-[#8D89A8] mb-1">Full Address</span>
-                     <span className="text-sm text-white font-medium truncate">{addressDisplay}</span>
-                   </div>
-                 </div>
               </div>
 
            </div>
@@ -1092,27 +1079,35 @@ export default function ProfilePage() {
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                   <tr className="border-b border-white/[0.06] bg-white/[0.02]">
-                    {activeTableTab === 'reversals' ? (
+                    {activeTableTab === 'offers' ? (
+                      <>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Offer Name</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Network Name</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Payout</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Event</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Status</th>
+                      </>
+                    ) : activeTableTab === 'surveys' ? (
+                      <>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Survey Name</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Network Name</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Reward</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Date</th>
+                      </>
+                    ) : activeTableTab === 'reversals' ? (
                       <>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Name</th>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Amount reversed</th>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Partner</th>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Date</th>
-                      </>
-                    ) : activeTableTab === 'rewards' ? (
-                      <>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Reward name</th>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Amount</th>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Type</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Network Name</th>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Date</th>
                       </>
                     ) : (
                       <>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Name</th>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Reward</th>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Partner</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Reward name</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Amount</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Type</th>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Date</th>
                       </>
                     )}
@@ -1152,8 +1147,95 @@ export default function ProfilePage() {
                       }
 
                       return currentData.map((item: any, idx: number) => {
+                        // OFFERS RENDER BLOCK
+                        if (activeTableTab === 'offers') {
+                          const finalImg = resolveImage(item.offerImage || item.logo || item.image_url || item.preview);
+                          const partnerName = item.network || item.partnerName || 'Partner';
+                          const payoutVal = Number(item.userCredits || item.amount || 0);
+                          const eventName = item.eventName ? item.eventName : '-';
+                          const isCompleted = item.status === 1 || String(item.status).toLowerCase() === 'completed';
+                          const statusText = isCompleted ? 'Completed' : (item.status || 'Pending');
+
+                          return (
+                            <motion.tr
+                              key={item._id || idx}
+                              initial={{ opacity: 0, x: -8 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: Math.min(idx * 0.03, 0.4) }}
+                              className="border-b border-white/[0.05] hover:bg-white/[0.03] transition-colors"
+                            >
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  {finalImg ? (
+                                    <img src={finalImg} alt="logo" className="w-8 h-8 rounded-lg object-cover bg-white/5" />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-lg bg-[#A66CFF]/20 flex items-center justify-center">
+                                      <span className="text-xs font-bold text-[#A66CFF]">{(item.offerName || item.offer_name || 'O').charAt(0)}</span>
+                                    </div>
+                                  )}
+                                  <span className="text-sm font-bold text-white truncate max-w-[200px]">{item.offerName || item.offer_name || 'Offer'}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-white/80 capitalize">{partnerName}</td>
+                              <td className="px-6 py-4 text-sm f-mono font-bold text-[#3DE8A0]">+{formatPrice(payoutVal, currency)}</td>
+                              <td className="px-6 py-4 text-sm f-mono text-[#8D89A8]">{eventName}</td>
+                              <td className="px-6 py-4">
+                                <span className={`px-2 py-1 rounded border text-[10px] font-bold uppercase flex items-center gap-1 w-fit ${isCompleted ? 'bg-[#3DE8A0]/10 border-[#3DE8A0]/20 text-[#3DE8A0]' : 'bg-amber-500/10 border-amber-500/20 text-amber-500'}`}>
+                                  {isCompleted ? <CheckCircle2 className="w-3 h-3" /> : <Loader2 className="w-3 h-3 animate-spin" />}
+                                  {statusText}
+                                </span>
+                              </td>
+                            </motion.tr>
+                          );
+                        }
+
+                        // SURVEYS RENDER BLOCK
+                        if (activeTableTab === 'surveys') {
+                          const finalImg = resolveImage(item.logo || item.surveyImage || item.image_url || item.preview);
+                          const partnerName = item.network || item.partnerName || 'Network';
+                          const payoutVal = Number(item.userCredits || item.amount || 0);
+                          const isCompleted = item.status === 1 || String(item.status).toLowerCase() === 'completed';
+                          const statusText = isCompleted ? 'Completed' : (item.status || 'Pending');
+
+                          return (
+                            <motion.tr
+                              key={item._id || idx}
+                              initial={{ opacity: 0, x: -8 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: Math.min(idx * 0.03, 0.4) }}
+                              className="border-b border-white/[0.05] hover:bg-white/[0.03] transition-colors"
+                            >
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  {finalImg ? (
+                                    <img src={finalImg} alt="logo" className="w-8 h-8 rounded-lg object-cover bg-white/5" />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-lg bg-[#A66CFF]/20 flex items-center justify-center">
+                                      <span className="text-xs font-bold text-[#A66CFF]">{(item.surveyName || item.offer_name || item.name || 'S').charAt(0)}</span>
+                                    </div>
+                                  )}
+                                  <span className="text-sm font-bold text-white truncate max-w-[200px]">{item.surveyName || item.offer_name || item.name || 'Survey'}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-white/80 capitalize">{partnerName}</td>
+                              <td className="px-6 py-4 text-sm f-mono font-bold text-[#3DE8A0]">+{formatPrice(payoutVal, currency)}</td>
+                              <td className="px-6 py-4">
+                                <span className={`px-2 py-1 rounded border text-[10px] font-bold uppercase flex items-center gap-1 w-fit ${isCompleted ? 'bg-[#3DE8A0]/10 border-[#3DE8A0]/20 text-[#3DE8A0]' : 'bg-amber-500/10 border-amber-500/20 text-amber-500'}`}>
+                                  {isCompleted ? <CheckCircle2 className="w-3 h-3" /> : <Loader2 className="w-3 h-3 animate-spin" />}
+                                  {statusText}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-sm f-mono text-[#8D89A8]">{formatDate(item.date || item.createdAt)}</td>
+                            </motion.tr>
+                          );
+                        }
+
+                        // REVERSALS RENDER BLOCK
                         if (activeTableTab === 'reversals') {
                           const finalImg = resolveImage(item.logo || item.offerImage || item.image_url || item.preview);
+                          const partnerName = item.network || item.partnerName || 'Network';
+                          const payoutVal = Number(item.userCredits || item.amount || 0);
+
                           return (
                             <motion.tr
                               key={item._id || idx}
@@ -1174,18 +1256,19 @@ export default function ProfilePage() {
                                   <span className="text-sm font-bold text-white truncate max-w-[200px]">{item.offer_name || item.name || 'Reversal Item'}</span>
                                 </div>
                               </td>
-                              <td className="px-6 py-4 text-sm f-mono font-bold text-[#FF5D73]">-{formatPrice(Number(item.userCredits || item.amount || 0), currency)}</td>
+                              <td className="px-6 py-4 text-sm f-mono font-bold text-[#FF5D73]">-{formatPrice(payoutVal, currency)}</td>
                               <td className="px-6 py-4">
-                                <span className="px-2 py-1 rounded bg-[#FF5D73]/10 border border-[#FF5D73]/20 text-[#FF5D73] text-[10px] font-bold uppercase flex items-center gap-1 w-fit">
+                                <span className="px-2 py-1 rounded border bg-[#FF5D73]/10 border-[#FF5D73]/20 text-[#FF5D73] text-[10px] font-bold uppercase flex items-center gap-1 w-fit">
                                   <AlertCircle className="w-3 h-3" /> {item.status || 'REVERSED'}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-sm text-white/80">{item.partnerName || item.network || 'Partner'}</td>
+                              <td className="px-6 py-4 text-sm text-white/80 capitalize">{partnerName}</td>
                               <td className="px-6 py-4 text-sm f-mono text-[#8D89A8]">{formatDate(item.date || item.createdAt)}</td>
                             </motion.tr>
                           );
                         }
 
+                        // REWARDS RENDER BLOCK
                         if (activeTableTab === 'rewards') {
                           return (
                             <motion.tr
@@ -1204,38 +1287,6 @@ export default function ProfilePage() {
                             </motion.tr>
                           );
                         }
-
-                        const finalImg = resolveImage(item.logo || item.offerImage || item.image_url || item.preview);
-                        return (
-                          <motion.tr
-                            key={item._id || idx}
-                            initial={{ opacity: 0, x: -8 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: Math.min(idx * 0.03, 0.4) }}
-                            className="border-b border-white/[0.05] hover:bg-white/[0.03] transition-colors"
-                          >
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                {finalImg ? (
-                                  <img src={finalImg} alt="logo" className="w-8 h-8 rounded-lg object-cover bg-white/5" />
-                                ) : (
-                                  <div className="w-8 h-8 rounded-lg bg-[#A66CFF]/20 flex items-center justify-center">
-                                    <span className="text-xs font-bold text-[#A66CFF]">{(item.offer_name || item.surveyName || 'O').charAt(0)}</span>
-                                  </div>
-                                )}
-                                <span className="text-sm font-bold text-white truncate max-w-[200px]">{item.offer_name || item.surveyName || 'Item'}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-sm f-mono font-bold text-[#3DE8A0]">+{formatPrice(Number(item.userCredits || item.amount || 0), currency)}</td>
-                            <td className="px-6 py-4">
-                              <span className="px-2 py-1 rounded bg-[#3DE8A0]/10 border border-[#3DE8A0]/20 text-[#3DE8A0] text-[10px] font-bold uppercase flex items-center gap-1 w-fit">
-                                <CheckCircle2 className="w-3 h-3" /> {item.status || 'COMPLETE'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-sm text-white/80">{item.partnerName || item.network || 'Partner'}</td>
-                            <td className="px-6 py-4 text-sm f-mono text-[#8D89A8]">{formatDate(item.date || item.createdAt)}</td>
-                          </motion.tr>
-                        );
                       });
                     })()
                   )}

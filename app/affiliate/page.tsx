@@ -559,9 +559,8 @@ export default function AffiliatePage() {
              <h3 className="text-sm font-bold text-white">Why Join BinnyCash Affiliate?</h3>
            </div>
            
-           <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-4">
+           <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { icon: Percent, color: 'text-[#8B5CF6]', bg: 'bg-[#8B5CF6]/10', title: currentBonusInfo.referalBonus, sub: 'Commission Rate' },
                 { icon: Infinity, color: 'text-[#10B981]', bg: 'bg-[#10B981]/10', title: 'Lifetime', sub: 'Earnings' },
                 { icon: Zap, color: 'text-[#F59E0B]', bg: 'bg-[#F59E0B]/10', title: 'Instant', sub: 'Payouts' },
                 { icon: BarChart2, color: 'text-[#3B82F6]', bg: 'bg-[#3B82F6]/10', title: 'Real-time', sub: 'Tracking' },

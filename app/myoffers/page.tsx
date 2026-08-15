@@ -61,6 +61,13 @@ function getCurrentDevice(): 'android' | 'ios' | 'windows' | 'mac' | 'unknown' {
   return 'unknown';
 }
 
+// Utility to fix backend image paths (like /uploads/...)
+function resolveImageUrl(imgPath: string) {
+  if (!imgPath || imgPath === 'null') return '';
+  if (imgPath.startsWith('http')) return imgPath;
+  return `https://apitest.binnycash.com${imgPath}`;
+}
+
 export default function MyOffersPage() {
   const router = useRouter();
   const currency = useCurrency();
@@ -104,12 +111,15 @@ export default function MyOffersPage() {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const json = await res.json();
-        if (json.code === 200) {
-          setPendingOffers(json.data?.list || []);
-          setPendingTotalPages(json.data?.totalPages || 1);
-        } else {
-          setPendingOffers([]);
+        const text = await res.text();
+        if (text && !text.trim().startsWith('<')) {
+          const json = JSON.parse(text);
+          if (res.ok || json.code == 200 || json.type === 'success') {
+            setPendingOffers(json.data?.list || []);
+            setPendingTotalPages(json.data?.totalPages || 1);
+          } else {
+            setPendingOffers([]);
+          }
         }
       } catch (err) {
         console.error("Error fetching pending offers:", err);
@@ -126,19 +136,46 @@ export default function MyOffersPage() {
       if (!token) return;
       setIsLoadingCompleted(true);
       try {
+        // Fetches from the updated endpoint tracking/completeUserData
         const res = await fetch(`https://apitest.binnycash.com/api/user/tracking/completeUserData?page=${completedPage}&limit=12`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const json = await res.json();
-        if (json.code === 200) {
-          setCompletedOffers(json.data?.list || []);
-          setCompletedTotalPages(json.data?.totalPages || 1);
+        
+        const text = await res.text();
+        let json: any = {};
+        if (text && !text.trim().startsWith('<')) {
+          json = JSON.parse(text);
+        }
+
+        if (res.ok || json.code == 200 || json.type === 'success') {
+          let offersData: any[] = [];
+          let paginationData: any = {};
+
+          // Flexible mapping tailored for both old and new potential structures
+          if (json.data?.list) {
+            offersData = json.data.list;
+            paginationData = { totalPages: json.data.totalPages || 1 };
+          } else if (json.data?.data?.completedOffers) {
+            offersData = json.data.data.completedOffers;
+            paginationData = json.data.data.pagination || {};
+          } else if (json.data?.completedOffers) {
+            offersData = json.data.completedOffers;
+            paginationData = json.data.pagination || {};
+          } else if (Array.isArray(json.data)) {
+            offersData = json.data;
+          } else if (Array.isArray(json.completedOffers)) {
+            offersData = json.completedOffers;
+          }
+
+          setCompletedOffers(offersData);
+          setCompletedTotalPages(paginationData.totalPages || json.data?.totalPages || 1);
         } else {
           setCompletedOffers([]);
         }
       } catch (err) {
         console.error("Error fetching completed offers:", err);
+        setCompletedOffers([]);
       } finally {
         setIsLoadingCompleted(false);
       }
@@ -349,7 +386,7 @@ export default function MyOffersPage() {
                         className="group relative bg-[#111319] border border-white/5 rounded-xl overflow-hidden cursor-pointer shadow-md hover:border-[#8B5CF6]/50 transition-all duration-300 flex flex-col"
                       >
                         <div className="w-full aspect-square bg-[#1A1D24] relative overflow-hidden">
-                          <img src={offer.image_url || offer.offerImage} alt={offer.offerName} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          <img src={resolveImageUrl(offer.image_url || offer.offerImage)} alt={offer.offerName} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                           <div className="absolute inset-0 bg-gradient-to-t from-[#111319] to-transparent"></div>
                           <div className="absolute top-1.5 left-1.5 bg-black/70 backdrop-blur-md border border-white/10 px-1.5 py-0.5 rounded">
                             <span className="text-white font-black text-[10px]">{formatPrice(Number(offer.userCredits || 0), currency)}</span>
@@ -391,26 +428,76 @@ export default function MyOffersPage() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-3">
-                    {completedOffers.map((offer, idx) => (
-                      <div 
-                        key={idx}
-                        className="bg-[#111319] border border-white/5 rounded-xl p-2.5 flex items-center gap-2.5 hover:border-[#00E57A]/30 transition-colors shadow-sm"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-[#1A1D24] overflow-hidden shrink-0 border border-white/10 relative">
-                          <img src={offer.image_url || offer.offerImage || offer.offer?.image_url} alt="Offer" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-[#00E57A]/10 mix-blend-overlay"></div>
-                        </div>
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <h4 className="text-white font-bold text-[11px] truncate mb-0.5">{offer.offerName || offer.offer?.offerName || 'Completed Offer'}</h4>
-                          <span className="text-[#00E57A] font-black text-xs mb-1">{formatPrice(Number(offer.userCredits || offer.reward || 0), currency)}</span>
-                          <div className="flex items-center gap-1 w-fit bg-[#00E57A]/10 border border-[#00E57A]/20 px-1 py-0.5 rounded">
-                            <CheckCircle2 className="w-2.5 h-2.5 text-[#00E57A]" />
-                            <span className="text-[#00E57A] text-[8px] font-bold uppercase tracking-widest">Done</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="bg-[#111319] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="overflow-x-auto custom-scrollbar">
+                      <table className="w-full text-left border-collapse min-w-[700px]">
+                        <thead>
+                          <tr className="border-b border-white/5 bg-white/[0.02]">
+                            <th className="py-4 px-5 text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider">Offer Name</th>
+                            <th className="py-4 px-5 text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider">Partner Name</th>
+                            <th className="py-4 px-5 text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider">Payout</th>
+                            <th className="py-4 px-5 text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider">Event Name</th>
+                            <th className="py-4 px-5 text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {completedOffers.map((offer, idx) => {
+                            // Flexible handling to capture fields across both endpoints seamlessly
+                            const rawImg = offer.image_url || offer.offerImage || offer.logo || offer.offer?.image_url || '';
+                            const displayImg = resolveImageUrl(rawImg);
+                            const partnerName = offer.network || offer.offerPartnerName || 'Partner';
+                            const payoutVal = Number(offer.reward || offer.userCredits || offer.amount || 0);
+                            
+                            // Event & Status extraction logic
+                            const eventName = offer.eventName ? offer.eventName : '-';
+                            const isCompleted = offer.status === 1 || String(offer.status).toLowerCase() === 'completed';
+                            const statusText = isCompleted ? 'Completed' : (offer.status || 'Pending');
+                            
+                            // Dynamic color classes based on completion status
+                            const statusBgColor = isCompleted ? 'bg-[#00E57A]/10 border-[#00E57A]/20' : 'bg-amber-500/10 border-amber-500/20';
+                            const statusTextColor = isCompleted ? 'text-[#00E57A]' : 'text-amber-500';
+                            const StatusIcon = isCompleted ? CheckCircle2 : Loader2;
+
+                            return (
+                              <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                                <td className="py-3 px-5">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-[#1A1D24] overflow-hidden shrink-0 border border-white/10 relative">
+                                      {displayImg ? (
+                                        <img src={displayImg} alt="Offer" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <div className="w-full h-full bg-[#8B5CF6]/20 flex items-center justify-center text-white font-bold text-xs uppercase">
+                                          {partnerName.charAt(0)}
+                                        </div>
+                                      )}
+                                      <div className="absolute inset-0 bg-[#00E57A]/10 mix-blend-overlay"></div>
+                                    </div>
+                                    <span className="text-white font-bold text-xs truncate max-w-[200px] block">
+                                      {offer.offerName || offer.offer?.offerName || 'Offer Reward'}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-5 text-[#8F95A3] font-medium text-xs capitalize">
+                                  {partnerName}
+                                </td>
+                                <td className="py-3 px-5">
+                                  <span className="text-[#00E57A] font-black text-xs">{formatPrice(payoutVal, currency)}</span>
+                                </td>
+                                <td className="py-3 px-5 text-[#8F95A3] font-medium text-xs">
+                                  {eventName}
+                                </td>
+                                <td className="py-3 px-5">
+                                  <div className={`inline-flex items-center gap-1.5 border px-2.5 py-1 rounded-md ${statusBgColor}`}>
+                                    <StatusIcon className={`w-3.5 h-3.5 ${statusTextColor} ${!isCompleted && 'animate-spin'}`} />
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider capitalize ${statusTextColor}`}>{statusText}</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                   <Pagination current={completedPage} total={completedTotalPages} onPageChange={setCompletedPage} />
                 </>
@@ -442,13 +529,13 @@ export default function MyOffersPage() {
                 </div>
 
                 <div className="w-full h-32 relative">
-                  <img src={selectedOffer.image_url || selectedOffer.offerImage} alt={selectedOffer.offerName} className="w-full h-full object-cover opacity-50" />
+                  <img src={resolveImageUrl(selectedOffer.image_url || selectedOffer.offerImage)} alt={selectedOffer.offerName} className="w-full h-full object-cover opacity-50" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0E1015] to-transparent"></div>
                 </div>
 
                 <div className="px-5 pb-6 -mt-10 relative z-10 flex flex-col items-center text-center">
                   <div className="w-16 h-16 rounded-xl bg-[#1A1D24] border-4 border-[#0E1015] overflow-hidden shadow-xl mb-2.5 shrink-0">
-                    <img src={selectedOffer.image_url || selectedOffer.offerImage} alt={selectedOffer.offerName} className="w-full h-full object-cover" />
+                    <img src={resolveImageUrl(selectedOffer.image_url || selectedOffer.offerImage)} alt={selectedOffer.offerName} className="w-full h-full object-cover" />
                   </div>
                   
                   <h2 className="text-lg font-black text-white mb-1.5">{selectedOffer.offerName}</h2>
@@ -456,7 +543,7 @@ export default function MyOffersPage() {
                   <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
                     <span className="text-[#8F95A3] font-bold text-[11px] uppercase tracking-widest">{selectedOffer.network || 'Task'}</span>
                     <span className="w-1 h-1 rounded-full bg-white/20"></span>
-                    <span className="text-[#A66CFF] font-black text-xs drop-shadow-sm">{formatPrice(Number(selectedOffer.userCredits || 0), currency)}</span>
+                    <span className="text-[#A66CFF] font-black text-xs drop-shadow-sm">{formatPrice(Number(selectedOffer.userCredits || selectedOffer.reward || 0), currency)}</span>
                   </div>
 
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full flex flex-col items-center">

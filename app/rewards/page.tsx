@@ -45,7 +45,7 @@ export default function RewardsPage() {
   const [loadingStreak, setLoadingStreak] = useState(true);
   const [streakData, setStreakData] = useState<any>(null);
 
-  // Sirf aaj ki earning ki state
+  // Sirf aaj ki earning ki state (backend se aayegi)
   const [todayEarnings, setTodayEarnings] = useState(0);
 
   // Claim Reward States
@@ -59,13 +59,10 @@ export default function RewardsPage() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoMessage, setPromoMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
-  // Progress Bar Variables -> Strictly relies on todayEarnings
+  // Progress Bar Percentage Calculation
   const targetAmount = isCoin ? 1000 : 1; 
-  const currentProgressEarnings = todayEarnings; 
-  const isProgressComplete = currentProgressEarnings >= targetAmount;
-
   const calculateProgress = () => {
-    return Math.min(100, Math.max(0, (currentProgressEarnings / targetAmount) * 100)); 
+    return Math.min(100, Math.max(0, (todayEarnings / targetAmount) * 100)); 
   };
   const progressPercent = calculateProgress().toFixed(0);
 
@@ -80,7 +77,7 @@ export default function RewardsPage() {
       const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
       const cacheBust = `?t=${Date.now()}`;
 
-      // Sirf 2 zaroori API calls
+      // API calls
       const [resToday, resStreak] = await Promise.all([
         fetch(`https://apitest.binnycash.com/api/user/wallet/today-earning${cacheBust}`, { method: 'GET', headers, cache: 'no-store' }),
         fetch(`https://apitest.binnycash.com/api/user/userDailyStreak${cacheBust}`, { method: 'GET', headers, cache: 'no-store' })
@@ -91,7 +88,7 @@ export default function RewardsPage() {
         resStreak.json().catch(() => ({}))
       ]);
 
-      // 1. Today Earning (For Progress Bar)
+      // 1. Today Earning (From backend, resets daily)
       if (jsonToday.code === 200) {
         let tEarning = 0;
         if (typeof jsonToday.data === 'number') tEarning = jsonToday.data;
@@ -115,7 +112,7 @@ export default function RewardsPage() {
   };
 
   const handleClaimStreak = async (dayItem: any) => {
-    // Ye function ab call hi nahi hoga agar status 'CLAIM' ya 'UNLOCKED' nahi hai
+    // Only claim if there's no ongoing claim
     if (claimingDay !== null) return;
 
     setClaimError(null);
@@ -125,7 +122,6 @@ export default function RewardsPage() {
     try {
       const token = localStorage.getItem('token');
       
-      // Withdraw API as URLSearchParams (Standard for PUT requests without JSON headers)
       const payload = new URLSearchParams();
       payload.append('day', String(dayItem.day));
 
@@ -144,6 +140,14 @@ export default function RewardsPage() {
         setClaimedDays(prev => [...prev, dayItem.day]);
         setClaimSuccess(json.message || `Day ${dayItem.day} reward claimed successfully!`);
         await fetchAllData(); 
+        
+        // Global Events Fire kiye hain taki Navbar without refresh update ho jaye
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('walletUpdated'));
+          window.dispatchEvent(new Event('profileUpdated'));
+          window.dispatchEvent(new Event('balanceUpdated'));
+        }
+
       } else {
         setClaimError(json.message || 'Reward configuration not found or already claimed.');
       }
@@ -170,7 +174,6 @@ export default function RewardsPage() {
       const token = localStorage.getItem('token');
       const deviceId = localStorage.getItem('deviceId') || 'web-browser-device'; 
 
-      // Promo Code API as clean JSON body POST request
       const res = await fetch('https://apitest.binnycash.com/api/user/promoCode/promo/apply', {
         method: 'POST',
         headers: {
@@ -185,6 +188,11 @@ export default function RewardsPage() {
       if (res.ok || json.code === 200) {
         setPromoMessage({ text: json.message || 'Promo code applied successfully!', type: 'success' });
         setPromoCode('');
+        
+        // Promo code successful hone par bhi Navbar ko update bhej dete hain
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('walletUpdated'));
+        }
       } else {
         setPromoMessage({ text: json.message || 'Invalid or ineligible promo code.', type: 'error' });
       }
@@ -232,18 +240,19 @@ export default function RewardsPage() {
                <Loader2 className="w-8 h-8 text-[#A855F7] animate-spin" />
             </div>
           ) : (
-            <div className="flex flex-col lg:flex-row gap-8 items-start">
+            <div className="flex flex-col lg:flex-row gap-4 xl:gap-6 items-start">
               
-              {/* LEFT SIDE: Text and Progress Box */}
-              <div className="w-full lg:w-[380px] shrink-0 pr-0 lg:pr-4">
-                <p className="text-[#8D89A8] text-sm leading-relaxed mb-6">
+              {/* LEFT SIDE: Text and Progress Box (SHRUNK WIDTH to fit cards better) */}
+              <div className="w-full lg:w-[270px] xl:w-[310px] shrink-0">
+                <p className="text-[#8D89A8] text-sm leading-relaxed mb-6 pr-0 lg:pr-2">
                   Each day you earn {formatPrice(targetAmount, currency)} or more, your streak continues and you unlock progressively higher rewards. If you fail to meet this requirement, your streak will reset.
                 </p>
 
                 <div className="bg-[#1A1C24] border border-white/5 rounded-2xl p-5">
                   <div className="flex justify-between items-center mb-3">
+                    {/* Exactly 0 - 1 capped text */}
                     <span className="text-sm font-medium text-white/80">
-                      Your progress ({formatPrice(currentProgressEarnings, currency)}-{formatPrice(targetAmount, currency)})
+                      Your progress ({formatPrice(0, currency)} - {formatPrice(targetAmount, currency)})
                     </span>
                     <span className="text-sm font-medium text-white/80">{progressPercent}%</span>
                   </div>
@@ -258,98 +267,88 @@ export default function RewardsPage() {
                 </div>
               </div>
 
-              {/* RIGHT SIDE: Scrollable Days Row */}
+              {/* RIGHT SIDE: Scrollable Days Row (GAPS & WIDTHS OPTIMIZED TO AVOID SCROLL) */}
               <div className="flex-1 w-full overflow-x-auto custom-scrollbar pb-4 pt-1">
-                <div className="flex items-center gap-3 min-w-max px-1">
+                <div className="flex items-center gap-1.5 sm:gap-2 xl:gap-3 min-w-max px-1">
                   {(streakData?.days || []).map((day: any, idx: number) => {
-                    const topDay = streakData?.day || 1;
-                    const topStatus = String(streakData?.status || '').toUpperCase();
-                    const isToday = day.day === topDay;
-
-                    // Resolve display status dynamically
-                    let displayStatus = 'LOCKED';
-                    if (day.day < topDay) {
-                      displayStatus = 'CLAIMED';
-                    } else if (isToday) {
-                      if (topStatus === 'ACTIVE') {
-                        displayStatus = isProgressComplete ? 'CLAIM' : 'ACTIVE';
-                      } else {
-                        displayStatus = topStatus;
-                      }
-                    } else {
-                      displayStatus = 'LOCKED';
-                    }
-
+                    
+                    // Directly map the status provided by backend
+                    let backendStatus = String(day.status || '').toUpperCase();
+                    
+                    // Optimistic UI state if claimed right now
                     if (claimedDays.includes(day.day)) {
-                      displayStatus = 'CLAIMED';
+                      backendStatus = 'CLAIMED';
                     }
 
-                    const isClaimed = displayStatus === 'CLAIMED';
-                    const isClaimable = displayStatus === 'CLAIM' || displayStatus === 'UNLOCKED';
-                    const isActive = displayStatus === 'ACTIVE';
+                    // Define strict states based on exactly what backend provides
+                    const isClaimed = backendStatus === 'CLAIMED';
+                    const isClaimable = backendStatus === 'CLAIM';
+                    const isActive = backendStatus === 'ACTIVE';
+                    
+                    // If it's none of the above, it falls back to Locked
+                    const isLocked = backendStatus === 'LOCKED' || (!isClaimed && !isClaimable && !isActive);
                     
                     const isClaiming = claimingDay === day.day;
-                    
-                    // Clickable ONLY if it is explicitly Claimable
                     const isClickable = isClaimable && claimingDay === null; 
 
-                    // STYLING: 'Active' now has 'cursor-default' and no hover effects
+                    // STYLING EXACTLY AS REQUESTED
                     const cardClass = isClaimed
-                      ? 'bg-[#0E281F] border border-[#3DE8A0]/30 opacity-60 cursor-default'
+                      ? 'bg-[#00E57A]/5 border border-[#00E57A]/30 opacity-50 cursor-default pointer-events-none' 
                       : isClaimable
-                        ? 'bg-[#18122B] border border-[#A855F7] shadow-[0_0_15px_rgba(168,85,247,0.25)] cursor-pointer hover:scale-105 hover:border-[#B46AFA]'
+                        ? 'bg-[#A855F7]/10 border border-[#A855F7] shadow-[0_0_15px_rgba(168,85,247,0.25)] cursor-pointer hover:scale-105 hover:border-[#B46AFA]' 
                         : isActive
-                          ? 'bg-[#18122B] border border-[#A855F7] shadow-[0_0_20px_rgba(168,85,247,0.1)] cursor-default'
-                          : 'bg-[#12101B] border border-transparent cursor-default opacity-80';
+                          ? 'bg-white/5 border border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.05)] cursor-default pointer-events-none' 
+                          : 'bg-[#1A1725]/50 border border-white/5 opacity-50 cursor-default pointer-events-none'; 
 
-                    // SQUARE ICON BOX
+                    // ICON BOX
                     const iconBoxClass = isClaimed 
-                      ? 'bg-[#3DE8A0]/20 text-[#3DE8A0]'
-                      : (isClaimable || isActive)
-                        ? 'bg-[#A855F7]/10 border border-[#A855F7]/30 text-[#A855F7]'
-                        : 'bg-[#242731] text-[#4B4E5A] border border-white/5';
+                      ? 'bg-[#00E57A]/20 text-[#00E57A]'
+                      : isClaimable
+                        ? 'bg-[#A855F7]/20 text-[#A855F7]'
+                        : isActive
+                          ? 'bg-white/10 text-white/50'
+                          : 'bg-white/5 text-white/30';
 
-                    // Bottom Text
+                    // BOTTOM CONTENT
                     let bottomContent;
                     if (isClaimable) {
                        bottomContent = (
-                         <span className="w-full py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-center bg-[#A855F7] text-white shadow-sm mt-1 transition-all">
+                         <button className="w-full py-1 sm:py-1.5 rounded-lg text-[9px] xl:text-[10px] font-bold uppercase tracking-wider text-center bg-[#A855F7] text-white shadow-sm mt-1 transition-all">
                            Claim
-                         </span>
+                         </button>
                        );
                     } else if (isClaimed) {
-                       bottomContent = <span className="text-xs font-semibold text-[#3DE8A0] mt-1">Claimed</span>;
+                       bottomContent = <span className="text-[10px] sm:text-[11px] font-semibold text-[#00E57A] mt-1 uppercase tracking-wide">Claimed</span>;
                     } else if (isActive) {
-                       bottomContent = <span className="text-xs font-semibold text-white mt-1">Active</span>;
+                       bottomContent = <span className="text-[10px] sm:text-[11px] font-semibold text-white/60 mt-1 uppercase tracking-wide">In Progress</span>;
                     } else {
-                       bottomContent = <span className="text-xs font-semibold text-[#8D89A8] mt-1">Locked</span>;
+                       bottomContent = <span className="text-[10px] sm:text-[11px] font-semibold text-[#8D89A8] mt-1 uppercase tracking-wide">Locked</span>;
                     }
 
                     return (
                       <div 
                         key={idx}
-                        // Only trigger onClick if strictly claimable
                         onClick={isClickable ? () => handleClaimStreak(day) : undefined}
-                        className={`relative w-[110px] h-[160px] shrink-0 rounded-2xl flex flex-col items-center justify-between p-4 transition-all duration-300 ${cardClass}`}
+                        className={`relative w-[90px] sm:w-[95px] xl:w-[110px] h-[140px] sm:h-[150px] xl:h-[160px] shrink-0 rounded-2xl flex flex-col items-center justify-between p-2.5 sm:p-3 xl:p-4 transition-all duration-300 ${cardClass}`}
                       >
                         {isClaiming && (
                           <div className="absolute inset-0 rounded-2xl bg-[#08070D]/70 flex items-center justify-center z-10">
-                            <Loader2 className="w-6 h-6 text-[#A855F7] animate-spin" />
+                            <Loader2 className="w-5 h-5 text-[#A855F7] animate-spin" />
                           </div>
                         )}
 
-                        <span className={`text-sm font-semibold ${isClaimed || isClaimable || isActive ? 'text-white' : 'text-[#8D89A8]'}`}>
+                        <span className={`text-xs sm:text-sm font-semibold ${isClaimed || isClaimable || isActive ? 'text-white' : 'text-[#8D89A8]'}`}>
                           Day {day.day}
                         </span>
                         
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${iconBoxClass}`}>
-                          {isClaimed ? <CheckCircle2 className="w-6 h-6 text-[#3DE8A0]" /> :
-                           (isClaimable || isActive) ? <Zap className="w-5 h-5 fill-current" /> :
-                           <Lock className="w-4 h-4 fill-current" />}
+                        <div className={`w-8 h-8 sm:w-10 sm:h-10 xl:w-12 xl:h-12 rounded-xl flex items-center justify-center transition-colors ${iconBoxClass}`}>
+                          {isClaimed ? <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 xl:w-6 xl:h-6 text-[#00E57A]" /> :
+                           (isClaimable || isActive) ? <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 xl:w-5 xl:h-5 fill-current" /> :
+                           <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />}
                         </div>
 
                         <div className="flex flex-col items-center w-full">
-                          <span className={`text-lg font-bold ${isClaimed || isClaimable || isActive ? 'text-white' : 'text-[#8D89A8]'}`}>
+                          <span className={`text-sm sm:text-base xl:text-lg font-bold ${isClaimed || isClaimable || isActive ? 'text-white' : 'text-[#8D89A8]'}`}>
                             {formatPrice(day.reward, currency)}
                           </span>
                           {bottomContent}
@@ -381,11 +380,11 @@ export default function RewardsPage() {
             {claimSuccess && (
               <motion.div 
                 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="mt-6 p-4 rounded-2xl flex items-start gap-3 bg-[#3DE8A0]/10 border border-[#3DE8A0]/20 text-[#3DE8A0] shadow-sm w-fit"
+                className="mt-6 p-4 rounded-2xl flex items-start gap-3 bg-[#00E57A]/10 border border-[#00E57A]/20 text-[#00E57A] shadow-sm w-fit"
               >
                 <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                 <div className="flex flex-col pr-4">
-                  <span className="text-sm font-bold text-[#3DE8A0]">Success</span>
+                  <span className="text-sm font-bold text-[#00E57A]">Success</span>
                   <span className="text-xs font-medium mt-0.5">{claimSuccess}</span>
                 </div>
               </motion.div>
@@ -436,7 +435,7 @@ export default function RewardsPage() {
         </div>
 
         {promoMessage && (
-          <div className={`mb-8 p-4 rounded-2xl text-center text-xs font-bold ${promoMessage.type === 'success' ? 'bg-[#3DE8A0]/10 text-[#3DE8A0]' : 'bg-red-500/10 text-red-400'}`}>
+          <div className={`mb-8 p-4 rounded-2xl text-center text-xs font-bold ${promoMessage.type === 'success' ? 'bg-[#00E57A]/10 text-[#00E57A]' : 'bg-red-500/10 text-red-400'}`}>
             {promoMessage.text}
           </div>
         )}
