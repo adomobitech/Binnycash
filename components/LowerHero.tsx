@@ -4,39 +4,41 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useTranslation } from './LanguageContext';
 
-interface TopEarner {
-  id?: number | string;
-  name?: string;
-  userName?: string;
-  username?: string;
-  amount?: number;
-  totalAmount?: number;
-  totalEarning?: number;
-  earnings?: number;
-  [key: string]: any;
-}
+const safeJsonParse = async (res: Response) => {
+  try {
+    const text = await res.text();
+    if (text && !text.trim().startsWith('<')) {
+      return JSON.parse(text);
+    }
+    return { code: 500, data: null, message: "HTML returned instead of JSON" };
+  } catch (error) {
+    return { code: 500, data: null, message: "Parse Failed" };
+  }
+};
 
 export default function LowerHero() {
   const { openRegister } = useAuth();
   const { t } = useTranslation();
   
-  const [topEarners, setTopEarners] = useState<TopEarner[]>([]);
+  const [totalPaid, setTotalPaid] = useState<number | string>(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch('https://apitest.binnycash.com/api/admin/userEarningList')
-      .then(res => res.json())
-      .then(resData => {
-        const list = resData?.data || resData?.list || resData || [];
-        setTopEarners(Array.isArray(list) ? list.slice(0, 3) : []);
-      })
-      .catch(err => {
-        console.error("Error fetching earners:", err);
-        setTopEarners([]);
-      })
-      .finally(() => {
+    const fetchPayAmount = async () => {
+      try {
+        const res = await fetch('https://apitest.binnycash.com/api/payAmount');
+        const resData = await safeJsonParse(res);
+        const amount = resData?.data ?? resData?.amount ?? resData?.total ?? resData ?? 0;
+        setTotalPaid(amount);
+      } catch (err) {
+        console.error("Error fetching paid amount:", err);
+        setTotalPaid(0);
+      } finally {
         setIsLoading(false);
-      });
+      }
+    };
+
+    fetchPayAmount();
   }, []);
 
   const steps = [
@@ -48,6 +50,12 @@ export default function LowerHero() {
 
   const cardCutStyle = {
     clipPath: 'polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px))'
+  };
+
+  const formatAmount = (val: number | string) => {
+    const num = Number(val);
+    if (isNaN(num)) return val;
+    return num.toLocaleString('en-IN', { maximumFractionDigits: 2 });
   };
 
   return (
@@ -88,62 +96,45 @@ export default function LowerHero() {
           ))}
         </div>
 
+        {/* Unique Total Paid Amount Section */}
         <div className="w-full">
-          <div className="bg-[#0f0e17] border border-white/10 rounded-2xl p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden">
-            
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-5">
-              <h3 className="text-white font-black text-base md:text-lg tracking-wider flex items-center gap-2.5 uppercase">
-                <span>🏆</span> {t.LowerHero?.leaderboard || 'DAILY TOP EARNERS'}
-              </h3>
-              <div className="flex items-center gap-2 bg-[#00E57A]/10 border border-[#00E57A]/20 px-3 py-1 rounded-full">
-                <div className="w-2 h-2 rounded-full bg-[#00E57A] animate-pulse"></div>
-                <span className="text-[10px] text-[#00E57A] font-bold uppercase tracking-widest">{t.LowerHero?.live || 'Live Updates'}</span>
-              </div>
+          <div className="bg-gradient-to-br from-[#120f24] via-[#0f0e17] to-[#1a1033] border border-[#7e22ce]/30 rounded-3xl p-8 md:p-12 flex flex-col items-center text-center relative overflow-hidden shadow-[0_20px_50px_rgba(126,34,206,0.15)]">
+            <div className="absolute -top-24 -right-24 w-72 h-72 bg-[#9333ea]/20 rounded-full blur-[80px] pointer-events-none"></div>
+            <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-[#00E57A]/10 rounded-full blur-[80px] pointer-events-none"></div>
+
+            <div className="inline-flex items-center gap-2 bg-[#8b5cf6]/15 border border-[#8b5cf6]/30 px-4 py-1.5 rounded-full mb-6">
+              <span className="w-2 h-2 rounded-full bg-[#00E57A] animate-ping"></span>
+              <span className="text-[#d8b4fe] text-[11px] font-black uppercase tracking-widest">Global Platform Milestone</span>
             </div>
 
-            <div className="min-h-[120px] flex items-center justify-center">
+            <h3 className="text-gray-300 font-bold text-sm md:text-base uppercase tracking-[0.2em] mb-3">
+              Total Paid Out To Community
+            </h3>
+
+            <div className="my-2">
               {isLoading ? (
-                <div className="flex gap-4 w-full">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 bg-white/5 animate-pulse rounded-xl flex-1"></div>
-                  ))}
-                </div>
-              ) : topEarners.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-                  {topEarners.map((earner, idx) => {
-                    const name = earner.name || earner.userName || earner.username || `User_${idx + 1}`;
-                    const amount = earner.amount || earner.totalAmount || earner.totalEarning || earner.earnings || 0;
-                    
-                    return (
-                      <div key={idx} className="bg-[#181625] border border-white/5 rounded-xl p-4 flex items-center gap-4">
-                        <div className="w-8 h-8 rounded-lg bg-[#8b5cf6]/20 text-[#8b5cf6] flex items-center justify-center font-black text-sm">
-                          #{idx + 1}
-                        </div>
-                        <div className="flex flex-col overflow-hidden">
-                          <span className="text-white text-sm font-bold truncate">{name}</span>
-                          <span className="text-[#00E57A] font-black text-sm">₹{Number(amount).toLocaleString('en-IN')}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <div className="h-16 w-64 bg-white/5 animate-pulse rounded-2xl mx-auto"></div>
               ) : (
-                <div className="text-center text-gray-500 text-sm font-medium py-6">
-                  {t.LowerHero?.noEarners || 'No earners logged for today yet. Start playing to rank first!'}
+                <div className="text-4xl sm:text-6xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-[#e9d5ff] to-[#00E57A] tracking-tighter drop-shadow-[0_0_35px_rgba(0,229,122,0.25)]">
+                  ₹{formatAmount(totalPaid)}
                 </div>
               )}
             </div>
 
-            <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex flex-wrap items-center gap-6 text-gray-400 text-xs font-medium">
-                <div className="flex items-center gap-2"><span className="text-[#8b5cf6]">🔒</span> {t.LowerHero?.f1 || '100% Encrypted & Safe'}</div>
-                <div className="flex items-center gap-2"><span className="text-[#8b5cf6]">⚡</span> {t.LowerHero?.f2 || 'Instant Wallet Withdrawals'}</div>
-                <div className="flex items-center gap-2"><span className="text-[#8b5cf6]">🎮</span> {t.LowerHero?.f3 || 'Verified Offer Walls'}</div>
+            <p className="text-gray-400 text-xs md:text-sm max-w-md mx-auto mt-3 mb-8 leading-relaxed">
+              Real rewards distributed instantly to warriors worldwide. Join our winning community today and claim your share!
+            </p>
+
+            <div className="border-t border-white/10 w-full pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-gray-400 text-xs font-medium">
+                <div className="flex items-center gap-2"><span className="text-[#8b5cf6]">🔒</span> 100% Encrypted & Safe</div>
+                <div className="flex items-center gap-2"><span className="text-[#8b5cf6]">⚡</span> Instant Wallet Withdrawals</div>
+                <div className="flex items-center gap-2"><span className="text-[#8b5cf6]">🎮</span> Verified Offer Walls</div>
               </div>
 
               <button 
                 onClick={openRegister} 
-                className="w-full md:w-auto bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-black text-xs uppercase px-8 py-3.5 rounded-xl transition-all shadow-[0_0_15px_rgba(139,92,246,0.2)] hover:shadow-[0_0_25px_rgba(139,92,246,0.4)] shrink-0 cursor-pointer"
+                className="w-full md:w-auto bg-gradient-to-r from-[#8b5cf6] to-[#7c3aed] hover:opacity-95 text-white font-black text-xs uppercase px-10 py-4 rounded-2xl transition-all shadow-[0_0_25px_rgba(139,92,246,0.4)] hover:shadow-[0_0_35px_rgba(139,92,246,0.6)] shrink-0 cursor-pointer"
               >
                 {t.LowerHero?.btnStart || 'START EARNING NOW'} ⚡
               </button>

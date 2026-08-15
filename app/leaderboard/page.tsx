@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Trophy, Bell, Loader2, Crown, Calendar, Clock, Gift, Users, 
-  DollarSign, CheckCircle2, AlertOctagon, Ban, User, Info
+  DollarSign, CheckCircle2, AlertOctagon, Ban, User, Info, X
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -34,6 +35,9 @@ const resolveImage = (imgSrc: string | null | undefined) => {
   if (imgSrc.startsWith('http')) return imgSrc;
   return imgSrc.startsWith('/') ? `https://apitest.binnycash.com${imgSrc}` : `https://apitest.binnycash.com/${imgSrc}`;
 };
+
+// Helper for initial letter fallback
+const getInitial = (name?: string) => (name ? name.charAt(0).toUpperCase() : 'U');
 
 // --- CUSTOM COUNTDOWN HOOK ---
 function useCountdown(targetDateStr: string | null | undefined) {
@@ -73,6 +77,120 @@ const getPrizeForRank = (data: any, rank: number) => {
 };
 
 // ==========================================
+// ELIGIBILITY NOTICE / STATUS COMPONENT
+// ==========================================
+function EligibilityNotice({ data }: { data: any }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
+
+  const message = data.rankMessage;
+  const isEligible = data.eligibility?.isEligible ?? true;
+
+  // Agar backend ne koi message hi nahi bheja toh kuch nahi dikhana
+  if (!message) return null;
+
+  return (
+    <>
+      {isEligible ? (
+        /* 🔥 1. ELIGIBLE (TRUE) STATE: GREEN STRIP 🔥 */
+        <div className="mb-6 flex items-center gap-3 px-4 py-3.5 rounded-xl border bg-[#00E57A]/10 border-[#00E57A]/20 shadow-[0_0_15px_rgba(0,229,122,0.05)]">
+           <Trophy className="w-5 h-5 text-[#00E57A] shrink-0" />
+           <span className="text-[13px] font-bold text-[#00E57A]">
+              {message}
+           </span>
+        </div>
+      ) : (
+        /* 🔥 2. NOT ELIGIBLE (FALSE) STATE: ORANGE STRIP WITH BUTTON BELOW 🔥 */
+        <div className="mb-6 flex flex-col gap-3 p-4 rounded-xl border bg-[#F59E0B]/10 border-[#F59E0B]/20 shadow-[0_0_15px_rgba(245,158,11,0.05)]">
+          <div className="flex items-start gap-3">
+             <AlertOctagon className="w-5 h-5 text-[#F59E0B] shrink-0 mt-0.5" />
+             <span className="text-[13px] font-bold text-[#F59E0B] leading-relaxed">
+                {message}
+             </span>
+          </div>
+          {/* Button literally "Below" the text */}
+          <div className="pl-8">
+            <button 
+              onClick={() => setIsOpen(true)} 
+              className="px-5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm bg-[#F59E0B]/20 text-[#F59E0B] hover:bg-[#F59E0B]/30"
+            >
+              See Requirements
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 POPUP (MODAL) WITH REQUIREMENTS & BUTTON 🔥 */}
+      <AnimatePresence>
+        {isOpen && !isEligible && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#08070D]/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
+              className="bg-[#12141D] border border-white/10 rounded-[28px] p-6 sm:p-8 max-w-md w-full shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setIsOpen(false)} 
+                className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-[#F59E0B]/20">
+                  <AlertOctagon className="w-6 h-6 text-[#F59E0B]" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white tracking-tight">Eligibility Details</h3>
+                  <p className="text-xs font-bold mt-0.5 text-[#F59E0B]">
+                    Requirements not met yet
+                  </p>
+                </div>
+              </div>
+
+              {data.eligibility?.messages && data.eligibility.messages.length > 0 && (
+                <div className="flex flex-col gap-3 mb-8 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
+                  {data.eligibility.messages.map((msgItem: any, i: number) => {
+                    let text = typeof msgItem === 'string' ? msgItem : msgItem.text;
+                    let isCompleted = (typeof msgItem === 'object' && msgItem.isCompleted) || text.includes('✅');
+                    text = text.replace('✅', '').trim();
+
+                    return (
+                      <div key={i} className={`flex items-start gap-3 px-4 py-3.5 rounded-xl border transition-colors ${isCompleted ? 'bg-[#00E57A]/5 border-[#00E57A]/20 shadow-inner' : 'bg-black/20 border-white/5'}`}>
+                        {isCompleted ? (
+                          <CheckCircle2 className="w-4 h-4 text-[#00E57A] shrink-0 mt-0.5 drop-shadow-md" />
+                        ) : (
+                          <div className="w-4 h-4 rounded-full border border-[#F59E0B]/40 flex items-center justify-center shrink-0 mt-0.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]/40" />
+                          </div>
+                        )}
+                        <span className={`text-xs font-bold leading-relaxed ${isCompleted ? 'text-[#00E57A]' : 'text-[#F59E0B]/80'}`}>
+                          {text}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <button 
+                onClick={() => router.push('/dashboard')} 
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-[#A66CFF] to-[#8B5CF6] text-white font-black text-sm shadow-[0_4px_25px_rgba(166,108,255,0.4)] hover:shadow-[0_4px_30px_rgba(166,108,255,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Earn Now
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+
+// ==========================================
 // REUSABLE TOP 3 PODIUM + RANK TABLE COMPONENT
 // ==========================================
 function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: boolean }) {
@@ -83,8 +201,7 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
   const top2 = sortedWinners.find((w: any) => Number(w.rank) === 2);
   const top3 = sortedWinners.find((w: any) => Number(w.rank) === 3);
   
-  // Rank 4 and onwards
-  const tableUsers = sortedWinners.filter((w: any) => Number(w.rank) > 3);
+  const tableUsers = sortedWinners;
 
   const getImg = (u: any) => {
     if (!u) return null;
@@ -100,13 +217,12 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
         </h3>
       </div>
       
-      {/* 🔥 PODIUM: 2nd (Left), 1st (Center), 3rd (Right) 🔥 */}
       <div className="flex items-end justify-center gap-2 sm:gap-4 h-[160px] mb-8 mt-6">
         
         {/* 2ND RANK (LEFT) */}
         <div className="w-[30%] bg-[#1A1C25] rounded-t-2xl flex flex-col items-center relative h-[82%] border border-white/5 border-b-0 pb-3">
            <div className="absolute -top-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#2A2C38] border-[3px] border-[#E2E8F0] overflow-hidden flex items-center justify-center shadow-md">
-             {getImg(top2) ? <img src={getImg(top2)!} className="w-full h-full object-cover" alt=""/> : <User className="w-5 h-5 text-[#8F95A3]"/>}
+             {getImg(top2) ? <img src={getImg(top2)!} className="w-full h-full object-cover" alt=""/> : <span className="text-xl font-black text-[#E2E8F0]">{getInitial(top2?.userName)}</span>}
            </div>
            <div className="w-5 h-5 rounded-full bg-[#E2E8F0] text-black text-[10px] font-black absolute -top-8 flex items-center justify-center shadow">2</div>
            <span className="text-xs font-bold text-white mt-auto truncate w-full text-center px-1">{top2?.userName || '---'}</span>
@@ -122,7 +238,7 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
         <div className="w-[36%] bg-gradient-to-t from-[#A66CFF]/20 via-[#1A1C25] to-[#252136] rounded-t-2xl flex flex-col items-center relative h-full border border-[#FFC94A]/40 border-b-0 pb-3 shadow-[0_-5px_25px_rgba(255,201,74,0.15)]">
            <Crown className="w-7 h-7 text-[#FFC94A] absolute -top-11 z-10 drop-shadow-[0_2px_8px_rgba(255,201,74,0.6)]" fill="#FFC94A" />
            <div className="absolute -top-7 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#2A2C38] border-[3px] border-[#FFC94A] overflow-hidden flex items-center justify-center shadow-lg">
-             {getImg(top1) ? <img src={getImg(top1)!} className="w-full h-full object-cover" alt=""/> : <User className="w-6 h-6 text-[#FFC94A]"/>}
+             {getImg(top1) ? <img src={getImg(top1)!} className="w-full h-full object-cover" alt=""/> : <span className="text-2xl font-black text-[#FFC94A]">{getInitial(top1?.userName)}</span>}
            </div>
            <div className="w-6 h-6 rounded-full bg-[#FFC94A] text-black text-[11px] font-black absolute -top-9 flex items-center justify-center z-10 shadow-md">1</div>
            <span className="text-sm font-black text-white mt-auto truncate w-full text-center px-1">{top1?.userName || '---'}</span>
@@ -137,7 +253,7 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
         {/* 3RD RANK (RIGHT) */}
         <div className="w-[30%] bg-[#1A1C25] rounded-t-2xl flex flex-col items-center relative h-[72%] border border-white/5 border-b-0 pb-3">
            <div className="absolute -top-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#2A2C38] border-[3px] border-[#CD7F32] overflow-hidden flex items-center justify-center shadow-md">
-             {getImg(top3) ? <img src={getImg(top3)!} className="w-full h-full object-cover" alt=""/> : <User className="w-5 h-5 text-[#8F95A3]"/>}
+             {getImg(top3) ? <img src={getImg(top3)!} className="w-full h-full object-cover" alt=""/> : <span className="text-xl font-black text-[#CD7F32]">{getInitial(top3?.userName)}</span>}
            </div>
            <div className="w-5 h-5 rounded-full bg-[#CD7F32] text-black text-[10px] font-black absolute -top-8 flex items-center justify-center shadow">3</div>
            <span className="text-xs font-bold text-white mt-auto truncate w-full text-center px-1">{top3?.userName || '---'}</span>
@@ -150,36 +266,43 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
         </div>
       </div>
 
-      {/* 🔥 CHANGED: "Leaderboard (Rank 4+)" Replaced with "Global Standings" 🔥 */}
+      <EligibilityNotice data={data} />
+
       <h3 className="text-sm font-bold text-white mb-3 px-1">Global Standings</h3>
       <div className="bg-[#0B0C10] rounded-xl border border-white/5 overflow-hidden mb-6">
-        <div className="grid grid-cols-[60px_1fr_100px_80px] gap-2 px-4 py-3 text-[10px] font-bold text-[#8F95A3] uppercase tracking-wider bg-white/[0.02] border-b border-white/5">
+        
+        <div className="grid grid-cols-[50px_1fr_90px_90px] sm:grid-cols-[60px_1fr_100px_100px] gap-2 px-4 py-3 text-[10px] font-bold text-[#8F95A3] uppercase tracking-wider bg-white/[0.02] border-b border-white/5">
           <div>RANK</div>
           <div>USER</div>
-          <div className="text-right">PRIZE</div>
-          <div className="text-right">STATUS</div>
+          <div className="text-right">EARNING</div>
+          <div className="text-right">REWARD</div>
         </div>
-        <div className="flex flex-col max-h-[260px] overflow-y-auto custom-scrollbar">
+        
+        <div className="flex flex-col max-h-[300px] overflow-y-auto custom-scrollbar">
           {tableUsers.length === 0 ? (
-            <div className="text-center py-8 text-sm text-[#8F95A3]">No other players ranked yet.</div>
+            <div className="text-center py-8 text-sm text-[#8F95A3]">No players ranked yet.</div>
           ) : (
             tableUsers.map((u: any, i: number) => (
               <div 
                 key={i} 
-                className={`grid grid-cols-[60px_1fr_100px_80px] gap-2 px-4 py-3.5 items-center text-xs border-b border-white/5 last:border-0 ${String(u.userId) === String(getUserId()) ? 'bg-[#A66CFF]/15 border-l-2 border-l-[#A66CFF]' : 'hover:bg-white/[0.02]'}`}
+                className={`grid grid-cols-[50px_1fr_90px_90px] sm:grid-cols-[60px_1fr_100px_100px] gap-2 px-4 py-3.5 items-center text-xs border-b border-white/5 last:border-0 ${String(u.userId) === String(getUserId()) ? 'bg-[#A66CFF]/15 border-l-2 border-l-[#A66CFF]' : 'hover:bg-white/[0.02]'}`}
               >
                 <div className="text-[#8F95A3] font-bold">#{u.rank}</div>
-                <div className="flex items-center gap-2 truncate">
-                  <div className="w-6 h-6 rounded-full bg-white/5 overflow-hidden shrink-0 flex items-center justify-center border border-white/10">
-                    {getImg(u) ? <img src={getImg(u)!} className="w-full h-full object-cover" alt=""/> : <User className="w-3 h-3 text-[#8F95A3]"/>}
+                <div className="flex items-center gap-2.5 truncate pr-2">
+                  <div className="w-7 h-7 rounded-full bg-[#2A2C38] overflow-hidden shrink-0 flex items-center justify-center border border-white/10">
+                    {getImg(u) ? (
+                      <img src={getImg(u)!} className="w-full h-full object-cover" alt=""/>
+                    ) : (
+                      <span className="text-white text-[10px] font-black">{getInitial(u.userName)}</span>
+                    )}
                   </div>
-                  <span className="truncate font-bold text-white">{u.userName || 'Anonymous'}</span>
+                  <span className="truncate font-bold text-white text-xs">{u.userName || 'Anonymous'}</span>
+                </div>
+                <div className="text-right text-[#00E57A] font-bold">
+                  {formatPrice(u.totalReward || 0, currency)}
                 </div>
                 <div className="text-right text-[#FFC94A] font-bold">
                   {formatPrice(u.prize || getPrizeForRank(data, u.rank), currency)}
-                </div>
-                <div className="text-right font-bold text-[#00E57A]">
-                  {isEnded ? 'Ended' : 'Active'}
                 </div>
               </div>
             ))
@@ -290,25 +413,7 @@ function ActiveContent({ data }: { data: any }) {
         </div>
       </div>
 
-      {/* Render Podium + Table */}
       <LeaderboardDisplay data={data} isEnded={false} />
-
-      {/* 🔥 CHANGED: Clean & Premium Notice/Warning Box 🔥 */}
-      {data.rankMessage && (
-        <div className="mt-2 bg-gradient-to-r from-[#F59E0B]/10 to-[#0B0C10] border border-[#F59E0B]/20 rounded-xl p-4 flex items-start gap-4">
-           <div className="w-10 h-10 rounded-full bg-[#F59E0B]/20 flex items-center justify-center shrink-0 mt-0.5">
-             <AlertOctagon className="w-5 h-5 text-[#F59E0B]" />
-           </div>
-           <div className="text-left flex-1">
-             <h4 className="text-[#F59E0B] font-bold text-sm mb-1 uppercase tracking-wider">
-               {data.rankMessage.includes(':') ? data.rankMessage.split(':')[0] : 'Eligibility Notice'}
-             </h4>
-             <p className="text-[13px] text-[#F59E0B]/90 font-medium leading-relaxed">
-               {data.rankMessage.includes(':') ? data.rankMessage.split(':')[1].trim() : data.rankMessage}
-             </p>
-           </div>
-        </div>
-      )}
     </>
   );
 }
@@ -336,25 +441,7 @@ function EndedContent({ data }: { data: any }) {
         </div>
       </div>
 
-      {/* Render Podium + Table for Ended Contest */}
       <LeaderboardDisplay data={data} isEnded={true} />
-
-      {/* 🔥 CHANGED: Clean & Premium Notice/Warning Box 🔥 */}
-      {data.rankMessage && (
-        <div className="mt-2 bg-gradient-to-r from-[#F59E0B]/10 to-[#0B0C10] border border-[#F59E0B]/20 rounded-xl p-4 flex items-start gap-4">
-           <div className="w-10 h-10 rounded-full bg-[#F59E0B]/20 flex items-center justify-center shrink-0 mt-0.5">
-             <AlertOctagon className="w-5 h-5 text-[#F59E0B]" />
-           </div>
-           <div className="text-left flex-1">
-             <h4 className="text-[#F59E0B] font-bold text-sm mb-1 uppercase tracking-wider">
-               {data.rankMessage.includes(':') ? data.rankMessage.split(':')[0] : 'Eligibility Notice'}
-             </h4>
-             <p className="text-[13px] text-[#F59E0B]/90 font-medium leading-relaxed">
-               {data.rankMessage.includes(':') ? data.rankMessage.split(':')[1].trim() : data.rankMessage}
-             </p>
-           </div>
-        </div>
-      )}
     </>
   );
 }
@@ -535,24 +622,8 @@ export default function LeaderboardPage() {
   const currency = useCurrency();
   const [contestType, setContestType] = useState<'DAILY' | 'MONTHLY'>('DAILY');
   const [contestData, setContestData] = useState<any>(null);
-  const [myProfilePic, setMyProfilePic] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch Profile Pic
-  useEffect(() => {
-    const fetchMyProfile = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      try {
-        const res = await fetch('https://apitest.binnycash.com/api/user/viewData', { headers: { 'Authorization': `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.code === 200) setMyProfilePic(json.data?.user?.image || json.data?.user?.profilePic);
-      } catch (e) {}
-    };
-    fetchMyProfile();
-  }, []);
-
-  // Fetch Contest Data based on Daily/Monthly toggle
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setIsLoading(true);
@@ -579,10 +650,8 @@ export default function LeaderboardPage() {
     fetchLeaderboard();
   }, [contestType]);
 
-  // Determine status dynamically from real API response
   const currentStatus = (contestData?.contest?.status || (isLoading ? '' : 'INACTIVE')).toUpperCase();
 
-  // Safely map winners array regardless of whether backend sends 'topUsers' or 'winners'
   const safeWinners = Array.isArray(contestData?.topUsers) 
     ? contestData.topUsers 
     : Array.isArray(contestData?.winners) 
@@ -591,22 +660,21 @@ export default function LeaderboardPage() {
 
   const cData = {
     contest: contestData?.contest,
-    totalUsers: contestData?.totalUsers || 0,
+    totalUsers: contestData?.participantCount || contestData?.totalUsers || 0,
     winners: safeWinners,
     currentUserRank: contestData?.currentUserRank?.rank,
     myPrize: contestData?.currentUserRank?.prize || contestData?.myPrize || 0,
     userEarnings: contestData?.userEligibility?.contestEarnings || contestData?.currentUserRank?.totalReward || 0,
-    rankMessage: contestData?.rankMessage || '',
-    myProfilePic,
+    eligibility: contestData?.eligibility || null,
+    rankMessage: contestData?.leaderboardStatus || contestData?.rankMessage || '',
+    myProfilePic: contestData?.currentUserRank?.image || null,
     currency
   };
 
-  // Function to render exactly one block based on backend status
   const renderContestBlock = () => {
     if (isLoading) return null;
     
-    // Dynamic values for the card wrapper
-    const cName = contestData?.contest?.contestName;
+    const cName = contestData?.contest?.name || contestData?.contest?.contestName;
     const cDesc = contestData?.contest?.description;
 
     switch (currentStatus) {
@@ -641,7 +709,6 @@ export default function LeaderboardPage() {
           </ContestCard>
         );
       default:
-        // Default to INACTIVE if status doesn't match above cases
         return (
           <ContestCard state="INACTIVE" title={`${contestType} CONTEST`}>
             <InactiveContent />
@@ -703,7 +770,6 @@ export default function LeaderboardPage() {
           ) : (
             <motion.div key={contestType + currentStatus} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
               
-              {/* --- DYNAMIC SINGLE CONTEST BLOCK --- */}
               <div className="max-w-[850px] mx-auto w-full">
                 {renderContestBlock()}
               </div>

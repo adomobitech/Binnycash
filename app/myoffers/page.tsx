@@ -434,7 +434,7 @@ export default function MyOffersPage() {
                         <thead>
                           <tr className="border-b border-white/5 bg-white/[0.02]">
                             <th className="py-4 px-5 text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider">Offer Name</th>
-                            <th className="py-4 px-5 text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider">Partner Name</th>
+                            <th className="py-4 px-5 text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider">Network Name</th>
                             <th className="py-4 px-5 text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider">Payout</th>
                             <th className="py-4 px-5 text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider">Event Name</th>
                             <th className="py-4 px-5 text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider">Status</th>

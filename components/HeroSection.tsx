@@ -7,6 +7,18 @@ import { useAuth } from './AuthContext';
 import { useTranslation } from './LanguageContext';
 import { Play, Sparkles, Users, Target, Zap, ArrowRight, ShieldCheck, Trophy, Flame } from 'lucide-react';
 
+const safeJsonParse = async (res: Response) => {
+  try {
+    const text = await res.text();
+    if (text && !text.trim().startsWith('<')) {
+      return JSON.parse(text);
+    }
+    return { code: 500, data: null, message: "HTML returned instead of JSON" };
+  } catch (error) {
+    return { code: 500, data: null, message: "Parse Failed" };
+  }
+};
+
 export default function HeroSection() {
   const { openRegister } = useAuth();
   const { t } = useTranslation();
@@ -16,28 +28,31 @@ export default function HeroSection() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch('https://apitest.binnycash.com/api/admin/totalUser?adminId=1')
-      .then(res => res.json())
-      .then(resData => {
-        const count = typeof resData === 'number' ? resData : (resData?.data ?? resData?.totalUser ?? resData?.count ?? 0);
-        setTotalUsers(Number(count));
-      })
-      .catch(err => {
-        console.error("Error fetching users:", err);
-        setTotalUsers(0);
-      });
+    const fetchData = async () => {
+      try {
+        const [resUser, resOffer] = await Promise.all([
+          fetch('https://apitest.binnycash.com/api/activeUser'),
+          fetch('https://apitest.binnycash.com/api/avilableOffer')
+        ]);
 
-    fetch('https://apitest.binnycash.com/api/user/offer/totaloffer')
-      .then(res => res.json())
-      .then(resData => {
-        const count = resData?.data || resData?.total || resData?.count || resData?.offers || 3;
-        setTotalOffers(count);
-      })
-      .catch(err => {
-        console.error("Error fetching offers:", err);
-        setTotalOffers(3); 
-      })
-      .finally(() => setIsLoading(false));
+        const [jsonUser, jsonOffer] = await Promise.all([
+          safeJsonParse(resUser),
+          safeJsonParse(resOffer)
+        ]);
+
+        const countUser = typeof jsonUser === 'number' ? jsonUser : (jsonUser?.data ?? jsonUser?.totalUser ?? jsonUser?.count ?? 0);
+        setTotalUsers(Number(countUser));
+
+        const countOffer = jsonOffer?.data || jsonOffer?.total || jsonOffer?.count || jsonOffer?.offers || 3;
+        setTotalOffers(countOffer);
+      } catch (err) {
+        console.error("Error fetching hero data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const offerCount = String(totalOffers).replace(/\D/g, '') || '0';
@@ -52,8 +67,6 @@ export default function HeroSection() {
     const element = document.getElementById('how-it-works');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      console.warn("Element with id 'how-it-works' not found!");
     }
   };
 

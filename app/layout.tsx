@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import Navbar from '@/components/Navbar';
 import { AuthProvider } from '@/components/AuthContext';
-import { LanguageProvider } from '@/components/LanguageContext'; // 🔥 Naya LanguageProvider import kiya
+import { LanguageProvider } from '@/components/LanguageContext'; 
+import GlobalTicker from '@/components/GlobalTicker'; // 🔥 IMPORT YAHAN KARNA HAI
 import './globals.css';
 
 export const viewport: Viewport = {
@@ -21,9 +22,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="bg-[#08080C] text-white font-sans">
         <AuthProvider>
-          {/* 🔥 Yahan LanguageProvider se wrap kar diya, purana Auth aur Navbar bilkul safe hain */}
           <LanguageProvider>
             <Navbar />
+            
+            {/* 🔥 YE LAG GAYA GLOBAL TICKER. AB YE HAR PAGE PAR AAYEGA */}
+            <GlobalTicker />
+            
             {children}
           </LanguageProvider>
         </AuthProvider>
