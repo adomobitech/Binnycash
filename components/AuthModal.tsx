@@ -248,7 +248,9 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
         setView('loginSuccess');
         
         setTimeout(() => {
+          router.refresh(); // 🔥 FIX: Clear Next.js cache so soft navigation works perfectly
           router.push('/dashboard');
+          
           setTimeout(() => {
             onClose();
             setView('login');
@@ -306,6 +308,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           
           setView('loginSuccess');
           setTimeout(() => {
+            router.refresh(); // 🔥 FIX: Clear Next.js cache here too
             router.push('/dashboard');
             setTimeout(() => { onClose(); }, 800);
           }, 1500);
@@ -338,6 +341,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
               setView('loginSuccess');
               setTimeout(() => {
+                router.refresh(); // 🔥 FIX: Clear Next.js cache here too
                 router.push('/dashboard');
                 setTimeout(() => { onClose(); }, 800);
               }, 1500);
