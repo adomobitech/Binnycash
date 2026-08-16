@@ -44,14 +44,12 @@ export default function RewardsPage() {
   
   const [loadingStreak, setLoadingStreak] = useState(true);
   const [streakData, setStreakData] = useState<any>(null);
-
   const [todayEarnings, setTodayEarnings] = useState(0);
 
   // Claim Reward States
   const [claimingDay, setClaimingDay] = useState<number | null>(null);
-  const [claimedDays, setClaimedDays] = useState<number[]>([]);
   
-  // POPUP States (Ab popup ke roop me khulenge)
+  // POPUP States
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimSuccess, setClaimSuccess] = useState<string | null>(null);
   
@@ -134,11 +132,10 @@ export default function RewardsPage() {
       const json = await res.json();
 
       if (res.ok && (json.code === 200 || json.type === 'success')) {
-        setClaimedDays(prev => [...prev, currentDayId]);
-        
         const successMsg = typeof json.message === 'string' && json.message ? json.message : `Day ${currentDayId} reward claimed successfully!`;
         setClaimSuccess(successMsg);
         
+        // Fetch strictly from backend to get fresh updated status for all cards
         await fetchAllData(true); 
         
         if (typeof window !== 'undefined') {
@@ -202,7 +199,7 @@ export default function RewardsPage() {
   return (
     <div className="min-h-screen bg-[#08070D] text-[#F5F3FF] font-sans relative overflow-x-hidden pb-16">
       
-      {/* 🔥 PREMIUM SUCCESS & ERROR POPUP MODALS 🔥 */}
+      {/* 櫨 PREMIUM SUCCESS & ERROR POPUP MODALS 櫨 */}
       <AnimatePresence>
         {claimSuccess && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#08070D]/90 backdrop-blur-md">
@@ -290,7 +287,7 @@ export default function RewardsPage() {
           </div>
         )}
       </AnimatePresence>
-      {/* 🔥 END POPUPS 🔥 */}
+      {/* 櫨 END POPUPS 櫨 */}
 
       <main className="max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
         
@@ -359,16 +356,12 @@ export default function RewardsPage() {
                     
                     const currentDayId = day.day !== undefined ? day.day : (idx + 1);
 
-                    let backendStatus = String(day.status || '').toUpperCase();
+                    // 100% STRICT BACKEND DRIVEN STATUS (For logic checks)
+                    const backendStatus = String(day.status || '').toUpperCase();
                     
-                    if (claimedDays.includes(currentDayId)) {
-                      backendStatus = 'CLAIMED';
-                    }
-
                     const isClaimed = backendStatus === 'CLAIMED';
                     const isClaimable = backendStatus === 'CLAIM';
                     const isActive = backendStatus === 'ACTIVE';
-                    const isLocked = backendStatus === 'LOCKED' || (!isClaimed && !isClaimable && !isActive);
                     
                     const isClaiming = claimingDay === currentDayId;
                     const isClickable = isClaimable && claimingDay === null; 
@@ -389,19 +382,22 @@ export default function RewardsPage() {
                           ? 'bg-white/10 text-white/50'
                           : 'bg-white/5 text-white/30';
 
+                    // API ka as it is data jo UI mein print hoga
+                    const displayStatus = day.status ? String(day.status) : ''; 
+
                     let bottomContent;
                     if (isClaimable) {
                        bottomContent = (
                          <button className="w-full py-1 sm:py-1.5 rounded-lg text-[9px] xl:text-[10px] font-bold uppercase tracking-wider text-center bg-[#A855F7] text-white shadow-sm mt-1 transition-all">
-                           Claim
+                           {displayStatus}
                          </button>
                        );
                     } else if (isClaimed) {
-                       bottomContent = <span className="text-[10px] sm:text-[11px] font-semibold text-[#00E57A] mt-1 uppercase tracking-wide">Claimed</span>;
+                       bottomContent = <span className="text-[10px] sm:text-[11px] font-semibold text-[#00E57A] mt-1 uppercase tracking-wide">{displayStatus}</span>;
                     } else if (isActive) {
-                       bottomContent = <span className="text-[10px] sm:text-[11px] font-semibold text-white/60 mt-1 uppercase tracking-wide">In Progress</span>;
+                       bottomContent = <span className="text-[10px] sm:text-[11px] font-semibold text-white/60 mt-1 uppercase tracking-wide">{displayStatus}</span>;
                     } else {
-                       bottomContent = <span className="text-[10px] sm:text-[11px] font-semibold text-[#8D89A8] mt-1 uppercase tracking-wide">Locked</span>;
+                       bottomContent = <span className="text-[10px] sm:text-[11px] font-semibold text-[#8D89A8] mt-1 uppercase tracking-wide">{displayStatus}</span>;
                     }
 
                     return (

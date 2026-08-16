@@ -474,7 +474,6 @@ export default function CashoutPage() {
   const currency = useCurrency();
   const isCoin = currency === 'Coin' || currency === 'COIN';
 
-  const [activeTab, setActiveTab] = useState('cash');
   const [totalEarning, setTotalEarning] = useState('0.00');
   const [pendingAmount, setPendingAmount] = useState('0.00');
   const [loading, setLoading] = useState(true);
@@ -486,11 +485,9 @@ export default function CashoutPage() {
   // Country Logic State
   const [isIndianUser, setIsIndianUser] = useState<boolean>(true);
 
-  // Withdrawals & Pagination State
+  // Withdrawals State (KEPT ONLY FOR CALCULATING TOP STAT BLOCKS)
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [withdrawalsLoading, setWithdrawalsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
   // Modals visibility
   const [isKycOpen, setIsKycOpen] = useState(false);
@@ -553,20 +550,18 @@ export default function CashoutPage() {
 
   useEffect(() => { fetchUserData(); }, []);
 
-  // --- FETCH WITHDRAW HISTORY WITH NEW API & PAGINATION ---
-  const fetchWithdrawals = async (page = 1) => {
+  // FETCH WITHDRAW HISTORY (Needed to show Total Withdrawn & Total Withdrawals on Top Blocks)
+  const fetchWithdrawals = async () => {
     setWithdrawalsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`https://apitest.binnycash.com/api/user/withdrawHistory?page=${page}`, {
+      const res = await fetch(`https://apitest.binnycash.com/api/user/withdrawHistory?page=1`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
       });
       const json = await safeJsonParse(res);
       if (json.code === 200 && json.data) {
         setWithdrawals(json.data.data || []);
-        setCurrentPage(json.data.currentPage || 1);
-        setTotalPages(json.data.totalPages || 1);
       }
     } catch (err) {
       console.error('Failed to fetch withdrawal history:', err);
@@ -575,7 +570,7 @@ export default function CashoutPage() {
     }
   };
 
-  useEffect(() => { fetchWithdrawals(1); }, []);
+  useEffect(() => { fetchWithdrawals(); }, []);
 
   const availableMethods = isIndianUser ? [
     { id: 'upi', name: 'UPI', desc: 'Transfer to UPI', time: 'Instant', icon: <UPIIcon />, speed: 'fast' },
@@ -585,26 +580,6 @@ export default function CashoutPage() {
   ] : [
     { id: 'paypal', name: 'PayPal', desc: 'Transfer to PayPal', time: '1-2 Business Days', icon: <PayPalIcon />, speed: 'slow' },
   ];
-
-  const getMethodIcon = (method: string | null) => {
-    switch ((method || '').toLowerCase()) {
-      case 'upi': return <UPIIcon />;
-      case 'phonepe': return <PhonePeIcon />;
-      case 'bank': return <BankIcon />;
-      case 'paytm': return <PaytmIcon />;
-      case 'paypal': return <PayPalIcon />;
-      default: return <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"><Wallet className="w-5 h-5 text-[#8F95A3]" /></div>;
-    }
-  };
-
-  const getStatusStyle = (status: string) => {
-    switch ((status || '').toUpperCase()) {
-      case 'PENDING': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-      case 'COMPLETED': case 'APPROVED': case 'SUCCESS': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-      case 'REJECTED': case 'FAILED': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-      default: return 'bg-white/5 text-white/60 border-white/10';
-    }
-  };
 
   const minWithdrawLimit = isCoin ? 5000 : 5;
 
@@ -688,7 +663,7 @@ export default function CashoutPage() {
         }
         
         fetchUserData(); 
-        fetchWithdrawals(1);
+        fetchWithdrawals();
         setTimeout(() => { setSelectedMethod(null); }, 2000);
       } else {
         setMsg({ text: data.message || 'Failed to process withdrawal.', type: 'error' });
@@ -783,7 +758,7 @@ export default function CashoutPage() {
         </div>
 
         {/* Stats Cards Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
           <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
             <div className="w-11 h-11 rounded-xl bg-[#8B5CF6]/10 flex items-center justify-center mb-4 border border-[#8B5CF6]/20">
               <Wallet className="w-5 h-5 text-[#A78BFA]" />
@@ -821,293 +796,225 @@ export default function CashoutPage() {
           </div>
         </div>
 
-        {/* TABS */}
-        <div className="flex items-center gap-8 border-b border-white/5 mb-8">
-          <button onClick={() => setActiveTab('cash')} className={`pb-4 text-sm font-bold relative ${activeTab === 'cash' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`}>
-            Cashout
-            {activeTab === 'cash' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 w-full h-[2px] bg-[#8B5CF6]" />}
-          </button>
-          <button onClick={() => setActiveTab('history')} className={`pb-4 text-sm font-bold relative ${activeTab === 'history' ? 'text-[#8B5CF6]' : 'text-[#8F95A3]'}`}>
-            Cashout History
-            {activeTab === 'history' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 w-full h-[2px] bg-[#8B5CF6]" />}
-          </button>
-        </div>
+        {/* MAIN CASHOUT CONTENT */}
+        <div className="mb-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
-        <AnimatePresence mode="wait">
-        {activeTab === 'cash' ? (
-          <motion.div key="cash" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mb-10">
+            {/* LEFT COLUMN */}
+            <div className="lg:col-span-2 flex flex-col gap-6">
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              {/* Document Verification Section (3 Steps) */}
+              <div className="bg-[#111319] border border-[#8B5CF6]/20 rounded-[20px] p-6">
+                <div className="flex items-center justify-between mb-1 gap-3">
+                  <h2 className="text-lg font-bold text-white">Document Verification</h2>
+                  <span className={`shrink-0 px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${badgeColorClass}`}>
+                    {kycDisplayStatus}
+                  </span>
+                </div>
+                <p className="text-[#8F95A3] text-xs mb-6">Submit any government issued document to enable withdrawals</p>
 
-              {/* LEFT COLUMN */}
-              <div className="lg:col-span-2 flex flex-col gap-6">
-
-                {/* Document Verification Section (3 Steps) */}
-                <div className="bg-[#111319] border border-[#8B5CF6]/20 rounded-[20px] p-6">
-                  <div className="flex items-center justify-between mb-1 gap-3">
-                    <h2 className="text-lg font-bold text-white">Document Verification</h2>
-                    <span className={`shrink-0 px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${badgeColorClass}`}>
-                      {kycDisplayStatus}
-                    </span>
-                  </div>
-                  <p className="text-[#8F95A3] text-xs mb-6">Submit any government issued document to enable withdrawals</p>
-
-                  {/* Stepper (3 Steps) */}
-                  <div className="flex items-start justify-between mb-6 px-1">
-                    {kycSteps.map((step, idx) => {
-                      const state = kycStepStates[idx];
-                      const isDone = state === 'done';
-                      const nodeColor = state === 'error' ? 'bg-rose-500/20 border-rose-500 text-rose-400'
-                        : state === 'active' ? 'bg-[#8B5CF6]/20 border-[#8B5CF6] text-[#A78BFA]'
-                        : state === 'done' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
-                        : 'bg-white/5 border-white/10 text-[#8F95A3]';
-                      const lineActive = kycStepStates[idx - 1] === 'done';
-                      return (
-                        <div key={step} className="flex-1 flex flex-col items-center text-center relative">
-                          {idx !== 0 && <div className={`absolute top-4 right-1/2 w-full h-[2px] -z-10 ${lineActive ? 'bg-[#8B5CF6]/40' : 'bg-white/5'}`} />}
-                          <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${nodeColor}`}>
-                            {isDone ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
-                          </div>
-                          <span className="text-[11px] font-bold text-white mt-2">{step}</span>
+                {/* Stepper (3 Steps) */}
+                <div className="flex items-start justify-between mb-6 px-1">
+                  {kycSteps.map((step, idx) => {
+                    const state = kycStepStates[idx];
+                    const isDone = state === 'done';
+                    const nodeColor = state === 'error' ? 'bg-rose-500/20 border-rose-500 text-rose-400'
+                      : state === 'active' ? 'bg-[#8B5CF6]/20 border-[#8B5CF6] text-[#A78BFA]'
+                      : state === 'done' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                      : 'bg-white/5 border-white/10 text-[#8F95A3]';
+                    const lineActive = kycStepStates[idx - 1] === 'done';
+                    return (
+                      <div key={step} className="flex-1 flex flex-col items-center text-center relative">
+                        {idx !== 0 && <div className={`absolute top-4 right-1/2 w-full h-[2px] -z-10 ${lineActive ? 'bg-[#8B5CF6]/40' : 'bg-white/5'}`} />}
+                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${nodeColor}`}>
+                          {isDone ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
                         </div>
-                      );
-                    })}
-                  </div>
+                        <span className="text-[11px] font-bold text-white mt-2">{step}</span>
+                      </div>
+                    );
+                  })}
+                </div>
 
-                  <div className="bg-[#15192C] border border-white/5 rounded-2xl p-4 flex items-start gap-3 mb-4">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                <div className="bg-[#15192C] border border-white/5 rounded-2xl p-4 flex items-start gap-3 mb-4">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-bold text-white mb-0.5">Accepted Documents (Any One)</p>
+                    <p className="text-[11px] text-[#8F95A3] leading-relaxed">Aadhaar Card, PAN Card, Driving License, Passport, Voter ID, Bank Passbook, Ration Card, Government ID etc.</p>
+                  </div>
+                </div>
+
+                {kycMessage && (
+                  <div className={`mb-4 p-2.5 rounded-lg border text-[11px] font-medium leading-relaxed ${
+                    (kycStatusLower === 'rejected' || kycStatusLower === 'reupload' || kycStatusLower === 'failed')
+                      ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                      : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                  }`}>
+                    <span className="font-bold uppercase tracking-wider block mb-0.5 text-[9px] opacity-80">Admin Note</span>
+                    {kycMessage}
+                  </div>
+                )}
+
+                <button 
+                  onClick={() => !btnProps.disabled && setIsKycOpen(true)} 
+                  disabled={btnProps.disabled} 
+                  className={btnProps.className}
+                >
+                  {kycStatusLower === 'rejected' || kycStatusLower === 'reupload' || kycStatusLower === 'failed' ? (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Verify KYC Again</span>
+                    </>
+                  ) : (
+                    btnProps.text
+                  )}
+                </button>
+              </div>
+
+              {/* Choose Withdrawal Method */}
+              <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
+                <h2 className="text-lg font-bold text-white mb-1">Choose Withdrawal Method</h2>
+                <p className="text-[#8F95A3] text-sm mb-6 font-medium">Fast, secure and convenient options</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {availableMethods.map((method) => {
+                    const isSelected = selectedMethod?.id === method.id;
+                    return (
+                      <div
+                        key={method.id}
+                        onClick={() => handleMethodCardClick(method.id)}
+                        className={`relative bg-[#15192C] border rounded-2xl p-5 cursor-pointer transition-all duration-200 flex items-start gap-4 ${isSelected ? 'border-[#8B5CF6] shadow-[0_0_0_1px_rgba(139,92,246,0.4)]' : 'border-white/5 hover:border-[#8B5CF6]/40'}`}
+                      >
+                        {method.speed === 'fast' && (
+                          <span className="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md bg-[#10B981]/10 text-[#10B981]">Instant</span>
+                        )}
+                        <div className="shrink-0">{method.icon}</div>
+                        <div className="flex flex-col">
+                          <h3 className="text-white font-bold text-[15px]">{method.name}</h3>
+                          <p className="text-[#8F95A3] text-[12px] mt-0.5">{method.desc}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${method.speed === 'fast' ? 'text-[#10B981]' : 'text-[#3B82F6]'}`}>
+                              {method.speed === 'fast' ? <Zap className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                              {method.time}
+                            </span>
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <div className="absolute bottom-3 right-3 w-5 h-5 rounded-full bg-[#8B5CF6] flex items-center justify-center">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN */}
+            <div className="bg-[#111319] border border-[#8B5CF6]/20 rounded-[20px] p-6 lg:sticky lg:top-6">
+              <h2 className="text-lg font-bold text-white mb-5">Withdrawal Details</h2>
+
+              {msg && (
+                <div className={`mb-4 p-3 rounded-xl flex items-start gap-2 text-sm font-bold ${msg.type === 'success' ? 'bg-[#00E57A]/10 text-[#00E57A]' : 'bg-[#FF5D73]/10 text-[#FF5D73]'}`}>
+                  {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" /> : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />}
+                  <span>{msg.text}</span>
+                </div>
+              )}
+
+              {!selectedMethod ? (
+                <div className="py-10 text-center">
+                  <Wallet className="w-10 h-10 text-[#8F95A3] mx-auto mb-3 opacity-50" />
+                  <p className="text-[#8F95A3] text-sm font-medium">Select a withdrawal method from the left to continue.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleWithdrawRequest} className="flex flex-col gap-4">
+
+                  <div className="flex items-center gap-3 pb-4 border-b border-white/5">
+                    <div className="shrink-0">{selectedMethod.icon}</div>
                     <div>
-                      <p className="text-xs font-bold text-white mb-0.5">Accepted Documents (Any One)</p>
-                      <p className="text-[11px] text-[#8F95A3] leading-relaxed">Aadhaar Card, PAN Card, Driving License, Passport, Voter ID, Bank Passbook, Ration Card, Government ID etc.</p>
+                      <p className="text-white font-bold text-sm">{selectedMethod.name}</p>
+                      <p className="text-[#8F95A3] text-[11px]">{selectedMethod.time}</p>
                     </div>
+                    <button type="button" onClick={() => setSelectedMethod(null)} className="ml-auto w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white cursor-pointer">
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
 
-                  {kycMessage && (
-                    <div className={`mb-4 p-2.5 rounded-lg border text-[11px] font-medium leading-relaxed ${
-                      (kycStatusLower === 'rejected' || kycStatusLower === 'reupload' || kycStatusLower === 'failed')
-                        ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                        : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                    }`}>
-                      <span className="font-bold uppercase tracking-wider block mb-0.5 text-[9px] opacity-80">Admin Note</span>
-                      {kycMessage}
+                  {selectedMethod.id === 'bank' ? (
+                    <>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">Bank Name</label>
+                        <div className="relative flex items-center">
+                          <Building className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
+                          <input type="text" required placeholder="Enter bank name" value={paymentDetails.bankName || ''} onChange={(e) => setPaymentDetails({...paymentDetails, bankName: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">Account Number</label>
+                        <div className="relative flex items-center">
+                          <Hash className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
+                          <input type="text" required placeholder="0000000000" value={paymentDetails.accountNumber || ''} onChange={(e) => setPaymentDetails({...paymentDetails, accountNumber: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">IFSC Code</label>
+                        <div className="relative flex items-center">
+                          <MapPin className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
+                          <input type="text" required placeholder="IFSC Code" value={paymentDetails.ifscCode || ''} onChange={(e) => setPaymentDetails({...paymentDetails, ifscCode: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white uppercase focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">{getMethodLabel(selectedMethod.id)}</label>
+                      <div className="relative flex items-center">
+                        {getMethodIconComponent(selectedMethod.id)}
+                        <input type={selectedMethod.id === 'paypal' ? 'email' : 'text'} required placeholder={getMethodPlaceholder(selectedMethod.id)} value={paymentDetails.paymentId || ''} onChange={(e) => setPaymentDetails({...paymentDetails, paymentId: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
+                      </div>
                     </div>
                   )}
 
-                  <button 
-                    onClick={() => !btnProps.disabled && setIsKycOpen(true)} 
-                    disabled={btnProps.disabled} 
-                    className={btnProps.className}
-                  >
-                    {kycStatusLower === 'rejected' || kycStatusLower === 'reupload' || kycStatusLower === 'failed' ? (
-                      <>
-                        <RefreshCw className="w-4 h-4" />
-                        <span>Verify KYC Again</span>
-                      </>
-                    ) : (
-                      btnProps.text
-                    )}
+                  <div className="flex flex-col gap-1.5 mt-1">
+                    <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">Amount ({isCoin ? 'Coins' : 'USD'})</label>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-4 font-black text-[#8B5CF6]">{isCoin ? 'C' : '$'}</span>
+                      <input type="number" required min="0.01" step="0.01" placeholder="Enter amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-10 pr-16 py-3 text-sm text-white font-bold focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
+                      <button type="button" onClick={() => setAmount(String(totalEarning))} className="absolute right-2 text-[10px] font-bold text-[#A78BFA] bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-[#8B5CF6]/20">MAX</button>
+                    </div>
+                    <p className="text-[10px] text-[#8F95A3] ml-1">Min. {isCoin ? '5000 Coins' : '$5.00'} &middot; Available: {formatPrice(Number(totalEarning), currency)}</p>
+                  </div>
+
+                  <div className="bg-[#15192C] border border-[#8B5CF6]/20 rounded-2xl p-4 flex flex-col gap-2 shadow-inner mt-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-[#FF5D73]">Processing fee (5%)</span>
+                      <span className="text-xs font-bold text-[#FF5D73]">{isCoin ? 'C' : '$'}{feeAmount}</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1 pt-2 border-t border-white/5">
+                      <span className="text-sm font-black text-[#00E57A]">You will receive</span>
+                      <span className="text-sm font-black text-[#00E57A]">{isCoin ? 'C' : '$'}{receiveAmount}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-2 mt-1">
+                    {[10, 25, 50, 100].map((val) => (
+                      <button key={val} type="button" onClick={() => handleQuickSelect(val)} className="bg-[#15192C] hover:bg-[#8B5CF6]/20 border border-white/10 rounded-xl py-2.5 text-xs font-bold text-white transition-all cursor-pointer">$ {val}</button>
+                    ))}
+                  </div>
+
+                  <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-[#7C3AED] to-[#EC4899] hover:opacity-95 text-white font-black text-sm uppercase py-4 rounded-2xl mt-2 shadow-[0_4px_25px_rgba(139,92,246,0.4)] flex justify-center items-center gap-2 cursor-pointer">
+                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                    {isSubmitting ? 'Processing...' : 'Withdraw Now'}
                   </button>
-                </div>
 
-                {/* Choose Withdrawal Method */}
-                <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
-                  <h2 className="text-lg font-bold text-white mb-1">Choose Withdrawal Method</h2>
-                  <p className="text-[#8F95A3] text-sm mb-6 font-medium">Fast, secure and convenient options</p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {availableMethods.map((method) => {
-                      const isSelected = selectedMethod?.id === method.id;
-                      return (
-                        <div
-                          key={method.id}
-                          onClick={() => handleMethodCardClick(method.id)}
-                          className={`relative bg-[#15192C] border rounded-2xl p-5 cursor-pointer transition-all duration-200 flex items-start gap-4 ${isSelected ? 'border-[#8B5CF6] shadow-[0_0_0_1px_rgba(139,92,246,0.4)]' : 'border-white/5 hover:border-[#8B5CF6]/40'}`}
-                        >
-                          {method.speed === 'fast' && (
-                            <span className="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md bg-[#10B981]/10 text-[#10B981]">Instant</span>
-                          )}
-                          <div className="shrink-0">{method.icon}</div>
-                          <div className="flex flex-col">
-                            <h3 className="text-white font-bold text-[15px]">{method.name}</h3>
-                            <p className="text-[#8F95A3] text-[12px] mt-0.5">{method.desc}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${method.speed === 'fast' ? 'text-[#10B981]' : 'text-[#3B82F6]'}`}>
-                                {method.speed === 'fast' ? <Zap className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                                {method.time}
-                              </span>
-                            </div>
-                          </div>
-                          {isSelected && (
-                            <div className="absolute bottom-3 right-3 w-5 h-5 rounded-full bg-[#8B5CF6] flex items-center justify-center">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                  <div className="flex items-center gap-2 justify-center mt-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-[10px] text-[#8F95A3]">Your transaction is secure and encrypted</span>
                   </div>
-                </div>
-              </div>
-
-              {/* RIGHT COLUMN */}
-              <div className="bg-[#111319] border border-[#8B5CF6]/20 rounded-[20px] p-6 lg:sticky lg:top-6">
-                <h2 className="text-lg font-bold text-white mb-5">Withdrawal Details</h2>
-
-                {msg && (
-                  <div className={`mb-4 p-3 rounded-xl flex items-start gap-2 text-sm font-bold ${msg.type === 'success' ? 'bg-[#00E57A]/10 text-[#00E57A]' : 'bg-[#FF5D73]/10 text-[#FF5D73]'}`}>
-                    {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" /> : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />}
-                    <span>{msg.text}</span>
-                  </div>
-                )}
-
-                {!selectedMethod ? (
-                  <div className="py-10 text-center">
-                    <Wallet className="w-10 h-10 text-[#8F95A3] mx-auto mb-3 opacity-50" />
-                    <p className="text-[#8F95A3] text-sm font-medium">Select a withdrawal method from the left to continue.</p>
-                  </div>
-                ) : (
-                  <form onSubmit={handleWithdrawRequest} className="flex flex-col gap-4">
-
-                    <div className="flex items-center gap-3 pb-4 border-b border-white/5">
-                      <div className="shrink-0">{selectedMethod.icon}</div>
-                      <div>
-                        <p className="text-white font-bold text-sm">{selectedMethod.name}</p>
-                        <p className="text-[#8F95A3] text-[11px]">{selectedMethod.time}</p>
-                      </div>
-                      <button type="button" onClick={() => setSelectedMethod(null)} className="ml-auto w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white cursor-pointer">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {selectedMethod.id === 'bank' ? (
-                      <>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">Bank Name</label>
-                          <div className="relative flex items-center">
-                            <Building className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
-                            <input type="text" required placeholder="Enter bank name" value={paymentDetails.bankName || ''} onChange={(e) => setPaymentDetails({...paymentDetails, bankName: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">Account Number</label>
-                          <div className="relative flex items-center">
-                            <Hash className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
-                            <input type="text" required placeholder="0000000000" value={paymentDetails.accountNumber || ''} onChange={(e) => setPaymentDetails({...paymentDetails, accountNumber: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">IFSC Code</label>
-                          <div className="relative flex items-center">
-                            <MapPin className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
-                            <input type="text" required placeholder="IFSC Code" value={paymentDetails.ifscCode || ''} onChange={(e) => setPaymentDetails({...paymentDetails, ifscCode: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white uppercase focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">{getMethodLabel(selectedMethod.id)}</label>
-                        <div className="relative flex items-center">
-                          {getMethodIconComponent(selectedMethod.id)}
-                          <input type={selectedMethod.id === 'paypal' ? 'email' : 'text'} required placeholder={getMethodPlaceholder(selectedMethod.id)} value={paymentDetails.paymentId || ''} onChange={(e) => setPaymentDetails({...paymentDetails, paymentId: e.target.value})} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex flex-col gap-1.5 mt-1">
-                      <label className="text-[11px] font-bold text-[#8F95A3] uppercase ml-1">Amount ({isCoin ? 'Coins' : 'USD'})</label>
-                      <div className="relative flex items-center">
-                        <span className="absolute left-4 font-black text-[#8B5CF6]">{isCoin ? 'C' : '$'}</span>
-                        <input type="number" required min="0.01" step="0.01" placeholder="Enter amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-10 pr-16 py-3 text-sm text-white font-bold focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all" />
-                        <button type="button" onClick={() => setAmount(String(totalEarning))} className="absolute right-2 text-[10px] font-bold text-[#A78BFA] bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-[#8B5CF6]/20">MAX</button>
-                      </div>
-                      <p className="text-[10px] text-[#8F95A3] ml-1">Min. {isCoin ? '5000 Coins' : '$5.00'} &middot; Available: {formatPrice(Number(totalEarning), currency)}</p>
-                    </div>
-
-                    <div className="bg-[#15192C] border border-[#8B5CF6]/20 rounded-2xl p-4 flex flex-col gap-2 shadow-inner mt-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-[#FF5D73]">Processing fee (5%)</span>
-                        <span className="text-xs font-bold text-[#FF5D73]">{isCoin ? 'C' : '$'}{feeAmount}</span>
-                      </div>
-                      <div className="flex justify-between items-center mt-1 pt-2 border-t border-white/5">
-                        <span className="text-sm font-black text-[#00E57A]">You will receive</span>
-                        <span className="text-sm font-black text-[#00E57A]">{isCoin ? 'C' : '$'}{receiveAmount}</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-2 mt-1">
-                      {[10, 25, 50, 100].map((val) => (
-                        <button key={val} type="button" onClick={() => handleQuickSelect(val)} className="bg-[#15192C] hover:bg-[#8B5CF6]/20 border border-white/10 rounded-xl py-2.5 text-xs font-bold text-white transition-all cursor-pointer">$ {val}</button>
-                      ))}
-                    </div>
-
-                    <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-[#7C3AED] to-[#EC4899] hover:opacity-95 text-white font-black text-sm uppercase py-4 rounded-2xl mt-2 shadow-[0_4px_25px_rgba(139,92,246,0.4)] flex justify-center items-center gap-2 cursor-pointer">
-                      {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-                      {isSubmitting ? 'Processing...' : 'Withdraw Now'}
-                    </button>
-
-                    <div className="flex items-center gap-2 justify-center mt-1">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-[10px] text-[#8F95A3]">Your transaction is secure and encrypted</span>
-                    </div>
-                  </form>
-                )}
-              </div>
+                </form>
+              )}
             </div>
-          </motion.div>
-        ) : (
-          <motion.div key="history" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mb-10">
-            {withdrawalsLoading ? (
-              <div className="space-y-3">
-                {[0, 1, 2].map((i) => <div key={i} className="h-20 rounded-[18px] bg-[#111319] border border-white/5" />)}
-              </div>
-            ) : withdrawals.length === 0 ? (
-              <div className="py-20 text-center bg-[#111319] border border-white/5 rounded-[20px]">
-                <Clock className="w-12 h-12 text-[#8F95A3] mx-auto mb-4 opacity-50" />
-                <h3 className="text-white font-bold text-lg mb-1">No cashout history found</h3>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {withdrawals.map((w) => (
-                  <div key={w._id || w.id} className="bg-[#111319] border border-white/5 rounded-[18px] p-4 sm:p-5 flex items-center gap-4">
-                    <div className="shrink-0">{getMethodIcon(w.method)}</div>
-                    <div className="flex-grow min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-white font-bold text-sm">{w.method ? w.method.toUpperCase() : 'Method Not Selected'}</h4>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${getStatusStyle(w.status)}`}>{w.status}</span>
-                      </div>
-                      <p className="text-[#8F95A3] text-xs mt-1 truncate">Txn #{w.transactionId} &middot; {w.transactionTime ? new Date(w.transactionTime).toLocaleString() : ''}</p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <span className="text-lg font-black text-white">{formatPrice(Number(w.amount), currency)}</span>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between pt-4 px-2">
-                    <button 
-                      onClick={() => fetchWithdrawals(currentPage - 1)} 
-                      disabled={currentPage <= 1}
-                      className="px-4 py-2 rounded-xl bg-[#15192C] hover:bg-[#1E233B] text-xs font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer border border-white/5"
-                    >
-                      <ChevronLeft className="w-4 h-4" /> Previous
-                    </button>
-                    <span className="text-xs text-[#8F95A3] font-medium">Page {currentPage} of {totalPages}</span>
-                    <button 
-                      onClick={() => fetchWithdrawals(currentPage + 1)} 
-                      disabled={currentPage >= totalPages}
-                      className="px-4 py-2 rounded-xl bg-[#15192C] hover:bg-[#1E233B] text-xs font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer border border-white/5"
-                    >
-                      Next <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </motion.div>
-        )}
-        </AnimatePresence>
+          </div>
+        </div>
 
         {/* Footer Features Bar */}
         <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6 lg:p-8">

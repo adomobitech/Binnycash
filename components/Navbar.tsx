@@ -9,7 +9,8 @@ import {
   Bell, Rocket, Trophy, Wallet, ChevronDown, User, 
   LogOut, MessageSquare, HelpCircle, Gift, 
   BarChart3, Users, X, CheckCheck, Loader2, Globe, ChevronRight,
-  Lock, ShieldCheck, Menu, ClipboardCheck, Flame, PlaySquare
+  Lock, ShieldCheck, Menu, ClipboardCheck, Flame, PlaySquare,
+  History // Added History icon for Transactions
 } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
@@ -127,19 +128,39 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navRef = useRef<HTMLElement>(null);
-  
-  // 🔥 REFINED COOLDOWN REF TO PREVENT API SPAM 🔥
   const lastFetchRef = useRef<number>(0);
 
+  // Removed "Cashout" from MAIN_LINKS as per your request
   const MAIN_LINKS = [
     { name: t.Navbar?.links?.earn || 'Earn', href: '/dashboard' },
     { name: t.Navbar?.links?.myOffers || 'My Offers', href: '/myoffers' },
     { name: t.Navbar?.links?.affiliate || 'Affiliate', href: '/affiliate' },
     { name: t.Navbar?.links?.leaderboard || 'Leaderboard', href: '/leaderboard' },
-    { name: t.Navbar?.links?.cashout || 'Cashout', href: '/cashout' },
     { name: t.Navbar?.links?.rewards || 'Rewards', href: '/rewards' },
   ];
 
+  // INSTANT AUTH SYNC LOGIC
+  useEffect(() => {
+    const syncAuthState = () => {
+      const token = localStorage.getItem('token');
+      if (token && token !== 'undefined' && !token.includes('[object Object]')) {
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+      }
+    };
+
+    syncAuthState();
+    window.addEventListener('storage', syncAuthState);
+    window.addEventListener('profileUpdated', syncAuthState);
+
+    return () => {
+      window.removeEventListener('storage', syncAuthState);
+      window.removeEventListener('profileUpdated', syncAuthState);
+    };
+  }, []);
+
+  // ROUTING OVERLAY LOGIC
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && token !== 'undefined' && pathname === '/') {
@@ -149,7 +170,7 @@ export default function Navbar() {
     } else {
       setIsRouting(false);
     }
-  }, [pathname, isLoggedIn]);
+  }, [pathname]);
 
   useEffect(() => {
     const currentLangObj = LANGUAGES.find(l => l.code === locale) || LANGUAGES[0];
@@ -164,7 +185,7 @@ export default function Navbar() {
   };
 
   const handleForceLogout = () => {
-    if (pathname?.startsWith('/v9')) return; 
+    if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return; 
 
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
@@ -176,7 +197,6 @@ export default function Navbar() {
     }
   };
 
-  // 🔥 HIGHLY OPTIMIZED WALLET FETCH WITH STRICT 60s COOLDOWN 🔥
   useEffect(() => {
     let isMounted = true;
 
@@ -192,7 +212,6 @@ export default function Navbar() {
       if (isMounted) setIsLoggedIn(true);
 
       const now = Date.now();
-      // 60 seconds cooldown check to protect server from heavy load
       if (!force && now - lastFetchRef.current < 60000) {
         return;
       }
@@ -223,12 +242,13 @@ export default function Navbar() {
       }
     };
 
-    fetchWalletBalance(true); // Initial fetch on mount
+    if (isLoggedIn) {
+      fetchWalletBalance(true);
+    }
 
-    const handleWalletUpdate = () => fetchWalletBalance(true); // Force fetch on custom event
+    const handleWalletUpdate = () => fetchWalletBalance(true);
     window.addEventListener('walletUpdated', handleWalletUpdate);
 
-    // Periodic check set to 60 seconds to avoid spamming
     const interval = setInterval(() => fetchWalletBalance(false), 60000);
 
     return () => {
@@ -236,7 +256,7 @@ export default function Navbar() {
       window.removeEventListener('walletUpdated', handleWalletUpdate);
       clearInterval(interval);
     };
-  }, []);
+  }, [isLoggedIn]);
 
   const resolveImage = (imgSrc: string) => {
     if (!imgSrc || imgSrc === 'null' || imgSrc === 'undefined') return null;
@@ -245,7 +265,7 @@ export default function Navbar() {
   };
 
   const fetchUserData = () => {
-    if (pathname?.startsWith('/v9')) return;
+    if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return;
 
     const token = localStorage.getItem('token');
     if (!token || token.includes('[object Object]')) return;
@@ -349,7 +369,7 @@ export default function Navbar() {
   };
 
   const fetchInboxMessages = async () => {
-    if (pathname?.startsWith('/v9')) return;
+    if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return;
 
     setIsInboxLoading(true);
     try {
@@ -450,7 +470,8 @@ export default function Navbar() {
 
   const isCoin = currency === 'Coin' || currency === 'COIN';
 
-  if (pathname && pathname.startsWith('/v9')) {
+  // Hides Navbar entirely on these paths
+  if (pathname && (pathname.startsWith('/v9') || pathname.startsWith('/admin'))) {
     return null;
   }
 
@@ -609,9 +630,18 @@ export default function Navbar() {
 
             {isLoggedIn ? (
               <div className="flex items-center gap-2 md:gap-3">
-                <div className="hidden lg:flex items-center justify-center gap-1.5 bg-[#2B164D] px-3.5 py-2 rounded-xl border border-[#A855F7]/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
-                  <span className="text-[#A855F7] font-black text-[17px] leading-none">{isCoin ? 'C' : '$'}</span>
-                  <span className="text-white font-black text-[17px] leading-none tracking-tight">{isCoin ? Number(balance) * 1000 : balance}</span>
+                
+                {/* WALLET + CASHOUT DESKTOP BLOCK */}
+                <div className="hidden lg:flex items-center gap-2">
+                  <div className="flex items-center justify-center gap-1.5 bg-[#2B164D] px-3.5 py-2 rounded-xl border border-[#A855F7]/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+                    <span className="text-[#A855F7] font-black text-[17px] leading-none">{isCoin ? 'C' : '$'}</span>
+                    <span className="text-white font-black text-[17px] leading-none tracking-tight">{isCoin ? Number(balance) * 1000 : balance}</span>
+                  </div>
+                  
+                  <Link href="/cashout" className="bg-[#00E57A]/10 hover:bg-[#00E57A]/20 border border-[#00E57A]/30 text-[#00E57A] px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,229,122,0.15)] hover:shadow-[0_0_20px_rgba(0,229,122,0.25)]">
+                    <Wallet className="w-4 h-4" />
+                    <span>Cashout</span>
+                  </Link>
                 </div>
 
                 <div className="relative hidden sm:block">
@@ -680,15 +710,12 @@ export default function Navbar() {
                   </AnimatePresence>
                 </div>
 
-                <button 
-                  onClick={() => { setIsChatOpen(true); setUnreadChatCount(0); }}
-                  className="relative hidden sm:flex w-8 h-8 md:w-10 md:h-10 rounded-xl bg-[#1A1C24] hover:bg-[#252836] items-center justify-center transition-colors cursor-pointer border border-white/5"
+                {/* PROFILE BUTTON WITH HOVER DROPDOWN */}
+                <div 
+                  className="relative group"
+                  onMouseEnter={() => setIsProfileOpen(true)}
+                  onMouseLeave={() => setIsProfileOpen(false)}
                 >
-                  <MessageSquare className="w-4 h-4 md:w-[18px] md:h-[18px] text-[#8F95A3] fill-current" />
-                  <span className="absolute -bottom-1 -right-1 w-3 h-3 md:w-3.5 md:h-3.5 bg-[#00E57A] border-2 border-[#0E1015] rounded-full shadow-[0_0_8px_rgba(0,229,122,0.8)]"></span>
-                </button>
-
-                <div className="relative">
                   <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] p-1 pr-2 rounded-xl transition-all cursor-pointer border border-white/5">
                     {userAvatar && !imageError ? (
                       <img src={userAvatar} alt="Profile" className="w-6 h-6 md:w-8 md:h-8 rounded-lg object-cover shadow-sm" onError={() => setImageError(true)} />
@@ -708,73 +735,89 @@ export default function Navbar() {
                         animate={{ opacity: 1, y: 0, scale: 1 }} 
                         exit={{ opacity: 0, y: 10, scale: 0.95 }} 
                         transition={{ duration: 0.2 }} 
-                        className="absolute right-0 mt-4 w-[280px] bg-[#0E1015]/95 backdrop-blur-xl border border-white/10 rounded-[24px] shadow-[0_15px_50px_rgba(139,92,246,0.15)] p-3 z-50 flex flex-col gap-2"
+                        className="absolute right-0 top-[100%] pt-4 w-[280px] z-50"
                       >
-                        <div className="absolute -top-2 right-6 w-4 h-4 bg-[#0E1015] border-t border-l border-white/10 rotate-45" />
+                        <div className="bg-[#0E1015]/95 backdrop-blur-xl border border-white/10 rounded-[24px] shadow-[0_15px_50px_rgba(139,92,246,0.15)] p-3 flex flex-col gap-2 relative">
+                          <div className="absolute -top-2 right-6 w-4 h-4 bg-[#0E1015] border-t border-l border-white/10 rotate-45" />
 
-                        <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
-                              <User className="w-4 h-4 text-[#8F95A3] group-hover:text-[#A855F7] transition-colors" />
+                          <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
+                                <User className="w-4 h-4 text-[#8F95A3] group-hover:text-[#A855F7] transition-colors" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-white text-[13px] font-bold">Profile</span>
+                                <span className="text-[#8F95A3] text-[10px]">Manage your account</span>
+                              </div>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-white text-[13px] font-bold">Profile</span>
-                              <span className="text-[#8F95A3] text-[10px]">Manage your account</span>
+                            <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
+                          </Link>
+
+                          {/* NEW TRANSACTIONS LINK */}
+                          <Link href="/transactions" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
+                                <History className="w-4 h-4 text-[#8F95A3] group-hover:text-[#A855F7] transition-colors" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-white text-[13px] font-bold">Transactions</span>
+                                <span className="text-[#8F95A3] text-[10px]">View your history</span>
+                              </div>
                             </div>
+                            <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
+                          </Link>
+
+                          <Link href="/support" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
+                                <HelpCircle className="w-4 h-4 text-[#8F95A3] group-hover:text-[#A855F7] transition-colors" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-white text-[13px] font-bold">Help</span>
+                                <span className="text-[#8F95A3] text-[10px]">Get help & support</span>
+                              </div>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
+                          </Link>
+
+                          <div className="flex items-center justify-center py-1.5">
+                            <div className="h-px bg-gradient-to-r from-transparent via-[#8B5CF6]/40 to-transparent flex-1" />
+                            <div className="w-1.5 h-1.5 rotate-45 bg-[#8B5CF6] mx-3 shadow-[0_0_8px_#8B5CF6]" />
+                            <div className="h-px bg-gradient-to-r from-[#8B5CF6]/40 via-[#8B5CF6]/40 to-transparent flex-1" />
                           </div>
-                          <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
-                        </Link>
 
-                        <Link href="/support" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
-                              <HelpCircle className="w-4 h-4 text-[#8F95A3] group-hover:text-[#A855F7] transition-colors" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-white text-[13px] font-bold">Help</span>
-                              <span className="text-[#8F95A3] text-[10px]">Get help & support</span>
-                            </div>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
-                        </Link>
-
-                        <div className="flex items-center justify-center py-1.5">
-                          <div className="h-px bg-gradient-to-r from-transparent via-[#8B5CF6]/40 to-transparent flex-1" />
-                          <div className="w-1.5 h-1.5 rotate-45 bg-[#8B5CF6] mx-3 shadow-[0_0_8px_#8B5CF6]" />
-                          <div className="h-px bg-gradient-to-r from-[#8B5CF6]/40 via-[#8B5CF6]/40 to-transparent flex-1" />
-                        </div>
-
-                        <div className="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-2xl p-3.5 mb-1 transition-all hover:bg-white/[0.04]">
-                          <span className="text-[14px] font-black text-white tracking-wide pl-2">{currency.toUpperCase()}</span>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); toggleCurrency(); }}
-                            disabled={isCurrencySwitching}
-                            className={`relative w-12 h-6 rounded-full border-2 transition-colors duration-300 ease-in-out flex items-center p-0.5 cursor-pointer bg-transparent ${isCoin ? 'border-[#8B5CF6]' : 'border-[#8B5CF6]/50'}`}
-                          >
-                            <motion.div 
-                              layout
-                              initial={false}
-                              animate={{ x: isCoin ? 24 : 0 }}
-                              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                              className={`w-4 h-4 rounded-full flex items-center justify-center shadow-sm ${isCoin ? 'bg-[#8B5CF6]' : 'bg-[#8B5CF6]/50'}`}
+                          <div className="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-2xl p-3.5 mb-1 transition-all hover:bg-white/[0.04]">
+                            <span className="text-[14px] font-black text-white tracking-wide pl-2">{currency.toUpperCase()}</span>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); toggleCurrency(); }}
+                              disabled={isCurrencySwitching}
+                              className={`relative w-12 h-6 rounded-full border-2 transition-colors duration-300 ease-in-out flex items-center p-0.5 cursor-pointer bg-transparent ${isCoin ? 'border-[#8B5CF6]' : 'border-[#8B5CF6]/50'}`}
                             >
-                              {isCurrencySwitching && <Loader2 className="w-3 h-3 text-white animate-spin" />}
-                            </motion.div>
+                              <motion.div 
+                                layout
+                                initial={false}
+                                animate={{ x: isCoin ? 24 : 0 }}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                className={`w-4 h-4 rounded-full flex items-center justify-center shadow-sm ${isCoin ? 'bg-[#8B5CF6]' : 'bg-[#8B5CF6]/50'}`}
+                              >
+                                {isCurrencySwitching && <Loader2 className="w-3 h-3 text-white animate-spin" />}
+                              </motion.div>
+                            </button>
+                          </div>
+
+                          <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="relative w-full group flex items-center justify-between bg-[#FF5D73]/5 hover:bg-[#FF5D73]/10 border border-[#FF5D73]/20 hover:border-[#FF5D73]/40 rounded-2xl p-3.5 transition-all text-left cursor-pointer">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-[#FF5D73]/20 group-hover:border-[#FF5D73]/50 transition-colors shadow-inner">
+                                <LogOut className="w-4 h-4 text-[#FF5D73]" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[#FF5D73] text-[13px] font-bold">Logout</span>
+                                <span className="text-[#8F95A3] text-[10px]">Sign out from your account</span>
+                              </div>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-[#FF5D73] opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                           </button>
                         </div>
-
-                        <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="relative w-full group flex items-center justify-between bg-[#FF5D73]/5 hover:bg-[#FF5D73]/10 border border-[#FF5D73]/20 hover:border-[#FF5D73]/40 rounded-2xl p-3.5 transition-all text-left cursor-pointer">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-[#FF5D73]/20 group-hover:border-[#FF5D73]/50 transition-colors shadow-inner">
-                              <LogOut className="w-4 h-4 text-[#FF5D73]" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[#FF5D73] text-[13px] font-bold">Logout</span>
-                              <span className="text-[#8F95A3] text-[10px]">Sign out from your account</span>
-                            </div>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-[#FF5D73] opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                        </button>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -790,23 +833,36 @@ export default function Navbar() {
         </div>
       </nav>
 
+      {/* 🔥 GLOBAL FLOATING CHAT BUTTON (NEW SLEEK ICON) 🔥 */}
+      {isLoggedIn && pathname && !pathname.startsWith('/admin') && (
+        <div className="fixed bottom-[100px] right-4 md:bottom-8 md:right-8 z-[90]">
+          <button 
+            onClick={() => { setIsChatOpen(true); setUnreadChatCount(0); }}
+            className="relative w-[56px] h-[56px] md:w-[60px] md:h-[60px] rounded-full bg-[#A855F7] flex items-center justify-center shadow-[0_10px_30px_rgba(168,85,247,0.3)] hover:shadow-[0_10px_40px_rgba(168,85,247,0.5)] hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+          >
+            <MessageSquare className="w-7 h-7 text-white" strokeWidth={2.2} />
+            <span className="absolute top-[2px] right-[2px] w-4 h-4 bg-[#00E57A] border-[3px] border-[#0E1015] rounded-full"></span>
+          </button>
+        </div>
+      )}
+
       {isLoggedIn && (
         <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       )}
 
       {isLoggedIn && (
         <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0E111E]/95 backdrop-blur-xl border-t border-white/10 z-50 flex items-center justify-around px-2 py-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-[65px]">
-          <Link href="/myoffers" className="flex flex-col items-center gap-1 p-2 w-[20%]">
+          <Link href="/myoffers" className="flex flex-col items-center gap-1 p-2 w-[25%]">
             <PlaySquare className={`w-5 h-5 ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
             <span className={`text-[10px] font-bold ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>My Offers</span>
           </Link>
           
-          <Link href="/cashout" className="flex flex-col items-center gap-1 p-2 w-[20%]">
+          <Link href="/cashout" className="flex flex-col items-center gap-1 p-2 w-[25%]">
             <Wallet className={`w-5 h-5 ${pathname === '/cashout' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
             <span className={`text-[10px] font-bold ${pathname === '/cashout' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Cashout</span>
           </Link>
 
-          <Link href="/dashboard" className="flex flex-col items-center -mt-6 p-2 w-[20%] relative group">
+          <Link href="/dashboard" className="flex flex-col items-center -mt-6 p-2 w-[25%] relative group">
             <div className="w-14 h-14 rounded-full bg-gradient-to-r from-[#A66CFF] to-[#EC4899] p-[3px] shadow-[0_4px_20px_rgba(166,108,255,0.4)] relative z-10">
               <div className="w-full h-full rounded-full bg-[#0E111E] flex items-center justify-center">
                 <Rocket className={`w-6 h-6 ${pathname === '/dashboard' ? 'text-white' : 'text-[#A66CFF]'}`} />
@@ -815,12 +871,7 @@ export default function Navbar() {
             <span className={`text-[10px] font-bold mt-1 ${pathname === '/dashboard' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Earn</span>
           </Link>
 
-          <Link href="/rewards" className="flex flex-col items-center gap-1 p-2 w-[20%]">
-            <Gift className={`w-5 h-5 ${pathname === '/rewards' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/rewards' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Rewards</span>
-          </Link>
-
-          <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center gap-1 p-2 w-[20%] cursor-pointer">
+          <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center gap-1 p-2 w-[25%] cursor-pointer">
             <Menu className="w-5 h-5 text-[#8D89A8]" />
             <span className="text-[10px] font-bold text-[#8D89A8]">More</span>
           </button>
@@ -858,14 +909,14 @@ export default function Navbar() {
                   <BarChart3 className="w-5 h-5" />
                   <span className="text-sm font-bold">Leaderboard</span>
                 </Link>
+                <Link href="/rewards" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
+                  <Gift className="w-5 h-5" />
+                  <span className="text-sm font-bold">Rewards</span>
+                </Link>
                 <Link href="/affiliate" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
                   <Users className="w-5 h-5" />
                   <span className="text-sm font-bold">Affiliates</span>
                 </Link>
-                <button onClick={() => { setIsMobileMenuOpen(false); setIsChatOpen(true); }} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all cursor-pointer w-full text-left">
-                  <MessageSquare className="w-5 h-5" />
-                  <span className="text-sm font-bold">Chat Room</span>
-                </button>
               </div>
 
               <div className="mt-auto p-6 border-t border-white/5 bg-gradient-to-t from-black/20 to-transparent">
