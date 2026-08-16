@@ -29,7 +29,7 @@ export default function AdminDashboardPage() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
 
     if (!token) {
-      router.push('/admin/login');
+      router.push('/v9/login');
       return;
     }
 

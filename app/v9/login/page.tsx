@@ -39,7 +39,7 @@ export default function AdminLoginPage() {
           console.warn("Could not find adminId in login response — check the logged response above and update the field name.");
         }
 
-        router.push('/admin/dashboard');
+        router.push('/v9/dashboard');
       } else {
         setError(data?.message || 'Invalid admin credentials');
       }

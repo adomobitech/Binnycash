@@ -164,7 +164,7 @@ export default function Navbar() {
   };
 
   const handleForceLogout = () => {
-    if (pathname?.startsWith('/admin')) return; 
+    if (pathname?.startsWith('/v9')) return; 
 
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
@@ -181,7 +181,7 @@ export default function Navbar() {
     let isMounted = true;
 
     const fetchWalletBalance = async (force = false) => {
-      if (typeof window === 'undefined' || window.location.pathname.startsWith('/admin')) return;
+      if (typeof window === 'undefined' || window.location.pathname.startsWith('/v9')) return;
 
       const token = localStorage.getItem('token');
       if (!token || token === 'undefined' || token.includes('[object Object]')) {
@@ -245,7 +245,7 @@ export default function Navbar() {
   };
 
   const fetchUserData = () => {
-    if (pathname?.startsWith('/admin')) return;
+    if (pathname?.startsWith('/v9')) return;
 
     const token = localStorage.getItem('token');
     if (!token || token.includes('[object Object]')) return;
@@ -349,7 +349,7 @@ export default function Navbar() {
   };
 
   const fetchInboxMessages = async () => {
-    if (pathname?.startsWith('/admin')) return;
+    if (pathname?.startsWith('/v9')) return;
 
     setIsInboxLoading(true);
     try {
@@ -450,7 +450,7 @@ export default function Navbar() {
 
   const isCoin = currency === 'Coin' || currency === 'COIN';
 
-  if (pathname && pathname.startsWith('/admin')) {
+  if (pathname && pathname.startsWith('/v9')) {
     return null;
   }
 

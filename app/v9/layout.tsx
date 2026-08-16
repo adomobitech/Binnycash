@@ -14,7 +14,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  if (pathname === '/admin/login') {
+  if (pathname === '/v9/login') {
     return <div className="min-h-screen bg-[#0B0D14] text-white">{children}</div>;
   }
 
@@ -22,45 +22,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     {
       title: 'USERS',
       items: [
-        { name: 'All Users', href: '/admin/users', icon: Users },
-        { name: 'User Details', href: '/admin/user-details', icon: UserSquare },
-        { name: 'Blocked Users', href: '/admin/blocked-users', icon: Ban },
-        { name: 'Wallets', href: '/admin/wallets', icon: Wallet },
+        { name: 'All Users', href: '/v9/users', icon: Users },
+        { name: 'User Details', href: '/v9/user-details', icon: UserSquare },
+        { name: 'Blocked Users', href: '/v9/blocked-users', icon: Ban },
+        { name: 'Wallets', href: '/v9/wallets', icon: Wallet },
       ]
     },
     {
       title: 'OFFERS',
       items: [
-        { name: 'Offer Partners', href: '/admin/offers', icon: Flame },
-        { name: 'Featured Offers', href: '/admin/featured-offers', icon: Ticket },
-        { name: 'Categories', href: '/admin/categories', icon: Layers },
+        { name: 'Offer Partners', href: '/v9/offers', icon: Flame },
+        { name: 'Featured Offers', href: '/v9/featured-offers', icon: Ticket },
+        { name: 'Categories', href: '/v9/categories', icon: Layers },
       ]
     },
     {
       title: 'SURVEYS',
       items: [
-        { name: 'Survey Partners', href: '/admin/surveys', icon: CheckSquare },
+        { name: 'Survey Partners', href: '/v9/surveys', icon: CheckSquare },
       ]
     },
     {
       title: 'AFFILIATE',
       items: [
-        { name: 'Affiliates', href: '/admin/affiliates', icon: Share2 },
-        { name: 'Leaderboard', href: '/admin/leaderboard', icon: Trophy },
+        { name: 'Affiliates', href: '/v9/affiliates', icon: Share2 },
+        { name: 'Leaderboard', href: '/v9/leaderboard', icon: Trophy },
       ]
     },
      {
       title: 'REWARDS',
       items: [
-        { name: 'Rewards', href: '/admin/rewards', icon: Gift },
-        { name: 'Promo Codes', href: '/admin/promos', icon: Ticket },
+        { name: 'Rewards', href: '/v9/rewards', icon: Gift },
+        { name: 'Promo Codes', href: '/v9/promos', icon: Ticket },
       ]
     }
   ];
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
-    router.push('/admin/login');
+    router.push('/v9/login');
   };
 
   return (
@@ -89,8 +89,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex-1 overflow-y-auto px-4 py-2 flex flex-col gap-6 custom-scrollbar">
           
           <Link
-            href="/admin/dashboard"
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${pathname === '/admin/dashboard' ? 'bg-[#7C3AED] text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+            href="/v9/dashboard"
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${pathname === '/v9/dashboard' ? 'bg-[#7C3AED] text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
           >
             <LayoutDashboard className="w-4 h-4 shrink-0" />
             Dashboard
@@ -121,15 +121,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-4 flex flex-col gap-3 border-t border-white/5 bg-[#12141C]">
           <div className="flex flex-col gap-1">
             <Link 
-              href="/admin/settings" 
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${pathname === '/admin/settings' ? 'bg-[#7C3AED] text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+              href="/v9/settings" 
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${pathname === '/v9/settings' ? 'bg-[#7C3AED] text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
             >
                <Settings className="w-4 h-4" />
                Settings
             </Link>
             <Link 
-              href="/admin/logs" 
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${pathname === '/admin/logs' ? 'bg-[#7C3AED] text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+              href="/v9/logs" 
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${pathname === '/v9/logs' ? 'bg-[#7C3AED] text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
             >
                <ListOrdered className="w-4 h-4" />
                Logs
@@ -185,7 +185,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center gap-3 border-l border-white/10 pl-4 ml-2">
                 <img src="https://ui-avatars.com/api/?name=Super+Admin&background=F59E0B&color=fff" alt="Admin" className="w-8 h-8 rounded-full border border-white/10" />
                 <div className="hidden sm:flex flex-col">
-                   <span className="text-sm font-bold text-white leading-tight">Super Admin</span>
                    <span className="text-[10px] text-gray-400">super@binnycash.com</span>
                 </div>
             </div>

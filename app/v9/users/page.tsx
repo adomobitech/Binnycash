@@ -72,7 +72,7 @@ export default function AdminUsersPage() {
     const adminId = typeof window !== 'undefined' ? localStorage.getItem('admin_id') : '';
     
     if (!token) {
-      router.push('/admin/login');
+      router.push('/v9/login');
       return;
     }
 

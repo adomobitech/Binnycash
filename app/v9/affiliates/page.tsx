@@ -73,7 +73,7 @@ export default function AdminAffiliateDashboard() {
 
 
   const fetchAffiliateStats = async () => {
-    if (!token) { router.push('/admin/login'); return; }
+    if (!token) { router.push('/v9/login'); return; }
     setIsLoading(true); setError(null);
     try {
       const res = await fetch('https://apitest.binnycash.com/api/admin/dashboardStats', {

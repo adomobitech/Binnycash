@@ -18,7 +18,7 @@ export default function AdminOffersPage() {
     setIsLoading(true);
     const token = localStorage.getItem('admin_token');
     if (!token) {
-      router.push('/admin/login');
+      router.push('/v9/login');
       return;
     }
 
