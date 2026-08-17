@@ -13,7 +13,8 @@ import {
   Hash, 
   ArrowRight, 
   Zap, 
-  Loader2 
+  Loader2,
+  Rocket
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -247,17 +248,15 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
         setView('loginSuccess');
         
+        // 🔥 INSTANT REDIRECT TO DASHBOARD 🔥
         setTimeout(() => {
-          router.refresh(); // 🔥 FIX: Clear Next.js cache so soft navigation works perfectly
+          router.refresh(); 
           router.push('/dashboard');
-          
-          setTimeout(() => {
-            onClose();
-            setView('login');
-            setEmail('');
-            setPassword('');
-          }, 800);
-        }, 1500);
+          onClose();
+          setView('login');
+          setEmail('');
+          setPassword('');
+        }, 800); // Only an 800ms visual delay for the success screen
 
       } else {
         setError('Wrong email or password.');
@@ -307,11 +306,14 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           window.dispatchEvent(new CustomEvent('profileUpdated'));
           
           setView('loginSuccess');
+          
+          // 🔥 INSTANT REDIRECT TO DASHBOARD 🔥
           setTimeout(() => {
-            router.refresh(); // 🔥 FIX: Clear Next.js cache here too
+            router.refresh(); 
             router.push('/dashboard');
-            setTimeout(() => { onClose(); }, 800);
-          }, 1500);
+            onClose();
+          }, 800);
+          
         } else {
           try {
             const loginEncoded = new URLSearchParams();
@@ -340,11 +342,14 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
               window.dispatchEvent(new CustomEvent('profileUpdated'));
 
               setView('loginSuccess');
+              
+              // 🔥 INSTANT REDIRECT TO DASHBOARD 🔥
               setTimeout(() => {
-                router.refresh(); // 🔥 FIX: Clear Next.js cache here too
+                router.refresh(); 
                 router.push('/dashboard');
-                setTimeout(() => { onClose(); }, 800);
-              }, 1500);
+                onClose();
+              }, 800);
+
             } else {
               setToast('Email verified successfully! Please log in.');
               setView('login');
@@ -483,16 +488,16 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   // PREMIUM UI COMPONENTS
   // =====================================
 
-  const baseInputClass = "w-full bg-[#0B0E14] border border-[#1A1D24] text-white font-medium rounded-[12px] pl-12 pr-11 py-4 outline-none focus:border-[#00E57A]/60 focus:bg-[#0E1118] transition-all placeholder:text-[#4B5263] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]";
-  const iconClass = "absolute left-4 w-5 h-5 text-[#4B5263] group-focus-within:text-[#00E57A] transition-colors pointer-events-none";
+  const baseInputClass = "w-full bg-[#0B0E14] border border-[#1A1D24] text-white font-medium rounded-[12px] pl-12 pr-11 py-4 outline-none focus:border-[#8B5CF6]/60 focus:bg-[#0E1118] transition-all placeholder:text-[#4B5263] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]";
+  const iconClass = "absolute left-4 w-5 h-5 text-[#4B5263] group-focus-within:text-[#8B5CF6] transition-colors pointer-events-none";
 
   const BrandHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
     <div className="text-center mb-8">
       <div className="flex flex-col items-center justify-center mb-8">
-         <h1 className="text-[42px] font-black tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-r from-[#00E57A] via-[#3DE8A0] to-[#8B5CF6] drop-shadow-[0_0_15px_rgba(0,229,122,0.2)] leading-none">
+         <h1 className="text-[42px] font-black tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#3B82F6] drop-shadow-[0_0_15px_rgba(139,92,246,0.2)] leading-none">
            BinnyCash
          </h1>
-         <span className="text-[9px] font-black tracking-[0.4em] text-[#8B5CF6] mt-3 bg-[#8B5CF6]/10 px-3.5 py-1.5 rounded-full border border-[#8B5CF6]/20 uppercase shadow-sm">
+         <span className="text-[9px] font-black tracking-[0.4em] text-[#00E57A] mt-3 bg-[#00E57A]/10 px-3.5 py-1.5 rounded-full border border-[#00E57A]/20 uppercase shadow-sm">
            Play. Earn. Dominate.
          </span>
       </div>
@@ -537,11 +542,11 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     );
   };
 
-  // SUCCESS SCREEN EARLY RETURN
+  // 🔥 NEW SUCCESS SCREEN 🔥
   if (view === 'loginSuccess') {
     return (
       <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#05070A] overflow-hidden font-sans transition-opacity duration-300">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#00E57A]/10 blur-[100px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#8B5CF6]/10 blur-[100px] rounded-full pointer-events-none" />
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }} 
           animate={{ scale: 1, opacity: 1 }} 
@@ -551,14 +556,14 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
               <motion.div 
                 animate={{ rotate: 360 }} 
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }} 
-                className="absolute -inset-4 rounded-full border border-dashed border-[#00E57A]/50" 
+                className="absolute -inset-4 rounded-full border border-dashed border-[#8B5CF6]/50" 
               />
-              <div className="w-20 h-20 bg-[#0A0D14] border border-[#00E57A]/30 rounded-[18px] flex items-center justify-center shadow-[0_0_40px_rgba(0,229,122,0.2)] relative z-10">
-                <CheckCircle2 className="w-8 h-8 text-[#00E57A]" strokeWidth={2.5} />
+              <div className="w-24 h-24 bg-[#0A0D14] border border-[#8B5CF6]/30 rounded-[20px] flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.3)] relative z-10 overflow-hidden">
+                <Rocket className="w-10 h-10 text-[#A855F7]" strokeWidth={2} />
               </div>
            </div>
-           <h2 className="text-2xl font-black text-white tracking-wide mb-2">Success!</h2>
-           <p className="text-[#8F95A3] text-sm">Preparing your dashboard...</p>
+           <h2 className="text-3xl font-black text-white tracking-wide mb-2">Welcome Back!</h2>
+           <p className="text-[#00E57A] text-sm font-bold animate-pulse tracking-widest uppercase">Signing into your dashboard...</p>
         </motion.div>
       </div>
     );
@@ -593,12 +598,12 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           animation: shimmer 2s infinite ease-in-out;
         }
         .cyber-btn {
-          background: linear-gradient(135deg, #00E57A 0%, #00B861 100%);
-          box-shadow: 0 4px 15px rgba(0, 229, 122, 0.2), inset 0 -3px 0 rgba(0,0,0,0.15);
+          background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+          box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3), inset 0 -3px 0 rgba(0,0,0,0.15);
         }
         .cyber-btn:hover {
           transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(0, 229, 122, 0.3), inset 0 -3px 0 rgba(0,0,0,0.15);
+          box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4), inset 0 -3px 0 rgba(0,0,0,0.15);
         }
         .bg-grid-pattern {
           background-size: 30px 30px;
@@ -627,7 +632,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       <div className="w-full max-w-[460px] bg-[#05070A] border border-[#1A1D24] rounded-[24px] shadow-[0_20px_60px_rgba(0,0,0,0.9)] relative my-auto overflow-hidden">
         
         <div className="absolute inset-0 bg-grid-pattern pointer-events-none" />
-        <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-[#00E57A] via-[#3DE8A0] to-[#8B5CF6]" />
+        <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#3B82F6]" />
 
         <div className="p-8 sm:p-10 relative z-10">
           <button onClick={onClose} className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center text-[#4B5263] hover:text-white transition-colors cursor-pointer z-50">
@@ -683,7 +688,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                       <button 
                         type="button" 
                         onClick={() => setView('forgotPassword')} 
-                        className="text-[11px] font-bold text-[#8F95A3] hover:text-[#00E57A] transition-colors cursor-pointer"
+                        className="text-[11px] font-bold text-[#8F95A3] hover:text-[#8B5CF6] transition-colors cursor-pointer"
                       >
                         Recover Password?
                       </button>
@@ -692,7 +697,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
                   <button 
                     disabled={isLoading} 
-                    className="cyber-btn mt-4 w-full text-[#05070A] font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="cyber-btn mt-4 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <><Loader2 className="w-5 h-5 animate-spin" /> <span>Logging In...</span></>
@@ -716,7 +721,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                     New player? 
                     <button 
                       onClick={() => setView('register')} 
-                      className="text-[#00E57A] font-bold hover:underline transition-colors cursor-pointer ml-1"
+                      className="text-[#8B5CF6] font-bold hover:underline transition-colors cursor-pointer ml-1"
                     >
                       Create Account
                     </button>
@@ -816,7 +821,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
                   <button 
                     disabled={isLoading} 
-                    className="cyber-btn mt-4 w-full text-[#05070A] font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="cyber-btn mt-4 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <><Loader2 className="w-5 h-5 animate-spin" /> <span>Signing Up...</span></>
@@ -840,7 +845,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                     Already registered? 
                     <button 
                       onClick={() => setView('login')} 
-                      className="text-[#00E57A] font-bold hover:underline transition-colors cursor-pointer ml-1"
+                      className="text-[#8B5CF6] font-bold hover:underline transition-colors cursor-pointer ml-1"
                     >
                       Log In
                     </button>
@@ -887,7 +892,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                   
                   <button 
                     disabled={isLoading} 
-                    className="cyber-btn mt-6 w-full text-[#05070A] font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="cyber-btn mt-6 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <><Loader2 className="w-5 h-5 animate-spin" /> <span>Verifying...</span></>
@@ -902,7 +907,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                     onClick={handleResendSignupOtp} 
                     className="text-[13px] text-[#8F95A3] hover:text-white transition-colors cursor-pointer"
                   >
-                    Didn't receive it? <span className="font-bold underline text-[#00E57A]">Resend</span>
+                    Didn't receive it? <span className="font-bold underline text-[#8B5CF6]">Resend</span>
                   </button>
                 </div>
               </motion.div>
@@ -934,7 +939,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                   
                   <button 
                     disabled={isLoading} 
-                    className="cyber-btn mt-4 w-full text-[#05070A] font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="cyber-btn mt-4 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <><Loader2 className="w-5 h-5 animate-spin" /> <span>Sending...</span></>
@@ -1010,7 +1015,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
                   <button 
                     disabled={isLoading} 
-                    className="cyber-btn mt-2 w-full text-[#05070A] font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="cyber-btn mt-2 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <><Loader2 className="w-5 h-5 animate-spin" /> <span>Updating...</span></>
@@ -1031,7 +1036,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                       onClick={handleResendForgotOtp} 
                       className="text-[13px] text-[#8F95A3] hover:text-white transition-colors cursor-pointer"
                     >
-                      Didn't receive it? <span className="font-bold underline text-[#00E57A]">Resend OTP</span>
+                      Didn't receive it? <span className="font-bold underline text-[#8B5CF6]">Resend OTP</span>
                     </button>
                   )}
                 </div>

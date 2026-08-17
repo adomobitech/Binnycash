@@ -54,11 +54,9 @@ async function safeFetchJson(url: string, options?: RequestInit) {
   try {
     const res = await fetch(url, options);
     const text = await res.text();
-    // Agar response empty hai ya HTML (like <doctype>) hai toh null return karein
     if (!text || text.trim().startsWith('<')) {
       return null;
     }
-    // Warna valid JSON ko parse karein
     return JSON.parse(text);
   } catch (err) {
     return null;
@@ -483,21 +481,20 @@ export default function ProfilePage() {
   const isCoin = currency === 'Coin' || currency === 'COIN';
 
   const [userData, setUserData] = useState<any>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [dashboardSummary, setDashboardSummary] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-
   const [imgError, setImgError] = useState(false);
 
-  // --- SINGLE TAB STATE FOR 4 TABS ---
-  const [activeTableTab, setActiveTableTab] = useState<'offers' | 'surveys' | 'rewards' | 'reversals'>('offers');
+  // --- TAB ORDER: offers, surveys, reversals, rewards ---
+  const [activeTableTab, setActiveTableTab] = useState<'offers' | 'surveys' | 'reversals' | 'rewards'>('offers');
 
   // Pagination & Table Data State
   const [tablePage, setTablePage] = useState(1);
   const [tableTotalPages, setTableTotalPages] = useState(1);
   const [offersData, setOffersData] = useState<any[]>([]);
   const [surveysData, setSurveysData] = useState<any[]>([]);
-  const [rewardsData, setRewardsData] = useState<any[]>([]);
   const [reversalsData, setReversalsData] = useState<any[]>([]); 
+  const [rewardsData, setRewardsData] = useState<any[]>([]);
   const [isTableLoading, setIsTableLoading] = useState(false);
 
   // Modals State
@@ -527,7 +524,6 @@ export default function ProfilePage() {
     const userId = getUserId();
 
     try {
-      // 🔥 FIX: Added cache buster to bypass Next.js aggressive caching & fetch fresh profile data
       const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/userDetails?userId=${userId}&t=${Date.now()}`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` },
@@ -549,13 +545,13 @@ export default function ProfilePage() {
         }));
       }
 
-      // API 2: Fetch Wallet Stats
-      const statsJson = await safeFetchJson(`https://apitest.binnycash.com/api/user/wallet/view?t=${Date.now()}`, {
+      const summaryJson = await safeFetchJson(`https://apitest.binnycash.com/api/user/dashboardsummary?t=${Date.now()}`, {
         headers: { 'Authorization': `Bearer ${token}` },
         cache: 'no-store'
       });
-      if (statsJson && statsJson.code === 200) {
-        setStats(statsJson?.data);
+
+      if (summaryJson && summaryJson.code === 200) {
+        setDashboardSummary(summaryJson.data);
       }
 
     } catch (err) {
@@ -579,28 +575,34 @@ export default function ProfilePage() {
 
       setIsTableLoading(true);
       try {
-        if (activeTableTab === 'offers') {
-          // --- UPDATED OFFERS API LOGIC ---
-          const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/tracking/completeUserData?page=${tablePage}&limit=10`, {
+        if (activeTableTab === 'offers' || activeTableTab === 'surveys' || activeTableTab === 'reversals') {
+          let typeParam = 'offer';
+          if (activeTableTab === 'surveys') typeParam = 'survey';
+          if (activeTableTab === 'reversals') typeParam = 'reversal';
+
+          const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/conversionData?type=${typeParam}&page=${tablePage}&limit=10`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
+
           if (json && json.code === 200) {
-            setOffersData(json?.data?.list || []);
-            setTableTotalPages(json?.data?.totalPages || 1);
+            const responsePayload = json?.data?.data || json?.data || {};
+            const listData = 
+              responsePayload.completedOffers || 
+              responsePayload.completedSurveys || 
+              responsePayload.reversals || 
+              responsePayload.list || 
+              [];
+
+            const totalP = responsePayload?.pagination?.totalPages || 1;
+
+            if (activeTableTab === 'offers') setOffersData(Array.isArray(listData) ? listData : []);
+            if (activeTableTab === 'surveys') setSurveysData(Array.isArray(listData) ? listData : []);
+            if (activeTableTab === 'reversals') setReversalsData(Array.isArray(listData) ? listData : []);
+            setTableTotalPages(totalP);
           } else {
-            setOffersData([]);
-            setTableTotalPages(1);
-          }
-        }
-        else if (activeTableTab === 'surveys') {
-          const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/user_completed_survey_api?userId=${userId}&page=${tablePage}&limit=10`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (json && json.code === 200) {
-            setSurveysData(json?.data?.data?.completedSurveys || json?.data?.completedSurveys || []);
-            setTableTotalPages(json?.data?.data?.pagination?.totalPages || json?.data?.pagination?.totalPages || 1);
-          } else {
-            setSurveysData([]);
+            if (activeTableTab === 'offers') setOffersData([]);
+            if (activeTableTab === 'surveys') setSurveysData([]);
+            if (activeTableTab === 'reversals') setReversalsData([]);
             setTableTotalPages(1);
           }
         }
@@ -613,18 +615,6 @@ export default function ProfilePage() {
             setTableTotalPages(json?.data?.data?.pagination?.totalPages || json?.data?.pagination?.totalPages || 1);
           } else {
             setRewardsData([]);
-            setTableTotalPages(1);
-          }
-        }
-        else if (activeTableTab === 'reversals') {
-          const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/userReversalsApi?userId=${userId}&page=${tablePage}&limit=10`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (json && json.code === 200) {
-            setReversalsData(json?.data?.data?.reversals || json?.data?.reversals || []);
-            setTableTotalPages(json?.data?.data?.pagination?.totalPages || json?.data?.pagination?.totalPages || 1);
-          } else {
-            setReversalsData([]);
             setTableTotalPages(1);
           }
         }
@@ -675,7 +665,6 @@ export default function ProfilePage() {
       if (json && (json.code === 200 || json.responseCode === 0)) {
         setMessage({ text: 'Profile updated successfully!', type: 'success' });
         
-        // Optimistic update
         setUserData((prev: any) => ({
           ...prev,
           firstName: formData.firstName,
@@ -687,7 +676,6 @@ export default function ProfilePage() {
           zipCode: formData.zipCode,
         }));
         
-        // Fetch fresh data with cache buster
         fetchProfileData(); 
       } else {
         setMessage({ text: json?.message || 'Failed to update profile', type: 'error' });
@@ -769,10 +757,8 @@ export default function ProfilePage() {
     return imgSrc.startsWith('/') ? `https://apitest.binnycash.com${imgSrc}` : `https://apitest.binnycash.com/${imgSrc}`;
   };
 
-  // 🔥 FIX: Robust name mapping logic prioritizing form data/updated backend fields
   const fName = userData?.firstName || userData?.first_name || '';
   const lName = userData?.lastName || userData?.last_name || '';
-  
   const name = [fName, lName].filter(Boolean).join(' ').trim() || userData?.userName || 'User';
 
   const rawProfilePic = userData?.image || userData?.profilePic;
@@ -933,7 +919,9 @@ export default function ProfilePage() {
 
           <div className="bg-[#120F1A]/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 min-w-[280px] z-10 mt-8 md:mt-0 shadow-xl shrink-0">
               <p className="text-white/60 text-xs font-medium mb-2">Available Balance</p>
-              <h2 className="text-3xl font-black text-white f-mono mb-1">{formatPrice(Number(stats?.totalAmount || 0), currency)}</h2>
+              <h2 className="text-3xl font-black text-white f-mono mb-1">
+                {formatPrice(Number(dashboardSummary?.availableBalance || 0), currency)}
+              </h2>
           </div>
         </div>
 
@@ -1017,7 +1005,7 @@ export default function ProfilePage() {
                      <div className="flex flex-col w-full">
                        <span className="text-xs text-[#8D89A8] font-medium mb-1">Total Completed Offers</span>
                        <span className="text-xl font-bold text-white f-mono mb-1">
-                         <CountUp value={Number(userData?.offer_completion_count || 0)} />
+                         <CountUp value={Number(dashboardSummary?.completedOffers || 0)} />
                        </span>
                        <span className="text-[10px] text-white/40">Completed</span>
                      </div>
@@ -1029,7 +1017,7 @@ export default function ProfilePage() {
                      </div>
                      <div className="flex flex-col w-full">
                        <span className="text-xs text-[#8D89A8] font-medium mb-1">Total Referral Earning</span>
-                       <span className="text-xl font-bold text-white f-mono mb-1">{formatPrice(Number(stats?.tillReferEarning || 0), currency)}</span>
+                       <span className="text-xl font-bold text-white f-mono mb-1">{formatPrice(Number(dashboardSummary?.referralEarning || 0), currency)}</span>
                        <span className="text-[10px] text-white/40">Lifetime</span>
                      </div>
                    </div>
@@ -1041,7 +1029,7 @@ export default function ProfilePage() {
                      <div className="flex flex-col w-full">
                        <span className="text-xs text-[#8D89A8] font-medium mb-1">Referral Users</span>
                        <span className="text-xl font-bold text-white f-mono mb-1">
-                         {userData?.referralCount || 0}
+                         {dashboardSummary?.totalReferrals || 0}
                        </span>
                        <span className="text-[10px] text-white/40">Lifetime</span>
                      </div>
@@ -1052,11 +1040,11 @@ export default function ProfilePage() {
            </div>
         </div>
 
-        {/* BOTTOM SINGLE TABS ROW & TABLE */}
+        {/* BOTTOM SINGLE TABS ROW & TABLE (Order: offers, surveys, reversals, rewards) */}
         <div className="flex flex-col">
           
           <div className="flex items-center gap-2 mb-5 overflow-x-auto no-scrollbar">
-            {(['offers', 'surveys', 'rewards', 'reversals'] as const).map((tab) => (
+            {(['offers', 'surveys', 'reversals', 'rewards'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTableTab(tab)}
@@ -1126,9 +1114,9 @@ export default function ProfilePage() {
                   ) : (
                     (() => {
                       let currentData: any[] = [];
-                      if (activeTableTab === 'reversals') currentData = reversalsData;
-                      else if (activeTableTab === 'offers') currentData = offersData;
+                      if (activeTableTab === 'offers') currentData = offersData;
                       else if (activeTableTab === 'surveys') currentData = surveysData;
+                      else if (activeTableTab === 'reversals') currentData = reversalsData;
                       else if (activeTableTab === 'rewards') currentData = rewardsData;
 
                       if (currentData.length === 0) {
@@ -1147,14 +1135,13 @@ export default function ProfilePage() {
                       }
 
                       return currentData.map((item: any, idx: number) => {
-                        // OFFERS RENDER BLOCK
+                        // OFFERS RENDER BLOCK (Status forced to Completed since endpoint only returns completed records)
                         if (activeTableTab === 'offers') {
                           const finalImg = resolveImage(item.offerImage || item.logo || item.image_url || item.preview);
-                          const partnerName = item.network || item.partnerName || 'Partner';
+                          const partnerName = item.network || item.partnerName || item.offerPartnerName || 'Partner';
                           const payoutVal = Number(item.userCredits || item.amount || 0);
                           const eventName = item.eventName ? item.eventName : '-';
-                          const isCompleted = item.status === 1 || String(item.status).toLowerCase() === 'completed';
-                          const statusText = isCompleted ? 'Completed' : (item.status || 'Pending');
+                          const statusText = 'Completed';
 
                           return (
                             <motion.tr
@@ -1180,22 +1167,20 @@ export default function ProfilePage() {
                               <td className="px-6 py-4 text-sm f-mono font-bold text-[#3DE8A0]">+{formatPrice(payoutVal, currency)}</td>
                               <td className="px-6 py-4 text-sm f-mono text-[#8D89A8]">{eventName}</td>
                               <td className="px-6 py-4">
-                                <span className={`px-2 py-1 rounded border text-[10px] font-bold uppercase flex items-center gap-1 w-fit ${isCompleted ? 'bg-[#3DE8A0]/10 border-[#3DE8A0]/20 text-[#3DE8A0]' : 'bg-amber-500/10 border-amber-500/20 text-amber-500'}`}>
-                                  {isCompleted ? <CheckCircle2 className="w-3 h-3" /> : <Loader2 className="w-3 h-3 animate-spin" />}
-                                  {statusText}
+                                <span className="px-2 py-1 rounded border text-[10px] font-bold uppercase flex items-center gap-1 w-fit bg-[#3DE8A0]/10 border-[#3DE8A0]/20 text-[#3DE8A0]">
+                                  <CheckCircle2 className="w-3 h-3" /> {statusText}
                                 </span>
                               </td>
                             </motion.tr>
                           );
                         }
 
-                        // SURVEYS RENDER BLOCK
+                        // SURVEYS RENDER BLOCK (Status forced to Completed)
                         if (activeTableTab === 'surveys') {
                           const finalImg = resolveImage(item.logo || item.surveyImage || item.image_url || item.preview);
                           const partnerName = item.network || item.partnerName || 'Network';
                           const payoutVal = Number(item.userCredits || item.amount || 0);
-                          const isCompleted = item.status === 1 || String(item.status).toLowerCase() === 'completed';
-                          const statusText = isCompleted ? 'Completed' : (item.status || 'Pending');
+                          const statusText = 'Completed';
 
                           return (
                             <motion.tr
@@ -1220,9 +1205,8 @@ export default function ProfilePage() {
                               <td className="px-6 py-4 text-sm text-white/80 capitalize">{partnerName}</td>
                               <td className="px-6 py-4 text-sm f-mono font-bold text-[#3DE8A0]">+{formatPrice(payoutVal, currency)}</td>
                               <td className="px-6 py-4">
-                                <span className={`px-2 py-1 rounded border text-[10px] font-bold uppercase flex items-center gap-1 w-fit ${isCompleted ? 'bg-[#3DE8A0]/10 border-[#3DE8A0]/20 text-[#3DE8A0]' : 'bg-amber-500/10 border-amber-500/20 text-amber-500'}`}>
-                                  {isCompleted ? <CheckCircle2 className="w-3 h-3" /> : <Loader2 className="w-3 h-3 animate-spin" />}
-                                  {statusText}
+                                <span className="px-2 py-1 rounded border text-[10px] font-bold uppercase flex items-center gap-1 w-fit bg-[#3DE8A0]/10 border-[#3DE8A0]/20 text-[#3DE8A0]">
+                                  <CheckCircle2 className="w-3 h-3" /> {statusText}
                                 </span>
                               </td>
                               <td className="px-6 py-4 text-sm f-mono text-[#8D89A8]">{formatDate(item.date || item.createdAt)}</td>
@@ -1395,7 +1379,6 @@ export default function ProfilePage() {
                   <h3 className="text-lg font-bold text-white mb-5">Personal Details</h3>
                   <form onSubmit={handleUpdateProfile} className="flex flex-col gap-4">
                     
-                    {/* PERFECT 2-COLUMN GRID (First Name, Last Name, Phone, City) */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[
                         { key: 'firstName', label: 'First Name', type: 'text', icon: User, placeholder: 'Enter first name' },
@@ -1420,7 +1403,6 @@ export default function ProfilePage() {
                       ))}
                     </div>
 
-                    {/* PERFECT 3-COLUMN GRID (Address spans 2 columns, Zip Code spans 1) */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
                        <div className="flex flex-col gap-1.5 sm:col-span-2">
                            <label className="text-xs font-bold text-[#8D89A8] ml-1">Full Address</label>

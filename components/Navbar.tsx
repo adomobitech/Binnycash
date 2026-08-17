@@ -10,7 +10,7 @@ import {
   LogOut, MessageSquare, HelpCircle, Gift, 
   BarChart3, Users, X, CheckCheck, Loader2, Globe, ChevronRight,
   Lock, ShieldCheck, Menu, ClipboardCheck, Flame, PlaySquare,
-  History, Smartphone, Download // Added Icons for the App button
+  History, Smartphone, Download 
 } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
@@ -114,9 +114,6 @@ export default function Navbar() {
   
   const [trueUserId, setTrueUserId] = useState<string>('');
 
-  const [currency, setCurrency] = useState('Usd');
-  const [isCurrencySwitching, setIsCurrencySwitching] = useState(false);
-
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [inboxMessages, setInboxMessages] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -126,8 +123,6 @@ export default function Navbar() {
   const [unreadChatCount, setUnreadChatCount] = useState(0);
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // 🔥 NEW STATE FOR GET THE APP MODAL 🔥
   const [isAppModalOpen, setIsAppModalOpen] = useState(false);
 
   const navRef = useRef<HTMLElement>(null);
@@ -322,52 +317,6 @@ export default function Navbar() {
     }
   }, [isLoggedIn]);
 
-  const toggleCurrency = async () => {
-    if (isCurrencySwitching) return;
-    
-    const newCurrency = currency === 'Usd' ? 'Coin' : 'Usd';
-    setIsCurrencySwitching(true);
-
-    try {
-      const token = localStorage.getItem('token');
-      const currentUserId = trueUserId || getUserId() || localStorage.getItem('userId'); 
-      
-      if (!currentUserId) {
-        setIsCurrencySwitching(false);
-        return;
-      }
-
-      const bodyParams = new URLSearchParams();
-      bodyParams.append('currency', newCurrency);
-      bodyParams.append('userId', currentUserId); 
-
-      const res = await fetch(`https://apitest.binnycash.com/api/user/updateCurrencyValue?userId=${currentUserId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/x-www-form-urlencoded' 
-        },
-        body: bodyParams
-      });
-
-      const text = await res.text();
-      let json: any = {};
-      if (text && !text.trim().startsWith('<')) {
-         try { json = JSON.parse(text); } catch (e) {}
-      }
-
-      if (res.ok || json.code === 200) {
-        setCurrency(newCurrency);
-        localStorage.setItem('currency', newCurrency);
-        window.dispatchEvent(new CustomEvent('currencyChanged', { detail: newCurrency }));
-      }
-    } catch (error) {
-      console.error("Error updating currency:", error);
-    } finally {
-      setIsCurrencySwitching(false);
-    }
-  };
-
   const fetchInboxMessages = async () => {
     if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return;
 
@@ -467,8 +416,6 @@ export default function Navbar() {
       }, 1000);
     }
   };
-
-  const isCoin = currency === 'Coin' || currency === 'COIN';
 
   if (pathname && (pathname.startsWith('/v9') || pathname.startsWith('/admin'))) {
     return null;
@@ -611,7 +558,6 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0 ml-auto md:ml-0">
             
-            {/* 🔥 GET THE APP DESKTOP BUTTON 🔥 */}
             <button 
               onClick={() => setIsAppModalOpen(true)} 
               className="hidden sm:flex items-center gap-1.5 bg-white/5 border border-white/10 hover:border-[#8B5CF6]/50 hover:bg-[#8B5CF6]/10 px-3 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
@@ -672,8 +618,8 @@ export default function Navbar() {
                 
                 <div className="hidden lg:flex items-center gap-2">
                   <div className="flex items-center justify-center gap-1.5 bg-[#2B164D] px-3.5 py-2 rounded-xl border border-[#A855F7]/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
-                    <span className="text-[#A855F7] font-black text-[17px] leading-none">{isCoin ? 'C' : '$'}</span>
-                    <span className="text-white font-black text-[17px] leading-none tracking-tight">{isCoin ? Number(balance) * 1000 : balance}</span>
+                    <span className="text-[#A855F7] font-black text-[17px] leading-none">$</span>
+                    <span className="text-white font-black text-[17px] leading-none tracking-tight">{balance}</span>
                   </div>
                   
                   <Link href="/cashout" className="bg-[#00E57A]/10 hover:bg-[#00E57A]/20 border border-[#00E57A]/30 text-[#00E57A] px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,229,122,0.15)] hover:shadow-[0_0_20px_rgba(0,229,122,0.25)]">
@@ -822,25 +768,6 @@ export default function Navbar() {
                             <div className="h-px bg-gradient-to-r from-[#8B5CF6]/40 via-[#8B5CF6]/40 to-transparent flex-1" />
                           </div>
 
-                          <div className="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-2xl p-3.5 mb-1 transition-all hover:bg-white/[0.04]">
-                            <span className="text-[14px] font-black text-white tracking-wide pl-2">{currency.toUpperCase()}</span>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); toggleCurrency(); }}
-                              disabled={isCurrencySwitching}
-                              className={`relative w-12 h-6 rounded-full border-2 transition-colors duration-300 ease-in-out flex items-center p-0.5 cursor-pointer bg-transparent ${isCoin ? 'border-[#8B5CF6]' : 'border-[#8B5CF6]/50'}`}
-                            >
-                              <motion.div 
-                                layout
-                                initial={false}
-                                animate={{ x: isCoin ? 24 : 0 }}
-                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                className={`w-4 h-4 rounded-full flex items-center justify-center shadow-sm ${isCoin ? 'bg-[#8B5CF6]' : 'bg-[#8B5CF6]/50'}`}
-                              >
-                                {isCurrencySwitching && <Loader2 className="w-3 h-3 text-white animate-spin" />}
-                              </motion.div>
-                            </button>
-                          </div>
-
                           <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="relative w-full group flex items-center justify-between bg-[#FF5D73]/5 hover:bg-[#FF5D73]/10 border border-[#FF5D73]/20 hover:border-[#FF5D73]/40 rounded-2xl p-3.5 transition-all text-left cursor-pointer">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-[#FF5D73]/20 group-hover:border-[#FF5D73]/50 transition-colors shadow-inner">
@@ -967,7 +894,7 @@ export default function Navbar() {
                 <div className="bg-gradient-to-br from-[#1A1725] to-[#110E18] border border-white/5 rounded-2xl p-5 flex flex-col items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden">
                   <span className="text-[10px] font-bold text-[#8D89A8] mb-1 uppercase tracking-widest relative z-10">Available Balance</span>
                   <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00E57A] to-[#3DE8A0] drop-shadow-md relative z-10">
-                    {isCoin ? Number(balance) * 1000 : balance}
+                    ${balance}
                   </span>
                 </div>
               </div>
