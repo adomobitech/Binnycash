@@ -10,7 +10,7 @@ import {
   LogOut, MessageSquare, HelpCircle, Gift, 
   BarChart3, Users, X, CheckCheck, Loader2, Globe, ChevronRight,
   Lock, ShieldCheck, Menu, ClipboardCheck, Flame, PlaySquare,
-  History // Added History icon for Transactions
+  History, Smartphone, Download // Added Icons for the App button
 } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
@@ -127,10 +127,12 @@ export default function Navbar() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // 🔥 NEW STATE FOR GET THE APP MODAL 🔥
+  const [isAppModalOpen, setIsAppModalOpen] = useState(false);
+
   const navRef = useRef<HTMLElement>(null);
   const lastFetchRef = useRef<number>(0);
 
-  // Removed "Cashout" from MAIN_LINKS as per your request
   const MAIN_LINKS = [
     { name: t.Navbar?.links?.earn || 'Earn', href: '/dashboard' },
     { name: t.Navbar?.links?.myOffers || 'My Offers', href: '/myoffers' },
@@ -139,7 +141,6 @@ export default function Navbar() {
     { name: t.Navbar?.links?.rewards || 'Rewards', href: '/rewards' },
   ];
 
-  // INSTANT AUTH SYNC LOGIC
   useEffect(() => {
     const syncAuthState = () => {
       const token = localStorage.getItem('token');
@@ -160,7 +161,6 @@ export default function Navbar() {
     };
   }, []);
 
-  // ROUTING OVERLAY LOGIC
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && token !== 'undefined' && pathname === '/') {
@@ -470,7 +470,6 @@ export default function Navbar() {
 
   const isCoin = currency === 'Coin' || currency === 'COIN';
 
-  // Hides Navbar entirely on these paths
   if (pathname && (pathname.startsWith('/v9') || pathname.startsWith('/admin'))) {
     return null;
   }
@@ -548,6 +547,37 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
+      {/* 🔥 GET THE APP MODAL (COMING SOON) 🔥 */}
+      <AnimatePresence>
+        {isAppModalOpen && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.9, y: 20 }} 
+              className="bg-[#111319] border border-white/10 rounded-3xl p-6 md:p-8 w-full max-w-sm text-center shadow-2xl relative"
+            >
+              <button onClick={() => setIsAppModalOpen(false)} className="absolute top-4 right-4 text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-[#8B5CF6]/20 to-[#3B82F6]/20 flex items-center justify-center mb-5 border border-[#8B5CF6]/30 shadow-[0_0_30px_rgba(139,92,246,0.2)]">
+                <Download className="w-10 h-10 text-[#A855F7]" />
+              </div>
+              
+              <h3 className="text-2xl font-black text-white mb-2">Coming Soon!</h3>
+              <p className="text-[#8F95A3] text-[15px] mb-8 leading-relaxed font-medium">
+                Our mobile app is currently under development. Stay tuned for an even better experience!
+              </p>
+              
+              <button onClick={() => setIsAppModalOpen(false)} className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#7c3aed] text-white font-bold transition-all shadow-[0_0_20px_rgba(139,92,246,0.4)] hover:scale-[1.02] cursor-pointer">
+                Got it
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <nav ref={navRef} className="w-full bg-[#0E1015]/80 backdrop-blur-xl sticky top-0 z-50 border-b border-white/5 h-[70px] md:h-[80px] flex items-center shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
         <div className="w-full px-4 lg:px-10 flex justify-between items-center relative">
           
@@ -581,6 +611,15 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0 ml-auto md:ml-0">
             
+            {/* 🔥 GET THE APP DESKTOP BUTTON 🔥 */}
+            <button 
+              onClick={() => setIsAppModalOpen(true)} 
+              className="hidden sm:flex items-center gap-1.5 bg-white/5 border border-white/10 hover:border-[#8B5CF6]/50 hover:bg-[#8B5CF6]/10 px-3 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+            >
+              <Smartphone className="w-4 h-4 text-[#A855F7]" />
+              <span>Get App</span>
+            </button>
+
             {!isLoggedIn && pathname === '/' && (
               <div className="relative">
                 <button 
@@ -631,7 +670,6 @@ export default function Navbar() {
             {isLoggedIn ? (
               <div className="flex items-center gap-2 md:gap-3">
                 
-                {/* WALLET + CASHOUT DESKTOP BLOCK */}
                 <div className="hidden lg:flex items-center gap-2">
                   <div className="flex items-center justify-center gap-1.5 bg-[#2B164D] px-3.5 py-2 rounded-xl border border-[#A855F7]/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
                     <span className="text-[#A855F7] font-black text-[17px] leading-none">{isCoin ? 'C' : '$'}</span>
@@ -710,7 +748,6 @@ export default function Navbar() {
                   </AnimatePresence>
                 </div>
 
-                {/* PROFILE BUTTON WITH HOVER DROPDOWN */}
                 <div 
                   className="relative group"
                   onMouseEnter={() => setIsProfileOpen(true)}
@@ -753,7 +790,6 @@ export default function Navbar() {
                             <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
                           </Link>
 
-                          {/* NEW TRANSACTIONS LINK */}
                           <Link href="/transactions" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
@@ -833,7 +869,6 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* 🔥 GLOBAL FLOATING CHAT BUTTON (NEW SLEEK ICON) 🔥 */}
       {isLoggedIn && pathname && !pathname.startsWith('/admin') && (
         <div className="fixed bottom-[100px] right-4 md:bottom-8 md:right-8 z-[90]">
           <button 
@@ -917,6 +952,15 @@ export default function Navbar() {
                   <Users className="w-5 h-5" />
                   <span className="text-sm font-bold">Affiliates</span>
                 </Link>
+
+                {/* 🔥 GET THE APP MOBILE MENU BUTTON 🔥 */}
+                <button 
+                  onClick={() => { setIsMobileMenuOpen(false); setIsAppModalOpen(true); }} 
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-gradient-to-r from-[#8B5CF6]/20 to-transparent border border-[#8B5CF6]/30 hover:border-[#8B5CF6]/50 text-white transition-all mt-2 cursor-pointer"
+                >
+                  <Smartphone className="w-5 h-5 text-[#A855F7]" />
+                  <span className="text-sm font-bold">Get the App</span>
+                </button>
               </div>
 
               <div className="mt-auto p-6 border-t border-white/5 bg-gradient-to-t from-black/20 to-transparent">

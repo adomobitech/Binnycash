@@ -1,14 +1,18 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import LiveTicker from '@/components/dashboard/LiveTicker'; 
 
 export default function GlobalTicker() {
   const pathname = usePathname();
   const [feeds, setFeeds] = useState<any[]>([]);
+  // Use a ref to track if component is mounted to prevent state updates on unmounted component
+  const isMounted = useRef(true);
 
   useEffect(() => {
+    isMounted.current = true;
+    
     // Home page par fetch nahi karna
     if (pathname === '/') return;
 
@@ -31,6 +35,8 @@ export default function GlobalTicker() {
 
         const json = JSON.parse(text);
         
+        if (!isMounted.current) return; // Prevent setting state if unmounted during fetch
+
         if (res.ok && json.code === 200 && Array.isArray(json.data) && json.data.length > 0) {
           setFeeds(json.data);
         } else if (res.ok && json.code === 404) {
@@ -41,8 +47,19 @@ export default function GlobalTicker() {
       }
     };
 
-    // Page load ya route change hone par ek baar fetch hoga (No spam, no errors)
+    // Page load ya route change hone par ek baar turant fetch hoga
     fetchLiveActivity();
+
+    // HAR 10 SECONDS MEIN AUTO-UPDATE HOGA 🔥
+    const intervalId = setInterval(() => {
+      fetchLiveActivity();
+    }, 10000); // 10000 milliseconds = 10 seconds. Tu isko change kar sakta hai.
+
+    // Cleanup function: jab component unmount hoga ya pathname change hoga toh interval clear kar denge
+    return () => {
+      isMounted.current = false;
+      clearInterval(intervalId);
+    };
 
   }, [pathname]);
 

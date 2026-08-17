@@ -138,29 +138,6 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
     setShowEmojiPicker(false);
     setIsSending(true);
 
-    // 🔥 BACKEND BUG BYPASS: FRONTEND ANTI-SPAM PRE-CHECK 🔥
-    // Backend API hamesha USD format mein data deti hai
-    try {
-      const balRes = await fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (balRes.ok) {
-        const balData = await balRes.json();
-        const earnedUsd = parseFloat(balData.data || '0');
-        
-        if (earnedUsd < 2) {
-           // 🔥 SIRF $2 DIKHANA HAI AB 🔥
-           setErrorPopup("Minimum $2 required to use chat.");
-           setTimeout(() => setErrorPopup(null), 4000);
-           setIsSending(false);
-           return; // 🛑 YAHI ROK DIYA, BACKEND TAK REQUEST JAYEGI HI NAHI! 🛑
-        }
-      }
-    } catch (e) {
-      // Agar balance fetch fail ho jaye toh continue karne do, backend handle kar lega
-    }
-
-    // Yahan request tabhi aayegi jab pre-check pass hoga
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('userId', activeUserId);
     urlEncoded.append('message', msgText);

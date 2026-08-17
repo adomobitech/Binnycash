@@ -201,7 +201,7 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     }
 
     if (isMismatch && targetForQR) {
-      const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
+      const trackingUrl = `https://apitest.binnycash.com/api/click?customer_id=${encodeURIComponent(userId)}&offer_id=${encodeURIComponent(targetId)}`;
       setTargetDeviceName(targetForQR === 'ios' ? 'iOS' : 'Android');
       setQrCodeUrl(trackingUrl);
       setIsProcessingClick(false);
