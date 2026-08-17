@@ -149,7 +149,7 @@ export default function RewardsPage() {
     }
   };
 
-  // PROMO CODE HANDLER
+  // 🔥 NEW BONUS CODE HANDLER 🔥
   const handleRedeemPromo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!promoCode.trim()) return;
@@ -158,19 +158,27 @@ export default function RewardsPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const deviceId = localStorage.getItem('deviceId') || 'web-browser-device'; 
-      const res = await fetch('https://apitest.binnycash.com/api/user/promoCode/promo/apply', {
+      const deviceId = localStorage.getItem('device_id') || 'web-browser-device'; 
+
+      const formData = new URLSearchParams();
+      formData.append('code', promoCode.trim());
+      formData.append('deviceId', deviceId);
+
+      const res = await fetch('https://apitest.binnycash.com/api/user/bonusCode/bonus/apply', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode, deviceId })
+        headers: { 
+          'Authorization': `Bearer ${token}`, 
+          'Content-Type': 'application/x-www-form-urlencoded' 
+        },
+        body: formData
       });
       const json = await res.json();
       if (res.ok || json.code === 200) {
-        setPromoMessage({ text: json.message || 'Promo code applied successfully!', type: 'success' });
+        setPromoMessage({ text: json.message || 'Bonus code applied successfully!', type: 'success' });
         setPromoCode('');
         if (typeof window !== 'undefined') window.dispatchEvent(new Event('walletUpdated'));
       } else {
-        setPromoMessage({ text: json.message || 'Invalid or ineligible promo code.', type: 'error' });
+        setPromoMessage({ text: json.message || 'Invalid or ineligible bonus code.', type: 'error' });
       }
     } catch (error) {
       setPromoMessage({ text: 'Something went wrong. Please try again.', type: 'error' });
@@ -188,7 +196,7 @@ export default function RewardsPage() {
 
   const tabs = [
     { id: 'daily_streak', label: 'Daily Streak' },
-    { id: 'bonus_codes', label: 'Bonus Codes' }
+    { id: 'bonus_codes', label: 'Bonus Code' }
   ];
 
   return (

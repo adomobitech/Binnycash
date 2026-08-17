@@ -86,13 +86,11 @@ function EligibilityNotice({ data }: { data: any }) {
   const message = data.rankMessage;
   const isEligible = data.eligibility?.isEligible ?? true;
 
-  // Agar backend ne koi message hi nahi bheja toh kuch nahi dikhana
   if (!message) return null;
 
   return (
     <>
       {isEligible ? (
-        /* 🔥 1. ELIGIBLE (TRUE) STATE: GREEN STRIP 🔥 */
         <div className="mb-6 flex items-center gap-3 px-4 py-3.5 rounded-xl border bg-[#00E57A]/10 border-[#00E57A]/20 shadow-[0_0_15px_rgba(0,229,122,0.05)]">
            <Trophy className="w-5 h-5 text-[#00E57A] shrink-0" />
            <span className="text-[13px] font-bold text-[#00E57A]">
@@ -100,7 +98,6 @@ function EligibilityNotice({ data }: { data: any }) {
            </span>
         </div>
       ) : (
-        /* 🔥 2. NOT ELIGIBLE (FALSE) STATE: ORANGE STRIP WITH BUTTON BELOW 🔥 */
         <div className="mb-6 flex flex-col gap-3 p-4 rounded-xl border bg-[#F59E0B]/10 border-[#F59E0B]/20 shadow-[0_0_15px_rgba(245,158,11,0.05)]">
           <div className="flex items-start gap-3">
              <AlertOctagon className="w-5 h-5 text-[#F59E0B] shrink-0 mt-0.5" />
@@ -108,7 +105,6 @@ function EligibilityNotice({ data }: { data: any }) {
                 {message}
              </span>
           </div>
-          {/* Button literally "Below" the text */}
           <div className="pl-8">
             <button 
               onClick={() => setIsOpen(true)} 
@@ -120,7 +116,6 @@ function EligibilityNotice({ data }: { data: any }) {
         </div>
       )}
 
-      {/* 🔥 POPUP (MODAL) WITH REQUIREMENTS & BUTTON 🔥 */}
       <AnimatePresence>
         {isOpen && !isEligible && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#08070D]/80 backdrop-blur-sm">
@@ -196,7 +191,7 @@ function EligibilityNotice({ data }: { data: any }) {
 function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: boolean }) {
   const { currency, winners } = data;
 
-  const sortedWinners = [...winners].sort((a, b) => Number(a.rank) - Number(b.rank));
+  const sortedWinners = Array.isArray(winners) ? [...winners].sort((a, b) => Number(a.rank) - Number(b.rank)) : [];
   const top1 = sortedWinners.find((w: any) => Number(w.rank) === 1);
   const top2 = sortedWinners.find((w: any) => Number(w.rank) === 2);
   const top3 = sortedWinners.find((w: any) => Number(w.rank) === 3);
@@ -211,7 +206,7 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
 
   return (
     <>
-      <div className="flex justify-between items-center mb-4 px-1">
+      <div className="flex justify-between items-center mb-4 px-1 mt-6">
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
           <Trophy className="w-4 h-4 text-[#FFC94A]"/> Top Winners
         </h3>
@@ -222,13 +217,13 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
         {/* 2ND RANK (LEFT) */}
         <div className="w-[30%] bg-[#1A1C25] rounded-t-2xl flex flex-col items-center relative h-[82%] border border-white/5 border-b-0 pb-3">
            <div className="absolute -top-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#2A2C38] border-[3px] border-[#E2E8F0] overflow-hidden flex items-center justify-center shadow-md">
-             {getImg(top2) ? <img src={getImg(top2)!} className="w-full h-full object-cover" alt=""/> : <span className="text-xl font-black text-[#E2E8F0]">{getInitial(top2?.userName)}</span>}
+             {getImg(top2) ? <img src={getImg(top2)!} className="w-full h-full object-cover" alt=""/> : <span className="text-xl font-black text-[#E2E8F0]">{getInitial(top2?.userName || top2?.name)}</span>}
            </div>
            <div className="w-5 h-5 rounded-full bg-[#E2E8F0] text-black text-[10px] font-black absolute -top-8 flex items-center justify-center shadow">2</div>
-           <span className="text-xs font-bold text-white mt-auto truncate w-full text-center px-1">{top2?.userName || '---'}</span>
-           {top2?.totalReward !== undefined && (
-             <span className="text-[11px] text-[#00E57A] font-bold my-0.5">{formatPrice(top2?.totalReward, currency)}</span>
-           )}
+           <span className="text-xs font-bold text-white mt-auto truncate w-full text-center px-1">{top2?.userName || top2?.name || '---'}</span>
+           {top2?.totalReward !== undefined || top2?.score !== undefined ? (
+             <span className="text-[11px] text-[#00E57A] font-bold my-0.5">{formatPrice(top2?.score || top2?.totalReward || 0, currency)}</span>
+           ) : null}
            <span className="text-[10px] text-[#FFC94A] font-black bg-[#FFC94A]/10 px-2 py-0.5 rounded mt-1">
              {formatPrice(top2?.prize || getPrizeForRank(data, 2), currency)}
            </span>
@@ -238,13 +233,13 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
         <div className="w-[36%] bg-gradient-to-t from-[#A66CFF]/20 via-[#1A1C25] to-[#252136] rounded-t-2xl flex flex-col items-center relative h-full border border-[#FFC94A]/40 border-b-0 pb-3 shadow-[0_-5px_25px_rgba(255,201,74,0.15)]">
            <Crown className="w-7 h-7 text-[#FFC94A] absolute -top-11 z-10 drop-shadow-[0_2px_8px_rgba(255,201,74,0.6)]" fill="#FFC94A" />
            <div className="absolute -top-7 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#2A2C38] border-[3px] border-[#FFC94A] overflow-hidden flex items-center justify-center shadow-lg">
-             {getImg(top1) ? <img src={getImg(top1)!} className="w-full h-full object-cover" alt=""/> : <span className="text-2xl font-black text-[#FFC94A]">{getInitial(top1?.userName)}</span>}
+             {getImg(top1) ? <img src={getImg(top1)!} className="w-full h-full object-cover" alt=""/> : <span className="text-2xl font-black text-[#FFC94A]">{getInitial(top1?.userName || top1?.name)}</span>}
            </div>
            <div className="w-6 h-6 rounded-full bg-[#FFC94A] text-black text-[11px] font-black absolute -top-9 flex items-center justify-center z-10 shadow-md">1</div>
-           <span className="text-sm font-black text-white mt-auto truncate w-full text-center px-1">{top1?.userName || '---'}</span>
-           {top1?.totalReward !== undefined && (
-             <span className="text-xs text-[#00E57A] font-black my-0.5">{formatPrice(top1?.totalReward, currency)}</span>
-           )}
+           <span className="text-sm font-black text-white mt-auto truncate w-full text-center px-1">{top1?.userName || top1?.name || '---'}</span>
+           {top1?.totalReward !== undefined || top1?.score !== undefined ? (
+             <span className="text-xs text-[#00E57A] font-black my-0.5">{formatPrice(top1?.score || top1?.totalReward || 0, currency)}</span>
+           ) : null}
            <span className="text-[11px] text-[#FFC94A] font-black bg-[#FFC94A]/20 border border-[#FFC94A]/30 px-2.5 py-0.5 rounded mt-1">
              {formatPrice(top1?.prize || getPrizeForRank(data, 1), currency)}
            </span>
@@ -253,13 +248,13 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
         {/* 3RD RANK (RIGHT) */}
         <div className="w-[30%] bg-[#1A1C25] rounded-t-2xl flex flex-col items-center relative h-[72%] border border-white/5 border-b-0 pb-3">
            <div className="absolute -top-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#2A2C38] border-[3px] border-[#CD7F32] overflow-hidden flex items-center justify-center shadow-md">
-             {getImg(top3) ? <img src={getImg(top3)!} className="w-full h-full object-cover" alt=""/> : <span className="text-xl font-black text-[#CD7F32]">{getInitial(top3?.userName)}</span>}
+             {getImg(top3) ? <img src={getImg(top3)!} className="w-full h-full object-cover" alt=""/> : <span className="text-xl font-black text-[#CD7F32]">{getInitial(top3?.userName || top3?.name)}</span>}
            </div>
            <div className="w-5 h-5 rounded-full bg-[#CD7F32] text-black text-[10px] font-black absolute -top-8 flex items-center justify-center shadow">3</div>
-           <span className="text-xs font-bold text-white mt-auto truncate w-full text-center px-1">{top3?.userName || '---'}</span>
-           {top3?.totalReward !== undefined && (
-             <span className="text-[11px] text-[#00E57A] font-bold my-0.5">{formatPrice(top3?.totalReward, currency)}</span>
-           )}
+           <span className="text-xs font-bold text-white mt-auto truncate w-full text-center px-1">{top3?.userName || top3?.name || '---'}</span>
+           {top3?.totalReward !== undefined || top3?.score !== undefined ? (
+             <span className="text-[11px] text-[#00E57A] font-bold my-0.5">{formatPrice(top3?.score || top3?.totalReward || 0, currency)}</span>
+           ) : null}
            <span className="text-[10px] text-[#FFC94A] font-black bg-[#FFC94A]/10 px-2 py-0.5 rounded mt-1">
              {formatPrice(top3?.prize || getPrizeForRank(data, 3), currency)}
            </span>
@@ -274,7 +269,7 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
         <div className="grid grid-cols-[50px_1fr_90px_90px] sm:grid-cols-[60px_1fr_100px_100px] gap-2 px-4 py-3 text-[10px] font-bold text-[#8F95A3] uppercase tracking-wider bg-white/[0.02] border-b border-white/5">
           <div>RANK</div>
           <div>USER</div>
-          <div className="text-right">EARNING</div>
+          <div className="text-right">SCORE</div>
           <div className="text-right">REWARD</div>
         </div>
         
@@ -293,13 +288,13 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
                     {getImg(u) ? (
                       <img src={getImg(u)!} className="w-full h-full object-cover" alt=""/>
                     ) : (
-                      <span className="text-white text-[10px] font-black">{getInitial(u.userName)}</span>
+                      <span className="text-white text-[10px] font-black">{getInitial(u.userName || u.name)}</span>
                     )}
                   </div>
-                  <span className="truncate font-bold text-white text-xs">{u.userName || 'Anonymous'}</span>
+                  <span className="truncate font-bold text-white text-xs">{u.userName || u.name || 'Anonymous'}</span>
                 </div>
                 <div className="text-right text-[#00E57A] font-bold">
-                  {formatPrice(u.totalReward || 0, currency)}
+                  {formatPrice(u.score || u.totalReward || 0, currency)}
                 </div>
                 <div className="text-right text-[#FFC94A] font-bold">
                   {formatPrice(u.prize || getPrizeForRank(data, u.rank), currency)}
@@ -351,7 +346,7 @@ function UpcomingContent({ data }: { data: any }) {
           </div>
           <div>
             <div className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-0.5">Participants</div>
-            <div className="text-lg font-black text-white">{data.totalUsers} <span className="text-[10px] text-[#8F95A3] font-medium">Joined</span></div>
+            <div className="text-lg font-black text-white">{data.totalUsers || 0} <span className="text-[10px] text-[#8F95A3] font-medium">Joined</span></div>
           </div>
         </div>
       </div>
@@ -401,7 +396,7 @@ function ActiveContent({ data }: { data: any }) {
         </div>
         <div className="border-r border-white/5">
           <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Participants</span>
-          <span className="text-sm sm:text-base font-black text-white">{data.totalUsers}</span>
+          <span className="text-sm sm:text-base font-black text-white">{data.totalUsers || 0}</span>
         </div>
         <div className="border-r border-white/5">
           <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Your Rank</span>
@@ -433,7 +428,7 @@ function EndedContent({ data }: { data: any }) {
         </div>
         <div className="border-r border-white/5">
           <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Participants</span>
-          <span className="text-base font-black text-white">{data.totalUsers}</span>
+          <span className="text-base font-black text-white">{data.totalUsers || 0}</span>
         </div>
         <div>
           <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Total Payout</span>
@@ -465,7 +460,7 @@ function FinalizedContent({ data }: { data: any }) {
         </div>
         <div>
           <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Participants</span>
-          <span className="text-base font-black text-white">{data.totalUsers}</span>
+          <span className="text-base font-black text-white">{data.totalUsers || 0}</span>
         </div>
       </div>
 
@@ -631,17 +626,24 @@ export default function LeaderboardPage() {
       const userId = getUserId();
 
       try {
-        const url = `https://apitest.binnycash.com/api/user/userViewContest?contestType=${contestType}&page=1&limit=50${userId ? `&userId=${userId}` : ''}`;
+        const url = `https://apitest.binnycash.com/api/user/userViewLeaderboard?leaderboardType=${contestType}&page=1&limit=50${userId ? `&userId=${userId}` : ''}`;
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
         const json = await res.json();
 
+        // Handle success
         if (json.code === 200 && json.data) {
           setContestData(json.data);
-        } else {
+        } 
+        // Handle explicit 404 from your API payload or an empty array
+        else if (json.code === 404 || (Array.isArray(json.data) && json.data.length === 0)) {
+          setContestData({ isEmpty: true, message: json.message });
+        } 
+        // Fallback for any other weird state
+        else {
           setContestData(null);
         }
       } catch (error) {
-        setContestData(null);
+        setContestData({ isEmpty: true });
       } finally {
         setIsLoading(false);
       }
@@ -652,11 +654,13 @@ export default function LeaderboardPage() {
 
   const currentStatus = (contestData?.contest?.status || (isLoading ? '' : 'INACTIVE')).toUpperCase();
 
-  const safeWinners = Array.isArray(contestData?.topUsers) 
-    ? contestData.topUsers 
-    : Array.isArray(contestData?.winners) 
-      ? contestData.winners 
-      : [];
+  const safeWinners = Array.isArray(contestData) 
+    ? contestData 
+    : Array.isArray(contestData?.topUsers) 
+      ? contestData.topUsers 
+      : Array.isArray(contestData?.winners) 
+        ? contestData.winners 
+        : [];
 
   const cData = {
     contest: contestData?.contest,
@@ -674,10 +678,29 @@ export default function LeaderboardPage() {
   const renderContestBlock = () => {
     if (isLoading) return null;
     
+    // 🔥 HANDLE EMPTY STATE SAFELY
+    if (contestData?.isEmpty) {
+      return (
+        <div className="bg-[#12141D] border border-white/5 rounded-[28px] p-6 sm:p-12 shadow-xl flex flex-col items-center justify-center min-h-[400px]">
+          <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
+            <Trophy className="w-8 h-8 text-[#8F95A3] opacity-50" />
+          </div>
+          <h2 className="text-2xl font-black text-white mb-2">No Leaderboard Found</h2>
+          <p className="text-[#8F95A3] text-sm text-center">There are currently no rankings for the {contestType} leaderboard.</p>
+        </div>
+      );
+    }
+
+    // Force ACTIVE status if the API returns winners array directly without contest info
+    let resolvedStatus = currentStatus;
+    if (resolvedStatus === 'INACTIVE' && safeWinners.length > 0) {
+      resolvedStatus = 'ACTIVE';
+    }
+
     const cName = contestData?.contest?.name || contestData?.contest?.contestName;
     const cDesc = contestData?.contest?.description;
 
-    switch (currentStatus) {
+    switch (resolvedStatus) {
       case 'UPCOMING':
         return (
           <ContestCard state="UPCOMING" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}>

@@ -118,6 +118,7 @@ export default function Navbar() {
   const [inboxMessages, setInboxMessages] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isInboxLoading, setIsInboxLoading] = useState(false);
+  const [hasFetchedAlerts, setHasFetchedAlerts] = useState(false);
 
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
@@ -317,6 +318,27 @@ export default function Navbar() {
     }
   }, [isLoggedIn]);
 
+  // Initial check for unread count (Runs once when logged in)
+  useEffect(() => {
+    if (isLoggedIn && !hasFetchedAlerts && pathname && !pathname.startsWith('/v9') && !pathname.startsWith('/admin')) {
+      const token = localStorage.getItem('token');
+      if (token && !token.includes('[object Object]')) {
+        fetch('https://apitest.binnycash.com/api/user/userAlertList', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.code === 200 && data.data) {
+            setUnreadCount(data.data.unreadCount || 0);
+          }
+        })
+        .catch(() => {});
+      }
+    }
+  }, [isLoggedIn, hasFetchedAlerts, pathname]);
+
+
   const fetchInboxMessages = async () => {
     if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return;
 
@@ -325,7 +347,7 @@ export default function Navbar() {
       const token = localStorage.getItem('token');
       if (!token || token.includes('[object Object]')) return;
 
-      const res = await fetch('https://apitest.binnycash.com/api/user/notificationList', {
+      const res = await fetch('https://apitest.binnycash.com/api/user/userAlertList', {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -342,18 +364,28 @@ export default function Navbar() {
          try { data = JSON.parse(text); } catch (e) {}
       }
       
-      let notificationsList = data?.data?.notifications || data?.notifications || [];
-      if (!Array.isArray(notificationsList)) notificationsList = [];
+      let alertsList = data?.data?.userAlerts || [];
+      if (!Array.isArray(alertsList)) alertsList = [];
 
-      setInboxMessages(notificationsList);
+      setInboxMessages(alertsList);
       
       if (data?.data?.unreadCount !== undefined) {
         setUnreadCount(data.data.unreadCount);
       }
+      setHasFetchedAlerts(true);
     } catch (err) {
-      console.error("Notifications fetch error:", err);
+      console.error("Alerts fetch error:", err);
     } finally { 
       setIsInboxLoading(false); 
+    }
+  };
+
+  const handleToggleInbox = () => {
+    if (!isInboxOpen) {
+      fetchInboxMessages();
+      setIsInboxOpen(true);
+    } else {
+      setIsInboxOpen(false);
     }
   };
 
@@ -379,9 +411,6 @@ export default function Navbar() {
     }
   };
 
-  useEffect(() => { 
-    if (isInboxOpen) fetchInboxMessages(); 
-  }, [isInboxOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -494,7 +523,6 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* 🔥 GET THE APP MODAL (COMING SOON) 🔥 */}
       <AnimatePresence>
         {isAppModalOpen && (
           <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -630,7 +658,7 @@ export default function Navbar() {
 
                 <div className="relative hidden sm:block">
                   <button 
-                    onClick={() => setIsInboxOpen(!isInboxOpen)}
+                    onClick={handleToggleInbox}
                     className={`relative w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer border ${isInboxOpen ? 'bg-[#252836] border-white/10' : 'bg-[#1A1C24] hover:bg-[#252836] border-white/5'}`}
                   >
                     <Bell className="w-4 h-4 md:w-[18px] md:h-[18px] text-[#8F95A3] fill-current" />
@@ -674,15 +702,12 @@ export default function Navbar() {
                                 const timeAgo = new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                                 return (
-                                  <div key={item._id || idx} className="bg-[#151517] border border-white/5 rounded-xl p-4 flex flex-col gap-2">
+                                  <div key={item._id || idx} className={`border rounded-xl p-4 flex flex-col gap-2 ${item.isRead ? 'bg-[#151517] border-white/5' : 'bg-[#1A1C24] border-[#8B5CF6]/30 shadow-[0_0_10px_rgba(139,92,246,0.1)]'}`}>
                                     <div className="flex justify-between items-start">
-                                      <h4 className="text-white text-[15px] font-bold">{title}</h4>
+                                      <h4 className={`text-[15px] font-bold ${item.isRead ? 'text-white' : 'text-[#A855F7]'}`}>{title}</h4>
                                       <span className="text-[#8F95A3] text-[11px] whitespace-nowrap ml-2 mt-0.5">{timeAgo}</span>
                                     </div>
                                     <p className="text-[#8F95A3] text-[13px] leading-relaxed pr-2">{message}</p>
-                                    <div className="mt-1">
-                                      <span className="text-[#A66CFF] text-[11px] font-bold uppercase tracking-wider">{item.method || 'SYSTEM'}</span>
-                                    </div>
                                   </div>
                                 );
                               })}
@@ -880,7 +905,7 @@ export default function Navbar() {
                   <span className="text-sm font-bold">Affiliates</span>
                 </Link>
 
-                {/* 🔥 GET THE APP MOBILE MENU BUTTON 🔥 */}
+                {/* 櫨 GET THE APP MOBILE MENU BUTTON 櫨 */}
                 <button 
                   onClick={() => { setIsMobileMenuOpen(false); setIsAppModalOpen(true); }} 
                   className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-gradient-to-r from-[#8B5CF6]/20 to-transparent border border-[#8B5CF6]/30 hover:border-[#8B5CF6]/50 text-white transition-all mt-2 cursor-pointer"

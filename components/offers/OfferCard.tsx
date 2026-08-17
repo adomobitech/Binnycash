@@ -7,7 +7,6 @@ import SurveyModal from '@/components/surveys/SurveyModal';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency'; 
 import Link from 'next/link';
 
-// 🔥 FIX: Added missing OfferCardProps interface here
 export interface OfferCardProps {
   offer: any;
   onClick?: () => void;
@@ -200,8 +199,9 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
         targetForQR = isOfferIos ? 'ios' : 'android';
     }
 
+    const trackingUrl = `https://apitest.binnycash.com/api/click?customer_id=${encodeURIComponent(userId)}&offer_id=${encodeURIComponent(targetId)}`;
+
     if (isMismatch && targetForQR) {
-      const trackingUrl = `https://apitest.binnycash.com/api/click?customer_id=${encodeURIComponent(userId)}&offer_id=${encodeURIComponent(targetId)}`;
       setTargetDeviceName(targetForQR === 'ios' ? 'iOS' : 'Android');
       setQrCodeUrl(trackingUrl);
       setIsProcessingClick(false);
@@ -213,31 +213,33 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     try {
       const token = localStorage.getItem('token') || '';
 
-      const res = await fetch(
-        `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`,
-        {
-          method: 'GET',
-          headers: { 'Accept': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-        }
-      );
+      const res = await fetch(trackingUrl, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json, text/html', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+      });
 
+      const contentType = res.headers.get("content-type");
       const responseText = await res.text();
       let finalRedirectUrl = '';
       let errorMessage = '';
 
-      try {
-        const jsonRes = JSON.parse(responseText);
-        
-        if (jsonRes.type === 'error' || jsonRes.status === 'error' || jsonRes.code !== 200) {
-          errorMessage = jsonRes.message || 'Offer unavailable.';
-        }
-        finalRedirectUrl = jsonRes?.url || jsonRes?.link || jsonRes?.click_url || jsonRes?.data?.url || jsonRes?.data?.link || jsonRes?.data?.click_url || '';
-      } catch (e) {
-        const urlMatch = responseText.match(/location\.replace\("([^"]+)"\)/i) || 
-                         responseText.match(/url=([^"]+)/i) || 
-                         responseText.match(/https?:\/\/[^\s"'<>]+/i);
-        if (urlMatch) {
-          finalRedirectUrl = urlMatch[1] || urlMatch[0];
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          const jsonRes = JSON.parse(responseText);
+          if (jsonRes.type === 'error' || jsonRes.status === 'error' || jsonRes.code !== 200) {
+             errorMessage = jsonRes.message || 'Offer unavailable or not allowed right now.';
+          }
+          finalRedirectUrl = jsonRes?.url || jsonRes?.link || jsonRes?.click_url || jsonRes?.data?.url || jsonRes?.data?.link || jsonRes?.data?.click_url || '';
+        } catch(e) {}
+      } else {
+        const scriptMatch = responseText.match(/location\.replace\(['"]([^'"]+)['"]\)/i);
+        if (scriptMatch && scriptMatch[1]) {
+          finalRedirectUrl = scriptMatch[1];
+        } else {
+          const metaMatch = responseText.match(/content=["']\d+;url=([^"']+)["']/i) || responseText.match(/url=([^"'>\s]+)/i);
+          if (metaMatch && metaMatch[1]) {
+            finalRedirectUrl = metaMatch[1];
+          }
         }
       }
 
@@ -248,8 +250,15 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
         return;
       }
 
-      if (!finalRedirectUrl || finalRedirectUrl === '#') {
-        finalRedirectUrl = offer?.click_url || offer?.link || offer?.url;
+      if (!finalRedirectUrl || finalRedirectUrl === '#' || String(finalRedirectUrl) === 'undefined') {
+        finalRedirectUrl = offer?.click_url || offer?.link || offer?.url || currentData?.click_url || currentData?.link || currentData?.url;
+      }
+
+      if (!finalRedirectUrl || String(finalRedirectUrl) === 'undefined') {
+         if (newTab) newTab.close();
+         setApiError("Click URL not found for this offer. Please try another one.");
+         setIsProcessingClick(false);
+         return;
       }
 
       if (newTab) {
@@ -260,12 +269,16 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       onClose();
 
     } catch (err) {
-      console.error("Error processing click URL:", err);
-      if (newTab) {
-         newTab.location.href = offer?.click_url || offer?.link || offer?.url || 'https://binnycash.com';
+      console.error("Error connecting to API:", err);
+      let fallbackUrl = offer?.click_url || offer?.link || offer?.url || currentData?.click_url || currentData?.link || currentData?.url;
+      
+      if (fallbackUrl && String(fallbackUrl) !== 'undefined') {
+        if (newTab) newTab.location.href = fallbackUrl;
+        else window.location.href = fallbackUrl;
+      } else {
+        if (newTab) newTab.close();
+        setApiError("Network error. Could not connect to the offer link.");
       }
-      onClose();
-    } finally {
       setIsProcessingClick(false);
     }
   };
@@ -355,6 +368,7 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                     </span>
                   </div>
                 </div>
+                {/* 🔥 FIX: Changed currentOS to userCurrentDevice here 🔥 */}
                 <div className="bg-white/5 p-2.5 rounded-xl border border-white/5 flex items-center justify-center w-10 h-10 text-[#00E57A]">
                   {userCurrentDevice === 'windows' ? <WindowsIcon className="w-4 h-4" /> : userCurrentDevice === 'mac' ? <AppleIcon className="w-4 h-4" /> : userCurrentDevice === 'ios' ? <AppleIcon className="w-4 h-4" /> : <AndroidIcon className="w-4 h-4" />}
                 </div>
