@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Lock, CheckCircle2, Loader2, AlertCircle, Gift, Zap, Clock, X
+  Lock, CheckCircle2, Loader2, AlertCircle, Gift, Zap, Clock, X, Sparkles
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -30,15 +30,14 @@ const DiscordIcon = () => (
 
 export default function RewardsPage() {
   const currency = useCurrency();
-  const isCoin = currency === 'Coin' || currency === 'COIN';
   
   const [activeTab, setActiveTab] = useState('daily_streak');
-  const [isMounted, setIsMounted] = useState(false);
 
   // Data States
   const [loadingStreak, setLoadingStreak] = useState(true);
   const [streakData, setStreakData] = useState<any>(null);
   const [todayEarnings, setTodayEarnings] = useState(0);
+  const [streakWallet, setStreakWallet] = useState(0); 
 
   // Claim States
   const [claiming, setClaiming] = useState(false); 
@@ -50,35 +49,16 @@ export default function RewardsPage() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoMessage, setPromoMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
-  // Timer & Modals
-  const [timeLeft, setTimeLeft] = useState({ hrs: '00', mins: '00', secs: '00' });
+  // Modals
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
 
-  const targetAmount = isCoin ? 1000 : 1; 
+  const targetAmount = 1; // $1.00 fixed target
+  
+  const displayEarnings = Math.min(Math.max(todayEarnings, 0), targetAmount);
   const calculateProgress = () => {
-    return Math.min(100, Math.max(0, (todayEarnings / targetAmount) * 100)); 
+    return Math.min(100, Math.max(0, (displayEarnings / targetAmount) * 100)); 
   };
   const progressPercent = calculateProgress().toFixed(0);
-
-  // Timer Logic
-  useEffect(() => {
-    setIsMounted(true); 
-    const timer = setInterval(() => {
-      const now = new Date();
-      const endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
-      
-      const diff = endOfDay.getTime() - now.getTime();
-      
-      if (diff > 0) {
-        const hrs = String(Math.floor((diff / (1000 * 60 * 60)) % 24)).padStart(2, '0');
-        const mins = String(Math.floor((diff / 1000 / 60) % 60)).padStart(2, '0');
-        const secs = String(Math.floor((diff / 1000) % 60)).padStart(2, '0');
-        setTimeLeft({ hrs, mins, secs });
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Fetch API Data
   useEffect(() => {
@@ -92,14 +72,16 @@ export default function RewardsPage() {
       const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
       const cacheBust = `?t=${Date.now()}`;
 
-      const [resToday, resStreak] = await Promise.all([
+      const [resToday, resStreak, resStreakWallet] = await Promise.all([
         fetch(`https://apitest.binnycash.com/api/user/wallet/today-earning${cacheBust}`, { method: 'GET', headers, cache: 'no-store' }),
-        fetch(`https://apitest.binnycash.com/api/user/userDailyStreak${cacheBust}`, { method: 'GET', headers, cache: 'no-store' })
+        fetch(`https://apitest.binnycash.com/api/user/userDailyStreak${cacheBust}`, { method: 'GET', headers, cache: 'no-store' }),
+        fetch(`https://apitest.binnycash.com/api/user/streak/wallet${cacheBust}`, { method: 'GET', headers, cache: 'no-store' })
       ]);
 
-      const [jsonToday, jsonStreak] = await Promise.all([
+      const [jsonToday, jsonStreak, jsonStreakWallet] = await Promise.all([
         resToday.json().catch(() => ({})),
-        resStreak.json().catch(() => ({}))
+        resStreak.json().catch(() => ({})),
+        resStreakWallet.json().catch(() => ({}))
       ]);
 
       if (jsonToday.code === 200) {
@@ -115,6 +97,10 @@ export default function RewardsPage() {
       if (jsonStreak.code === 200 && jsonStreak.data) {
         setStreakData(jsonStreak.data);
       }
+
+      if (jsonStreakWallet.code === 200 && jsonStreakWallet.data) {
+        setStreakWallet(Number(jsonStreakWallet.data.streakWallet || 0));
+      }
     } catch (err) {
       console.error("Failed to load streak data:", err);
     } finally {
@@ -122,7 +108,7 @@ export default function RewardsPage() {
     }
   };
 
-  // 🔥 TOTAL CLAIM (Big Button only)
+  // TOTAL CLAIM
   const handleClaimAll = async () => {
     if (claimableDays.length === 0 || claiming) return;
     setClaimError(null);
@@ -133,7 +119,6 @@ export default function RewardsPage() {
       const token = localStorage.getItem('token');
       let successCount = 0;
 
-      // Loop through all pending "CLAIM" days and withdraw them
       for (const d of claimableDays) {
         const payload = new URLSearchParams();
         payload.append('day', String(d.day));
@@ -164,7 +149,7 @@ export default function RewardsPage() {
     }
   };
 
-  // 🔥 PROMO CODE HANDLER
+  // PROMO CODE HANDLER
   const handleRedeemPromo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!promoCode.trim()) return;
@@ -195,7 +180,10 @@ export default function RewardsPage() {
   };
 
   const claimableDays = streakData?.days?.filter((d: any) => String(d.status).toUpperCase() === 'CLAIM') || [];
+  const claimedDays = streakData?.days?.filter((d: any) => String(d.status).toUpperCase() === 'CLAIMED') || [];
+  
   const isMainButtonClaimable = claimableDays.length > 0;
+  const hasClaimedAny = claimedDays.length > 0;
   const totalClaimableAmount = claimableDays.reduce((sum: number, day: any) => sum + Number(day.reward || 0), 0);
 
   const tabs = [
@@ -206,9 +194,8 @@ export default function RewardsPage() {
   return (
     <div className="min-h-screen bg-[#0B0E14] text-white font-sans relative pb-20 overflow-hidden">
       
-      {/* ALL POPUPS & MODALS */}
+      {/* POPUPS & MODALS */}
       <AnimatePresence>
-        {/* Success Modal */}
         {claimSuccess && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#0B0E14]/90 backdrop-blur-sm">
             <motion.div 
@@ -220,14 +207,13 @@ export default function RewardsPage() {
               </div>
               <h3 className="text-2xl font-black text-white mb-2">Claimed!</h3>
               <p className="text-[#8F95A3] text-sm mb-8">{claimSuccess}</p>
-              <button onClick={() => setClaimSuccess(null)} className="w-full py-3.5 rounded-xl bg-[#00E57A] hover:bg-[#00c76a] text-black font-bold text-sm transition-all">
+              <button onClick={() => setClaimSuccess(null)} className="w-full py-3.5 rounded-xl bg-[#00E57A] hover:bg-[#00c76a] text-black font-bold text-sm transition-all cursor-pointer">
                 Continue
               </button>
             </motion.div>
           </div>
         )}
 
-        {/* Error Modal */}
         {claimError && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#0B0E14]/90 backdrop-blur-sm">
             <motion.div 
@@ -239,14 +225,13 @@ export default function RewardsPage() {
               </div>
               <h3 className="text-2xl font-black text-white mb-2">Oops!</h3>
               <p className="text-[#8F95A3] text-sm mb-8">{claimError}</p>
-              <button onClick={() => setClaimError(null)} className="w-full py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm transition-all">
+              <button onClick={() => setClaimError(null)} className="w-full py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm transition-all cursor-pointer">
                 Try Again
               </button>
             </motion.div>
           </div>
         )}
 
-        {/* How it Works Modal */}
         {isHowItWorksOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#0B0E14]/90 backdrop-blur-sm">
             <motion.div 
@@ -255,7 +240,7 @@ export default function RewardsPage() {
             >
               <button 
                 onClick={() => setIsHowItWorksOpen(false)} 
-                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-[#8F95A3] transition-colors"
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-[#8F95A3] transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -276,7 +261,7 @@ export default function RewardsPage() {
 
               <button 
                 onClick={() => setIsHowItWorksOpen(false)} 
-                className="w-full mt-8 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 text-white font-bold text-sm transition-all"
+                className="w-full mt-8 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 text-white font-bold text-sm transition-all cursor-pointer"
               >
                 Got it!
               </button>
@@ -291,7 +276,7 @@ export default function RewardsPage() {
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-6">Bonuses</h1>
 
-          {/* 🔥 NEW UI ANIMATED TABS (Pill Style) 🔥 */}
+          {/* TABS */}
           <div className="inline-flex items-center bg-[#151923] border border-white/5 p-1.5 rounded-[20px] relative">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -299,7 +284,7 @@ export default function RewardsPage() {
                 <button 
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative z-10 px-8 py-3 rounded-[16px] text-[15px] font-bold whitespace-nowrap transition-colors duration-300 ${
+                  className={`relative z-10 px-8 py-3 rounded-[16px] text-[15px] font-bold whitespace-nowrap transition-colors duration-300 cursor-pointer ${
                     isActive ? 'text-white' : 'text-[#8F95A3] hover:text-white'
                   }`}
                 >
@@ -318,7 +303,7 @@ export default function RewardsPage() {
           </div>
         </div>
 
-        {/* TAB CONTENTS WITH SMOOTH ANIMATIONS */}
+        {/* TAB CONTENTS */}
         <AnimatePresence mode="wait">
           
           {/* DAILY STREAK TAB */}
@@ -365,7 +350,6 @@ export default function RewardsPage() {
                           topCardClass = "bg-[#00E57A]/10 border border-[#00E57A]/30 opacity-60";
                           rewardTextColor = "text-[#00E57A]";
                         } else if (isClaimable) {
-                          // 🔥 REMOVED cursor-pointer, now it's just a visual UI card
                           iconBoxClass = "bg-[#3B82F6] border border-[#3B82F6] text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]";
                           IconComponent = Gift;
                           topCardClass = "bg-[#3B82F6]/10 border border-[#3B82F6]/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]";
@@ -387,11 +371,10 @@ export default function RewardsPage() {
                             <div className={`w-20 h-20 rounded-2xl flex flex-col items-center justify-center mb-4 transition-all duration-300 ${topCardClass}`}>
                               <span className="text-[11px] font-medium text-[#8F95A3] mb-1">Day {currentDayId}</span>
                               <span className={`text-sm font-bold ${rewardTextColor}`}>
-                                {isDay7 && !isClaimed ? 'up to ' : ''}{formatPrice(dayItem.reward, currency)}
+                                {formatPrice(dayItem.reward, currency)}
                               </span>
                             </div>
                             
-                            {/* 🔥 CLICK REMOVED HERE 🔥 */}
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 relative z-10 ${iconBoxClass}`}>
                               <IconComponent className="w-5 h-5" />
                             </div>
@@ -401,22 +384,21 @@ export default function RewardsPage() {
                     </div>
                   </div>
 
-                  {/* INFO BANNER WITH POPUP TRIGGER */}
+                  {/* INFO BANNER */}
                   <div className="w-full bg-[#181C25] border border-white/5 rounded-2xl p-4 flex items-center justify-between mb-8 text-sm">
                     <div className="flex items-center gap-3">
                       <Gift className="w-5 h-5 text-[#9B51E0]" />
-                      <span className="text-[#8F95A3]">Complete all 7 days to unlock <span className="text-amber-500 font-bold">up to {formatPrice(streakData?.days?.[6]?.reward || 150, currency)}!</span></span>
+                      <span className="text-[#8F95A3]">Complete all 7 days to unlock <span className="text-amber-500 font-bold">{formatPrice(streakData?.days?.[6]?.reward || 1, currency)}!</span></span>
                     </div>
-                    {/* TRIGGER BUTTON */}
                     <button 
                       onClick={() => setIsHowItWorksOpen(true)} 
-                      className="text-[#9B51E0] font-bold hover:underline hidden sm:block transition-all"
+                      className="text-[#9B51E0] font-bold hover:underline hidden sm:block transition-all cursor-pointer"
                     >
                       How it works? {'>'}
                     </button>
                   </div>
 
-                  {/* BOTTOM PROGRESS & TIMER BOX */}
+                  {/* BOTTOM PROGRESS BOX */}
                   <div className="w-full bg-[#181C25] border border-white/5 rounded-3xl p-6 sm:p-8 flex flex-col gap-8">
                     <div className="flex flex-col md:flex-row justify-between gap-8 md:gap-16">
                       <div className="flex-1">
@@ -424,7 +406,7 @@ export default function RewardsPage() {
                           <span className="text-sm font-medium text-[#8F95A3]">Today's Progress</span>
                         </div>
                         <div className="flex items-end gap-2 mb-4">
-                          <span className="text-3xl font-black text-white leading-none">{formatPrice(todayEarnings, currency)}</span>
+                          <span className="text-3xl font-black text-white leading-none">{formatPrice(displayEarnings, currency)}</span>
                           <span className="text-xl font-bold text-white leading-none mb-0.5">/ {formatPrice(targetAmount, currency)}</span>
                         </div>
                         <div className="w-full h-3 bg-[#121620] rounded-full overflow-hidden border border-white/5">
@@ -434,7 +416,6 @@ export default function RewardsPage() {
                           />
                         </div>
                       </div>
-
                     </div>
 
                     <button 
@@ -443,17 +424,21 @@ export default function RewardsPage() {
                       className={`w-full py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all duration-300 shadow-xl ${
                         isMainButtonClaimable 
                           ? 'bg-[#3B82F6] hover:bg-[#2563EB] text-white shadow-[0_10px_30px_rgba(59,130,246,0.3)] cursor-pointer hover:-translate-y-1' 
-                          : 'bg-[#9B51E0]/20 text-[#9B51E0]/50 cursor-not-allowed border border-[#9B51E0]/10'
+                          : hasClaimedAny
+                            ? 'bg-[#15192C] text-[#00E57A]/60 cursor-not-allowed border border-[#00E57A]/10 shadow-inner'
+                            : 'bg-[#9B51E0]/20 text-[#9B51E0]/50 cursor-not-allowed border border-[#9B51E0]/10'
                       }`}
                     >
                       {claiming ? (
                         <Loader2 className="w-6 h-6 animate-spin" />
                       ) : (
                         <>
-                          <Gift className="w-6 h-6" />
+                          {isMainButtonClaimable ? <Gift className="w-6 h-6" /> : hasClaimedAny ? <CheckCircle2 className="w-6 h-6" /> : <Gift className="w-6 h-6" />}
                           {isMainButtonClaimable 
-                            ? `Claim ${formatPrice(totalClaimableAmount, currency)}` 
-                            : 'Complete tasks to Claim'}
+                            ? `Claim ${formatPrice(streakWallet, currency)}` 
+                            : hasClaimedAny
+                              ? `Claimed ${formatPrice(streakWallet, currency)}`
+                              : 'Complete tasks to Claim'}
                         </>
                       )}
                     </button>
@@ -473,7 +458,6 @@ export default function RewardsPage() {
               <h2 className="text-[26px] font-black text-white mb-2">Have a Bonus Code?</h2>
               <p className="text-[#8F95A3] text-[15px] mb-10 font-medium">Follow our socials to get notified when we drop new bonus codes.</p>
 
-              {/* SOCIAL MEDIA LINKS WITH DISCORD INCLUDED */}
               <div className="flex justify-center gap-4 mb-12">
                 <a href="https://www.facebook.com/binnycash" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#1877F2] flex items-center justify-center hover:scale-110 transition-transform shadow-lg">
                   <FacebookIcon />
@@ -500,7 +484,7 @@ export default function RewardsPage() {
                 <button 
                   type="submit"
                   disabled={promoLoading || !promoCode.trim()}
-                  className="absolute right-5 top-1/2 -translate-y-1/2 font-bold text-[15px] text-[#9B51E0] hover:text-[#b46af5] transition-colors disabled:opacity-50"
+                  className="absolute right-5 top-1/2 -translate-y-1/2 font-bold text-[15px] text-[#9B51E0] hover:text-[#b46af5] transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {promoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
                 </button>

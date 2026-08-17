@@ -9,7 +9,7 @@ import {
   Trash2, Image as ImageIcon, CheckCircle2, ChevronRight, ChevronLeft,
   AlertCircle, X, ShieldAlert, ShieldCheck, Wallet, Clock, Loader2,
   KeyRound, Coins, Sparkles, ScanLine, Check, Calendar, Building, ChevronDown, CreditCard,
-  Target, Users, ArrowUp
+  Target, Users, ArrowUp, Shield, Lock, Sparkle
 } from 'lucide-react';
 
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
@@ -124,31 +124,20 @@ const Pagination = ({ current, total, onPageChange }: { current: number, total: 
   );
 };
 
-// --- KYC SUBMISSION MODAL ---
+// --- EXACT CASHOUT STYLE KYC SUBMISSION MODAL ---
 function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    name: '',
     dob: '',
     documentNumber: '',
     documentType: '',
     customDocumentType: '',
   });
   const [frontImage, setFrontImage] = useState<File | null>(null);
-  const [backImage, setBackImage] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const ua = navigator.userAgent;
-      const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
-      setIsMobileDevice(isMobile);
-    }
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -168,7 +157,7 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
     setMessage('');
 
     if (!frontImage) {
-      setMessage('Front Image is required. Please capture or upload it.');
+      setMessage('Please upload document image.');
       setSubmitting(false);
       return;
     }
@@ -176,21 +165,17 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
     try {
       const token = localStorage.getItem('token');
       const data = new FormData();
-      data.append('firstName', formData.firstName);
-      data.append('lastName', formData.lastName);
+      data.append('name', formData.name);
       data.append('dob', formData.dob);
       data.append('documentNumber', formData.documentNumber);
       
       const finalDocType = formData.documentType === 'Others' ? formData.customDocumentType : formData.documentType;
       data.append('documentType', finalDocType);
-
       data.append('documentFrontImage', frontImage);
-      if (backImage) {
-        data.append('documentBackImage', backImage);
-      }
 
+      // 🔥 USING PUT METHOD AS REQUESTED 🔥
       const json = await safeFetchJson('https://apitest.binnycash.com/api/user/kyc/submit', {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
         body: data
       });
@@ -202,10 +187,9 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
           onClose();
         }, 1500);
       } else {
-        setMessage(json?.responseMessage || 'Submission failed. Try again.');
+        setMessage(json?.responseMessage || json?.message || 'Submission failed. Try again.');
       }
     } catch (err) {
-      console.error('KYC error:', err);
       setMessage('Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
@@ -213,108 +197,93 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-[#070913]/85 backdrop-blur-md p-3 sm:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#07080C]/85 backdrop-blur-md p-4 overflow-y-auto">
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: -20 }}
+        initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: -20 }}
-        className="relative w-full max-w-[760px] bg-[#0E111E] border border-[#8B5CF6]/30 rounded-[32px] p-6 sm:p-8 text-white shadow-[0_25px_60px_rgba(139,92,246,0.25)] my-6 max-h-[92vh] overflow-y-auto custom-scrollbar"
+        exit={{ opacity: 0, scale: 0.95, y: 15 }}
+        className="relative w-full max-w-[700px] bg-[#10131B] border border-white/10 rounded-[32px] p-6 sm:p-8 text-white shadow-[0_25px_60px_rgba(0,0,0,0.8)] my-auto max-h-[90vh] overflow-y-auto custom-scrollbar"
       >
+        {/* Top Header */}
         <div className="flex justify-between items-start mb-6">
-          <div className="flex items-center gap-3">
-            <motion.div
-              animate={{ boxShadow: ['0 0 20px rgba(139,92,246,0.3)', '0 0 32px rgba(139,92,246,0.55)', '0 0 20px rgba(139,92,246,0.3)'] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-              className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#8B5CF6]/20 to-[#6366F1]/10 border border-[#8B5CF6]/40 flex items-center justify-center"
-            >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 flex items-center justify-center shrink-0">
               <ShieldCheck className="w-6 h-6 text-[#A78BFA]" />
-            </motion.div>
+            </div>
             <div>
-              <h2 className="text-2xl font-black tracking-tight text-white">Identity <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#A78BFA] to-[#EC4899]">Verification</span></h2>
-              <p className="text-xs text-[#8F95A3] font-medium mt-0.5">Verify your identity to ensure secure withdrawals</p>
+              <h2 className="text-xl font-black text-white tracking-tight">Identity Verification</h2>
+              <p className="text-xs text-[#8F95A3] mt-0.5 font-medium">Secure your withdrawals by submitting your document</p>
             </div>
           </div>
           <button 
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/70 hover:text-white transition-all cursor-pointer"
+            className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-all cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-white/80 mb-1.5">First Name <span className="text-[#EC4899]">*</span></label>
-              <div className="relative flex items-center">
-                <User className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
-                <input 
-                  type="text" 
-                  required
-                  placeholder="Enter your first name"
-                  className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all"
-                  onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-white/80 mb-1.5">Last Name <span className="text-[#EC4899]">*</span></label>
-              <div className="relative flex items-center">
-                <User className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
-                <input 
-                  type="text" 
-                  required
-                  placeholder="Enter your last name"
-                  className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all"
-                  onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Full Name Field */}
+          <div>
+            <label className="block text-[11px] font-bold text-[#8F95A3] mb-1.5 uppercase tracking-wider">FULL NAME <span className="text-[#EC4899]">*</span></label>
+            <div className="relative flex items-center">
+              <User className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
+              <input 
+                type="text" 
+                required
+                placeholder="Enter your full name"
+                className="w-full bg-[#171B26] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white placeholder:text-[#4A5063] focus:outline-none focus:border-[#8B5CF6] transition-all"
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+              />
             </div>
           </div>
 
+          {/* Date of Birth & Document Number */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-white/80 mb-1.5">Date of Birth <span className="text-[#EC4899]">*</span></label>
+              <label className="block text-[11px] font-bold text-[#8F95A3] mb-1.5 uppercase tracking-wider">DATE OF BIRTH <span className="text-[#EC4899]">*</span></label>
               <div className="relative flex items-center">
                 <Calendar className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
                 <input 
                   type="date" 
                   required
-                  className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                  className="w-full bg-[#171B26] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#8B5CF6] transition-all [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                   onChange={(e) => setFormData({...formData, dob: e.target.value})}
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-bold text-white/80 mb-1.5">Document Number <span className="text-[#EC4899]">*</span></label>
+              <label className="block text-[11px] font-bold text-[#8F95A3] mb-1.5 uppercase tracking-wider">DOCUMENT NUMBER <span className="text-[#EC4899]">*</span></label>
               <div className="relative flex items-center">
                 <CreditCard className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
                 <input 
                   type="text" 
                   required
-                  placeholder="Enter document number"
-                  className="w-full bg-[#15192C] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all"
+                  placeholder="ID Number"
+                  className="w-full bg-[#171B26] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white placeholder:text-[#4A5063] focus:outline-none focus:border-[#8B5CF6] transition-all"
                   onChange={(e) => setFormData({...formData, documentNumber: e.target.value})}
                 />
               </div>
             </div>
           </div>
 
+          {/* Document Type Dropdown */}
           <div className="relative" ref={dropdownRef}>
-            <label className="block text-xs font-bold text-white/80 mb-1.5">Document Type <span className="text-[#EC4899]">*</span></label>
+            <label className="block text-[11px] font-bold text-[#8F95A3] mb-1.5 uppercase tracking-wider">DOCUMENT TYPE <span className="text-[#EC4899]">*</span></label>
             <div 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full bg-[#15192C] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white flex justify-between items-center cursor-pointer hover:border-[#8B5CF6]/50 transition-all"
+              className="w-full bg-[#171B26] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white flex justify-between items-center cursor-pointer hover:border-[#8B5CF6]/50 transition-all"
             >
-              <span className={formData.documentType ? 'text-white' : 'text-white/40'}>
-                {formData.documentType || 'e.g. National ID, Passport'}
+              <span className={formData.documentType ? 'text-white' : 'text-[#4A5063]'}>
+                {formData.documentType || 'Select your document type'}
               </span>
-              <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-[#8F95A3] transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </div>
 
             {isDropdownOpen && (
-              <div className="absolute top-full left-0 w-full mt-2 bg-[#15192C] border border-[#8B5CF6]/30 rounded-2xl overflow-hidden shadow-2xl z-50 py-1">
+              <div className="absolute top-full left-0 w-full mt-2 bg-[#171B26] border border-[#8B5CF6]/30 rounded-2xl overflow-hidden shadow-2xl z-50 py-1">
                 {['National ID', 'Aadhaar Card', 'Voter ID', 'Passport', 'Others'].map((type) => (
                   <div
                     key={type}
@@ -333,109 +302,61 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
 
           {formData.documentType === 'Others' && (
             <div>
-              <label className="block text-xs font-bold text-white/80 mb-1.5">Specify Document Type <span className="text-[#EC4899]">*</span></label>
+              <label className="block text-[11px] font-bold text-[#8F95A3] mb-1.5 uppercase tracking-wider">Specify Document Type <span className="text-[#EC4899]">*</span></label>
               <input 
                 type="text" 
                 required
                 placeholder="Enter custom document name"
-                className="w-full bg-[#15192C] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#8B5CF6] transition-all"
+                className="w-full bg-[#171B26] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-[#4A5063] focus:outline-none focus:border-[#8B5CF6] transition-all"
                 onChange={(e) => setFormData({...formData, customDocumentType: e.target.value})}
               />
             </div>
           )}
 
-          <div className="w-full rounded-2xl overflow-hidden border border-white/10 bg-white/5 mt-4 mb-2">
-            <img 
-              src="/kyc.png" 
-              alt="KYC Instructions" 
-              className="w-full h-auto object-contain"
-            />
+          {/* INSTRUCTION & EXAMPLE IMAGE (/kyc.png) */}
+          <div className="pt-2">
+            <div className="flex items-center gap-2 mb-2 text-[#A78BFA] text-xs font-bold tracking-wide">
+              <Sparkle className="w-3.5 h-3.5" /> INSTRUCTION & EXAMPLE
+            </div>
+            <div className="w-full rounded-2xl overflow-hidden border border-white/10 bg-[#171B26] p-2">
+              <img 
+                src="/kyc.png" 
+                alt="KYC Instructions" 
+                className="w-full h-auto object-contain rounded-xl"
+              />
+            </div>
+            <p className="text-[11px] text-[#8F95A3] mt-2 italic">
+              * Please upload your document image following these instructions clearly (write <span className="text-white font-bold">"BINNYCASH"</span> on a white paper next to your ID proof).
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            <div className={`border-2 border-dashed ${frontImage ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-[#8B5CF6]/30 bg-[#15192C]/50'} rounded-2xl p-5 flex flex-col items-center justify-center text-center transition-all`}>
-              <div className="flex gap-4 mb-3">
-                {isMobileDevice && (
-                  <label className="flex flex-col items-center cursor-pointer group">
-                    <input 
-                      type="file" 
-                      accept=".png,.jpg,.jpeg,.webp" 
-                      capture="environment"
-                      className="hidden" 
-                      onChange={(e) => setFrontImage(e.target.files ? e.target.files[0] : null)} 
-                    />
-                    <div className="w-12 h-12 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 flex items-center justify-center group-hover:scale-110 group-hover:bg-[#8B5CF6]/20 transition-all shadow-sm">
-                      <Camera className="w-5 h-5 text-[#A78BFA]" />
-                    </div>
-                    <span className="text-[10px] text-[#8F95A3] mt-1.5 font-medium group-hover:text-white transition-colors">Take Photo</span>
-                  </label>
-                )}
-                <label className="flex flex-col items-center cursor-pointer group">
-                  <input 
-                    type="file" 
-                    accept=".png,.jpg,.jpeg,.webp" 
-                    className="hidden" 
-                    onChange={(e) => setFrontImage(e.target.files ? e.target.files[0] : null)} 
-                  />
-                  <div className="w-12 h-12 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 flex items-center justify-center group-hover:scale-110 group-hover:bg-[#8B5CF6]/20 transition-all shadow-sm">
-                    <UploadCloud className="w-5 h-5 text-[#A78BFA]" />
-                  </div>
-                  <span className="text-[10px] text-[#8F95A3] mt-1.5 font-medium group-hover:text-white transition-colors">Upload File</span>
-                </label>
+          {/* UPLOAD DOCUMENT IMAGE BOX */}
+          <div>
+            <label className="block text-[11px] font-bold text-[#8F95A3] mb-1.5 uppercase tracking-wider">UPLOAD DOCUMENT IMAGE <span className="text-[#EC4899]">*</span></label>
+            <div className={`border-2 border-dashed ${frontImage ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-[#8B5CF6]/30 bg-[#171B26]'} rounded-2xl p-5 flex items-center justify-between transition-all relative group cursor-pointer`}>
+              <input type="file" accept=".png,.jpg,.jpeg,.webp" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => setFrontImage(e.target.files ? e.target.files[0] : null)} />
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 flex items-center justify-center shrink-0">
+                  <UploadCloud className="w-6 h-6 text-[#A78BFA]" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Upload Image</h4>
+                  <p className="text-xs text-[#8F95A3] mt-0.5">Clear, readable photo (.jpg, .png)</p>
+                  {frontImage && <span className="mt-1 text-xs font-bold text-emerald-400 block">✓ {frontImage.name}</span>}
+                </div>
               </div>
-              <p className="text-sm font-bold text-white mb-0.5">Front Image <span className="text-[#EC4899]">*</span></p>
-              {frontImage && (
-                <span className="mt-2 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 truncate max-w-full">
-                  ✓ {frontImage.name}
-                </span>
-              )}
-            </div>
-
-            <div className={`border-2 border-dashed ${backImage ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-white/20 bg-[#15192C]/30'} rounded-2xl p-5 flex flex-col items-center justify-center text-center transition-all`}>
-              <div className="flex gap-4 mb-3">
-                {isMobileDevice && (
-                  <label className="flex flex-col items-center cursor-pointer group">
-                    <input 
-                      type="file" 
-                      accept=".png,.jpg,.jpeg,.webp" 
-                      capture="environment"
-                      className="hidden" 
-                      onChange={(e) => setBackImage(e.target.files ? e.target.files[0] : null)} 
-                    />
-                    <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/10 transition-all shadow-sm">
-                      <Camera className="w-5 h-5 text-white/50 group-hover:text-white" />
-                    </div>
-                    <span className="text-[10px] text-[#8F95A3] mt-1.5 font-medium group-hover:text-white transition-colors">Take Photo</span>
-                  </label>
-                )}
-                <label className="flex flex-col items-center cursor-pointer group">
-                  <input 
-                    type="file" 
-                    accept=".png,.jpg,.jpeg,.webp" 
-                    className="hidden" 
-                    onChange={(e) => setBackImage(e.target.files ? e.target.files[0] : null)} 
-                  />
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/10 transition-all shadow-sm">
-                    <UploadCloud className="w-5 h-5 text-white/50 group-hover:text-white" />
-                  </div>
-                  <span className="text-[10px] text-[#8F95A3] mt-1.5 font-medium group-hover:text-white transition-colors">Upload File</span>
-                </label>
+              <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white group-hover:bg-white/10 transition-all">
+                Browse
               </div>
-              <p className="text-sm font-bold text-white mb-0.5">Back Image <span className="text-white/40 font-normal text-xs">(Optional)</span></p>
-              {backImage && (
-                <span className="mt-2 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 truncate max-w-full">
-                  ✓ {backImage.name}
-                </span>
-              )}
             </div>
-
           </div>
 
-          <div className="flex justify-center -mt-2">
-            <span className="inline-block text-[#8F95A3] text-[10px] font-medium tracking-wide">
-              Accepted formats: .png, .jpg, .jpeg, .webp (Max 10MB each)
-            </span>
+          {/* Encryption Notice */}
+          <div className="bg-[#00E57A]/10 border border-[#00E57A]/20 rounded-2xl p-3.5 flex items-center gap-3">
+            <Lock className="w-4 h-4 text-[#00E57A] shrink-0" />
+            <p className="text-xs text-[#00E57A] font-medium">
+              Your data is encrypted with bank-grade security and strictly used for compliance.
+            </p>
           </div>
 
           {message && (
@@ -444,28 +365,22 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
             </p>
           )}
 
-          <div className="grid grid-cols-2 gap-4 pt-3">
+          {/* Footer Buttons */}
+          <div className="grid grid-cols-2 gap-4 pt-2">
             <button 
               type="button"
               onClick={onClose}
-              className="py-3.5 rounded-2xl bg-[#15192C] hover:bg-[#1E233B] border border-white/10 text-white font-bold text-sm transition-all cursor-pointer shadow-md"
+              className="py-4 rounded-2xl bg-[#171B26] hover:bg-[#202533] text-white font-bold text-sm transition-all cursor-pointer border border-white/5 shadow-md"
             >
               Cancel
             </button>
             <button 
               type="submit" 
               disabled={submitting}
-              className="group py-3.5 rounded-2xl bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#EC4899] hover:opacity-95 text-white font-bold text-sm transition-all shadow-[0_4px_25px_rgba(139,92,246,0.4)] hover:shadow-[0_4px_30px_rgba(139,92,246,0.6)] cursor-pointer flex items-center justify-center gap-2 relative overflow-hidden"
+              className="py-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#EC4899] hover:opacity-95 text-white font-bold text-sm transition-all shadow-[0_4px_25px_rgba(139,92,246,0.4)] cursor-pointer flex items-center justify-center gap-2"
             >
-              <div className="shine-hover" />
-              {submitting ? (
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}>
-                  <ShieldCheck className="w-4 h-4" />
-                </motion.div>
-              ) : (
-                <ShieldCheck className="w-4 h-4" />
-              )}
-              {submitting ? 'Verifying...' : 'Submit for Verification'}
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {submitting ? 'Submitting...' : 'Submit Identity'}
             </button>
           </div>
         </form>
@@ -505,8 +420,7 @@ export default function ProfilePage() {
 
   // Form State for Edit Profile
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    name: '',
     email: '',
     city: '',
     address: '',
@@ -534,9 +448,10 @@ export default function ProfilePage() {
         const user = json?.data?.user || json?.data || json;
         setUserData(user);
 
+        const fullName = user?.name || user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || '';
+
         setFormData(prev => ({
-          firstName: user?.firstName || user?.first_name || prev.firstName || '',
-          lastName: user?.lastName || user?.last_name || prev.lastName || '',
+          name: fullName || prev.name || '',
           email: user?.email || prev.email || '',
           city: user?.city || prev.city || '',
           address: user?.address || prev.address || '',
@@ -645,8 +560,7 @@ export default function ProfilePage() {
 
     try {
       const payload = new URLSearchParams();
-      payload.append('firstName', formData.firstName);
-      payload.append('lastName', formData.lastName);
+      payload.append('name', formData.name);
       payload.append('email', formData.email);
       payload.append('city', formData.city);
       payload.append('address', formData.address);
@@ -667,8 +581,7 @@ export default function ProfilePage() {
         
         setUserData((prev: any) => ({
           ...prev,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
+          name: formData.name,
           email: formData.email,
           city: formData.city,
           address: formData.address,
@@ -757,15 +670,15 @@ export default function ProfilePage() {
     return imgSrc.startsWith('/') ? `https://apitest.binnycash.com${imgSrc}` : `https://apitest.binnycash.com/${imgSrc}`;
   };
 
-  const fName = userData?.firstName || userData?.first_name || '';
-  const lName = userData?.lastName || userData?.last_name || '';
-  const name = [fName, lName].filter(Boolean).join(' ').trim() || userData?.userName || 'User';
+  const name = userData?.name || userData?.fullName || [userData?.firstName, userData?.lastName].filter(Boolean).join(' ').trim() || userData?.userName || 'User';
 
   const rawProfilePic = userData?.image || userData?.profilePic;
   const displayImage = resolveImage(rawProfilePic);
 
   const joinDate = userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently';
-  const kycStatus = userData?.documentStatus || userData?.documents?.status || userData?.kycStatus || 'Unverified';
+  
+  // 🔥 DYNAMIC KYC STATUS MAPPING FROM userData.documentStatus 🔥
+  const kycStatus = userData?.documentStatus || userData?.documents?.status || userData?.kycStatus || 'Not Submitted';
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -774,77 +687,40 @@ export default function ProfilePage() {
     });
   };
 
-  const isBasicDetailsFilled = Boolean(
-    userData?.firstName && 
-    userData?.lastName && 
-    userData?.email && 
-    userData?.mobileNumber && 
-    userData?.city && 
-    userData?.address && 
-    userData?.zipCode
-  );
-
   const kycS = String(kycStatus).toUpperCase();
   const isKycVerified = kycS === 'VERIFIED' || kycS === 'APPROVED';
   const isKycSubmitted = kycS === 'PENDING' || kycS === 'PROCESSING' || kycS === 'IN PROGRESS';
 
-  let kycProgressPercent = 0;
-  if (isBasicDetailsFilled) kycProgressPercent += 34; 
-  if (isKycVerified) kycProgressPercent += 66; 
-  else if (isKycSubmitted) kycProgressPercent += 33; 
-
-  const getKycSteps = () => {
-    const step1 = isBasicDetailsFilled
-      ? { label: 'Basic Details', status: 'Completed', color: 'text-[#00E57A]', iconColor: 'bg-[#00E57A]/10 text-[#00E57A]', icon: CheckCircle2 }
-      : { label: 'Basic Details', status: 'Pending', color: 'text-[#8F95A3]', iconColor: 'bg-white/5 text-[#8F95A3]', icon: ShieldAlert };
-
-    let step2, step3;
-    if (isKycVerified) {
-      step2 = { label: 'Identity Verification', status: 'Completed', color: 'text-[#00E57A]', iconColor: 'bg-[#00E57A]/10 text-[#00E57A]', icon: CheckCircle2 };
-      step3 = { label: 'Address Verification', status: 'Completed', color: 'text-[#00E57A]', iconColor: 'bg-[#00E57A]/10 text-[#00E57A]', icon: CheckCircle2 };
-    } else if (isKycSubmitted) {
-      step2 = { label: 'Identity Verification', status: 'In Progress', color: 'text-[#FFC94A]', iconColor: 'bg-[#FFC94A]/10 text-[#FFC94A]', icon: Clock };
-      step3 = { label: 'Address Verification', status: 'In Progress', color: 'text-[#FFC94A]', iconColor: 'bg-[#FFC94A]/10 text-[#FFC94A]', icon: Clock };
-    } else {
-      step2 = { label: 'Identity Verification', status: 'Pending', color: 'text-[#8F95A3]', iconColor: 'bg-white/5 text-[#8F95A3]', icon: ShieldAlert };
-      step3 = { label: 'Address Verification', status: 'Pending', color: 'text-[#8F95A3]', iconColor: 'bg-white/5 text-[#8F95A3]', icon: ShieldAlert };
-    }
-
-    return [step1, step2, step3];
+  const getKycBadgeText = () => {
+    if (isKycVerified) return 'APPROVED';
+    if (isKycSubmitted) return 'UNDER REVIEW';
+    if (kycS === 'REJECTED') return 'REJECTED';
+    return 'NOT SUBMITTED';
   };
 
-  const kycSteps = getKycSteps();
+  const kycBadgeText = getKycBadgeText();
 
-  const getKycButtonProps = () => {
+  const btnProps = (() => {
     if (isKycVerified) {
       return {
         text: 'Verified',
         disabled: true,
-        className: 'px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed shadow-inner'
+        className: 'w-full py-3.5 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed shadow-inner'
       };
     }
     if (isKycSubmitted) {
       return {
-        text: 'Verification Pending',
+        text: 'Under Review',
         disabled: true,
-        className: 'px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed shadow-inner'
-      };
-    }
-    if (kycS === 'REJECTED') {
-      return {
-        text: 'Rejected - Re-verify',
-        disabled: false,
-        className: 'px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-400 font-bold text-xs transition-all cursor-pointer shadow-md'
+        className: 'w-full py-3.5 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed shadow-inner'
       };
     }
     return {
       text: 'Verify Now',
       disabled: false,
-      className: 'px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold text-xs transition-all shadow-[0_4px_15px_rgba(139,92,246,0.3)] hover:shadow-[0_4px_20px_rgba(139,92,246,0.5)] cursor-pointer'
+      className: 'w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 via-[#8B5CF6] to-[#EC4899] hover:opacity-95 text-white font-bold text-sm transition-all shadow-[0_4px_25px_rgba(139,92,246,0.4)] hover:shadow-[0_4px_30px_rgba(139,92,246,0.6)] cursor-pointer flex items-center justify-center gap-2'
     };
-  };
-
-  const btnProps = getKycButtonProps();
+  })();
 
   return (
     <div className="min-h-screen bg-[#08070D] text-[#F5F3FF] selection:bg-[#A66CFF]/30 relative overflow-x-hidden">
@@ -928,67 +804,59 @@ export default function ProfilePage() {
         {/* MAIN 2-COLUMN GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
 
-           {/* KYC Verification Column */}
-           <div className="lg:col-span-5 bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl relative overflow-hidden flex flex-col h-fit">
-              <div className="flex justify-between items-center mb-8">
-                 <h3 className="text-base font-bold text-white">KYC Panel</h3>
-                 
-                 <button 
-                  disabled={btnProps.disabled}
-                  onClick={() => {
-                    if (btnProps.disabled) return;
-                    if (!isBasicDetailsFilled) {
-                       setMessage({ text: 'Please fill out your Basic Details in Settings first.', type: 'error' });
-                       setIsSettingsOpen(true);
-                    } else {
-                       setIsKycOpen(true);
-                    }
-                  }}
-                  className={btnProps.className}
-                 >
-                   {btnProps.text}
-                 </button>
-              </div>
-
-              <div className="flex flex-col gap-6 mb-6">
-                {kycSteps.map((step, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${step.iconColor}`}>
-                        <step.icon className="w-4 h-4" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-white/90">{step.label}</span>
-                        <span className={`text-xs font-medium mt-0.5 ${step.color}`}>{step.status}</span>
-                      </div>
-                    </div>
-                    
-                    {step.label === 'Basic Details' && step.status === 'Pending' && (
-                      <button
-                        onClick={() => setIsSettingsOpen(true)}
-                        className="px-3 py-1.5 bg-[#A66CFF]/10 text-[#A66CFF] hover:bg-[#A66CFF]/20 border border-[#A66CFF]/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                      >
-                        Fill Now
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="pt-4 mt-2 border-t border-white/5">
-                <p className="text-xs text-white/60 font-medium mb-3">Your KYC is {kycProgressPercent}% complete</p>
-                <div className="w-full h-2 bg-[#1A1725] rounded-full overflow-hidden flex items-center">
-                   <motion.div 
-                     initial={{ width: 0 }} 
-                     animate={{ width: `${kycProgressPercent}%` }} 
-                     transition={{ duration: 1 }}
-                     className={`h-full rounded-full ${kycProgressPercent === 100 ? 'bg-[#00E57A]' : kycProgressPercent >= 66 ? 'bg-[#FFC94A]' : 'bg-[#A66CFF]'}`}
-                   />
+           {/* 🔥 DYNAMIC DOCUMENT VERIFICATION PANEL 🔥 */}
+           <div className="lg:col-span-5 bg-[#120F1A] border border-white/[0.06] rounded-[24px] p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-3">
+                   <div>
+                     <h3 className="text-lg font-black text-white">Document Verification</h3>
+                     <p className="text-xs text-[#8F95A3] mt-0.5">Submit any government issued document to enable withdrawals</p>
+                   </div>
+                   <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                     isKycVerified ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
+                     isKycSubmitted ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' :
+                     'bg-white/5 text-[#8F95A3] border border-white/10'
+                   }`}>
+                     {kycBadgeText}
+                   </span>
                 </div>
-                <div className="flex justify-end mt-2">
-                  <span className="text-xs font-bold text-white">{kycProgressPercent}%</span>
+
+                {/* 3 Steps horizontal flow */}
+                <div className="grid grid-cols-3 gap-2 my-5">
+                   <div className={`flex flex-col items-center text-center p-3 rounded-xl border ${!isKycSubmitted && !isKycVerified ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/30 text-white' : 'bg-white/[0.02] border-white/5 text-[#8F95A3]'}`}>
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mb-1.5 ${!isKycSubmitted && !isKycVerified ? 'bg-[#8B5CF6] text-white shadow-[0_0_10px_rgba(139,92,246,0.5)]' : 'bg-white/10 text-[#8F95A3]'}`}>1</div>
+                      <span className="text-[11px] font-bold">Not Submitted</span>
+                   </div>
+
+                   <div className={`flex flex-col items-center text-center p-3 rounded-xl border ${isKycSubmitted ? 'bg-amber-500/10 border-amber-500/30 text-white' : 'bg-white/[0.02] border-white/5 text-[#8F95A3]'}`}>
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mb-1.5 ${isKycSubmitted ? 'bg-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-white/10 text-[#8F95A3]'}`}>2</div>
+                      <span className="text-[11px] font-bold">Under Review</span>
+                   </div>
+
+                   <div className={`flex flex-col items-center text-center p-3 rounded-xl border ${isKycVerified ? 'bg-emerald-500/10 border-emerald-500/30 text-white' : 'bg-white/[0.02] border-white/5 text-[#8F95A3]'}`}>
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mb-1.5 ${isKycVerified ? 'bg-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-white/10 text-[#8F95A3]'}`}>3</div>
+                      <span className="text-[11px] font-bold">Approved</span>
+                   </div>
+                </div>
+
+                <div className="bg-[#1A1725] border border-white/5 rounded-2xl p-3.5 mb-5 flex items-center gap-3">
+                   <Shield className="w-5 h-5 text-[#8B5CF6] shrink-0" />
+                   <p className="text-[11px] text-[#8F95A3] leading-relaxed">
+                     Accepted: <span className="text-white font-semibold">Aadhaar Card, PAN Card, Passport, Voter ID, etc.</span>
+                   </p>
                 </div>
               </div>
+
+              <button 
+                disabled={btnProps.disabled}
+                onClick={() => {
+                  if (btnProps.disabled) return;
+                  setIsKycOpen(true);
+                }}
+                className={btnProps.className}
+              >
+                {btnProps.text}
+              </button>
            </div>
 
            {/* Account Overview Column */}
@@ -1040,7 +908,7 @@ export default function ProfilePage() {
            </div>
         </div>
 
-        {/* BOTTOM SINGLE TABS ROW & TABLE (Order: offers, surveys, reversals, rewards) */}
+        {/* BOTTOM SINGLE TABS ROW & TABLE */}
         <div className="flex flex-col">
           
           <div className="flex items-center gap-2 mb-5 overflow-x-auto no-scrollbar">
@@ -1135,7 +1003,7 @@ export default function ProfilePage() {
                       }
 
                       return currentData.map((item: any, idx: number) => {
-                        // OFFERS RENDER BLOCK (Status forced to Completed since endpoint only returns completed records)
+                        // OFFERS RENDER BLOCK
                         if (activeTableTab === 'offers') {
                           const finalImg = resolveImage(item.offerImage || item.logo || item.image_url || item.preview);
                           const partnerName = item.network || item.partnerName || item.offerPartnerName || 'Partner';
@@ -1175,7 +1043,7 @@ export default function ProfilePage() {
                           );
                         }
 
-                        // SURVEYS RENDER BLOCK (Status forced to Completed)
+                        // SURVEYS RENDER BLOCK
                         if (activeTableTab === 'surveys') {
                           const finalImg = resolveImage(item.logo || item.surveyImage || item.image_url || item.preview);
                           const partnerName = item.network || item.partnerName || 'Network';
@@ -1379,10 +1247,23 @@ export default function ProfilePage() {
                   <h3 className="text-lg font-bold text-white mb-5">Personal Details</h3>
                   <form onSubmit={handleUpdateProfile} className="flex flex-col gap-4">
                     
+                    <div className="flex flex-col gap-1.5">
+                       <label className="text-xs font-bold text-[#8D89A8] ml-1">Full Name</label>
+                       <div className="relative flex items-center">
+                         <User className="absolute left-3.5 w-4 h-4 text-[#8D89A8]" />
+                         <input
+                            type="text"
+                            required
+                            placeholder="Enter full name"
+                            value={formData.name || ''}
+                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            className="w-full bg-[#1A1725] border border-white/5 focus:border-[#A66CFF]/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-medium focus:outline-none transition-colors"
+                         />
+                       </div>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[
-                        { key: 'firstName', label: 'First Name', type: 'text', icon: User, placeholder: 'Enter first name' },
-                        { key: 'lastName', label: 'Last Name', type: 'text', icon: User, placeholder: 'Enter last name' },
                         { key: 'mobileNumber', label: 'Phone Number', type: 'tel', icon: Phone, placeholder: 'Enter mobile' },
                         { key: 'city', label: 'City', type: 'text', icon: MapPin, placeholder: 'Enter your city' },
                       ].map((f) => (

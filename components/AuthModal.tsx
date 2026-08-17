@@ -166,21 +166,22 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     setIsLoading(true);
     setError('');
 
-    const endpoint = isUrlReferral
-      ? 'https://apitest.binnycash.com/api/user/referSignup'
-      : 'https://apitest.binnycash.com/api/user/signup';
+    // Ab hamesha unified signup API par hi request jayegi
+    const endpoint = 'https://apitest.binnycash.com/api/user/signup';
 
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
     urlEncoded.append('password', password);
     urlEncoded.append('device_id', getOrCreateDeviceId());
 
+    // Agar referral se aaya hai toh auto append ho jayega
     if (isUrlReferral && refCodeValue) {
       urlEncoded.append('referralCode', refCodeValue.trim());
     }
 
+    // Manual bonus code backend image ke according "bonusCode" param me jayega
     if (showPromo && promoCode.trim() !== '') {
-      urlEncoded.append('promoCode', promoCode.trim());
+      urlEncoded.append('bonusCode', promoCode.trim());
     }
 
     try {
@@ -248,7 +249,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
         setView('loginSuccess');
         
-        // 🔥 INSTANT REDIRECT TO DASHBOARD 🔥
         setTimeout(() => {
           router.refresh(); 
           router.push('/dashboard');
@@ -256,7 +256,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           setView('login');
           setEmail('');
           setPassword('');
-        }, 800); // Only an 800ms visual delay for the success screen
+        }, 800); 
 
       } else {
         setError('Wrong email or password.');
@@ -307,7 +307,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           
           setView('loginSuccess');
           
-          // 🔥 INSTANT REDIRECT TO DASHBOARD 🔥
           setTimeout(() => {
             router.refresh(); 
             router.push('/dashboard');
@@ -343,7 +342,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
               setView('loginSuccess');
               
-              // 🔥 INSTANT REDIRECT TO DASHBOARD 🔥
               setTimeout(() => {
                 router.refresh(); 
                 router.push('/dashboard');
@@ -385,7 +383,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   };
 
   const handleResendForgotOtp = async () => {
-    if (resendTimer > 0) return; // Prevent double clicks if timer is running
+    if (resendTimer > 0) return; 
     
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
@@ -397,15 +395,12 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
         body: urlEncoded
       });
       setToast('OTP Resent to your email!');
-      setResendTimer(300); // Restart the 5-minute timer
+      setResendTimer(300); 
     } catch (err) {
       setError('Failed to resend OTP');
     }
   };
 
-  // =====================================================
-  // FORGOT PASSWORD FLOW (Step 1: Just hit forgetPassword)
-  // =====================================================
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -425,7 +420,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       if (res.ok) {
         setOtp('');
         setNewPassword('');
-        setResendTimer(300); // Start 5 minutes timer
+        setResendTimer(300); 
         setView('resetPassword'); 
       } else {
         setError(data.message || 'Email not found');
@@ -437,9 +432,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     }
   };
 
-  // =====================================================
-  // RESET PASSWORD FLOW (Step 2: Hit resetPassword directly)
-  // =====================================================
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -459,11 +451,11 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('email', email);
     urlEncoded.append('otp', otp);
     urlEncoded.append('newPassword', newPassword); 
-    urlEncoded.append('password', newPassword); // Fallback depending on exactly how your backend expects it
+    urlEncoded.append('password', newPassword); 
 
     try {
       const res = await fetch('https://apitest.binnycash.com/api/user/resetPassword', {
-        method: 'POST', // Most reset endpoints are POST, occasionally PUT
+        method: 'POST', 
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
       });
@@ -483,10 +475,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       setIsLoading(false);
     }
   };
-
-  // =====================================
-  // PREMIUM UI COMPONENTS
-  // =====================================
 
   const baseInputClass = "w-full bg-[#0B0E14] border border-[#1A1D24] text-white font-medium rounded-[12px] pl-12 pr-11 py-4 outline-none focus:border-[#8B5CF6]/60 focus:bg-[#0E1118] transition-all placeholder:text-[#4B5263] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]";
   const iconClass = "absolute left-4 w-5 h-5 text-[#4B5263] group-focus-within:text-[#8B5CF6] transition-colors pointer-events-none";
@@ -519,7 +507,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       } 
       
       if (showPromo && promoCode.trim()) {
-        params.append('promoCode', promoCode.trim());
+        params.append('bonusCode', promoCode.trim());
       }
 
       window.location.href = `https://apitest.binnycash.com/auth/google?${params.toString()}`;
@@ -542,7 +530,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     );
   };
 
-  // 🔥 NEW SUCCESS SCREEN 🔥
   if (view === 'loginSuccess') {
     return (
       <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#05070A] overflow-hidden font-sans transition-opacity duration-300">
@@ -777,6 +764,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                   </div>
 
                   <div className="flex flex-col gap-3 mt-1">
+                    {/* Auto-detected Referral Banner */}
                     {isUrlReferral && refCodeValue && (
                       <div className="bg-[#00E57A]/10 border border-[#00E57A]/20 rounded-[12px] p-3 flex items-center gap-3">
                         <Zap className="w-4 h-4 text-[#00E57A]" />
@@ -787,13 +775,14 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                       </div>
                     )}
                     
+                    {/* Optional Bonus Code Input */}
                     <div>
                       <button 
                         type="button" 
                         onClick={() => setShowPromo(!showPromo)} 
                         className="text-left text-[11px] font-bold text-[#8B5CF6] hover:text-[#A66CFF] transition-colors cursor-pointer w-fit flex items-center gap-1"
                       >
-                        {showPromo ? '− Hide Promo Code' : '+ Add Promo Code (Optional)'}
+                        {showPromo ? '− Hide Bonus Code' : '+ Add Bonus Code (Optional)'}
                       </button>
                       <AnimatePresence>
                         {showPromo && (
@@ -807,7 +796,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                               <Hash className={iconClass} />
                               <input 
                                 type="text" 
-                                placeholder="Promo Code" 
+                                placeholder="Enter bonus code" 
                                 value={promoCode} 
                                 onChange={(e) => setPromoCode(e.target.value)} 
                                 className={baseInputClass} 

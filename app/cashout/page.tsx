@@ -102,7 +102,7 @@ const indianCities = [
 // --- KYC SUBMISSION MODAL ---
 function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
   const [formData, setFormData] = useState({
-    firstName: '', lastName: '', dob: '', documentNumber: '', documentType: '', customDocumentType: '',
+    name: '', dob: '', documentNumber: '', documentType: '', customDocumentType: '',
   });
   const [frontImage, setFrontImage] = useState<File | null>(null);
   const [backImage, setBackImage] = useState<File | null>(null);
@@ -142,8 +142,7 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
     try {
       const token = localStorage.getItem('token');
       const data = new FormData();
-      data.append('firstName', formData.firstName);
-      data.append('lastName', formData.lastName);
+      data.append('name', formData.name);
       data.append('dob', formData.dob);
       data.append('documentNumber', formData.documentNumber);
       data.append('documentType', formData.documentType === 'Others' ? formData.customDocumentType : formData.documentType);
@@ -194,20 +193,11 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider mb-1.5 ml-1">First Name <span className="text-[#EC4899]">*</span></label>
-              <div className="relative flex items-center">
-                <User className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
-                <input type="text" required placeholder="John" className="w-full bg-[#15192C] border border-white/5 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:bg-[#1A1E35] focus:border-[#8B5CF6] transition-all" onChange={(e) => setFormData({...formData, firstName: e.target.value})} />
-              </div>
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider mb-1.5 ml-1">Last Name <span className="text-[#EC4899]">*</span></label>
-              <div className="relative flex items-center">
-                <User className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
-                <input type="text" required placeholder="Doe" className="w-full bg-[#15192C] border border-white/5 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:bg-[#1A1E35] focus:border-[#8B5CF6] transition-all" onChange={(e) => setFormData({...formData, lastName: e.target.value})} />
-              </div>
+          <div>
+            <label className="block text-[11px] font-bold text-[#8F95A3] uppercase tracking-wider mb-1.5 ml-1">Full Name <span className="text-[#EC4899]">*</span></label>
+            <div className="relative flex items-center">
+              <User className="absolute left-3.5 w-4 h-4 text-[#8B5CF6]" />
+              <input type="text" required placeholder="Enter your full name" className="w-full bg-[#15192C] border border-white/5 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:bg-[#1A1E35] focus:border-[#8B5CF6] transition-all" onChange={(e) => setFormData({...formData, name: e.target.value})} />
             </div>
           </div>
 
