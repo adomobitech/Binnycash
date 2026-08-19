@@ -193,6 +193,7 @@ export default function Navbar() {
     }
   };
 
+  // 🔥 WALLET FETCH: Updated API & Removed aggressive logout on failure
   useEffect(() => {
     let isMounted = true;
 
@@ -214,15 +215,15 @@ export default function Navbar() {
       lastFetchRef.current = now;
 
       try {
-        const res = await fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', {
+        const res = await fetch('https://apitest.binnycash.com/api/user/balance/total-amount', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` },
           cache: 'no-store'
         });
 
-        if (res.status === 401 || res.status === 404) {
-           handleForceLogout();
-           return;
+        // 🔥 FIX: Do not force logout on balance error. Let it fail silently so it doesn't break login/signup.
+        if (!res.ok) {
+           return; 
         }
 
         const text = await res.text();
@@ -260,6 +261,7 @@ export default function Navbar() {
     return `https://apitest.binnycash.com${imgSrc}`;
   };
 
+  // 🔥 USER DATA FETCH: Removed aggressive logout on failure
   const fetchUserData = () => {
     if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return;
 
@@ -271,10 +273,9 @@ export default function Navbar() {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     .then(async res => {
-       if (res.status === 401 || res.status === 404) {
-          handleForceLogout();
-          return null;
-       }
+       // 🔥 FIX: Silent failure instead of throwing user out on 401/404 during background checks
+       if (!res.ok) return null;
+       
        const text = await res.text();
        if (!text || text.trim().startsWith('<')) return null;
        try { return JSON.parse(text); } catch (e) { return null; }
@@ -318,7 +319,6 @@ export default function Navbar() {
     }
   }, [isLoggedIn]);
 
-  // Initial check for unread count (Runs once when logged in)
   useEffect(() => {
     if (isLoggedIn && !hasFetchedAlerts && pathname && !pathname.startsWith('/v9') && !pathname.startsWith('/admin')) {
       const token = localStorage.getItem('token');
@@ -338,7 +338,7 @@ export default function Navbar() {
     }
   }, [isLoggedIn, hasFetchedAlerts, pathname]);
 
-
+  // 🔥 ALERTS FETCH: Removed aggressive logout on failure
   const fetchInboxMessages = async () => {
     if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return;
 
@@ -352,8 +352,8 @@ export default function Navbar() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (res.status === 401 || res.status === 404) {
-         handleForceLogout();
+      // 🔥 FIX: No force logout if notifications fail to fetch
+      if (!res.ok) {
          setIsInboxLoading(false);
          return;
       }
@@ -410,7 +410,6 @@ export default function Navbar() {
       console.error("Mark all read error:", err);
     }
   };
-
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

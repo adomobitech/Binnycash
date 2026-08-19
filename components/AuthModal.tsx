@@ -166,7 +166,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     setIsLoading(true);
     setError('');
 
-    // Ab hamesha unified signup API par hi request jayegi
     const endpoint = 'https://apitest.binnycash.com/api/user/signup';
 
     const urlEncoded = new URLSearchParams();
@@ -174,12 +173,10 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('password', password);
     urlEncoded.append('device_id', getOrCreateDeviceId());
 
-    // Agar referral se aaya hai toh auto append ho jayega
     if (isUrlReferral && refCodeValue) {
       urlEncoded.append('referralCode', refCodeValue.trim());
     }
 
-    // Manual bonus code backend image ke according "bonusCode" param me jayega
     if (showPromo && promoCode.trim() !== '') {
       urlEncoded.append('bonusCode', promoCode.trim());
     }
@@ -249,13 +246,16 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
         setView('loginSuccess');
         
+        // 🔥 SMOOTH DASHBOARD ROUTING FIX 🔥
         setTimeout(() => {
-          router.refresh(); 
           router.push('/dashboard');
-          onClose();
-          setView('login');
-          setEmail('');
-          setPassword('');
+          // Delaying modal close to hide homepage while dashboard loads
+          setTimeout(() => {
+            onClose();
+            setView('login');
+            setEmail('');
+            setPassword('');
+          }, 600);
         }, 800); 
 
       } else {
@@ -307,10 +307,12 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           
           setView('loginSuccess');
           
+          // 🔥 SMOOTH DASHBOARD ROUTING FIX 🔥
           setTimeout(() => {
-            router.refresh(); 
             router.push('/dashboard');
-            onClose();
+            setTimeout(() => {
+              onClose();
+            }, 600);
           }, 800);
           
         } else {
@@ -342,10 +344,12 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
               setView('loginSuccess');
               
+              // 🔥 SMOOTH DASHBOARD ROUTING FIX 🔥
               setTimeout(() => {
-                router.refresh(); 
                 router.push('/dashboard');
-                onClose();
+                setTimeout(() => {
+                  onClose();
+                }, 600);
               }, 800);
 
             } else {
@@ -383,7 +387,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   };
 
   const handleResendForgotOtp = async () => {
-    if (resendTimer > 0) return; 
+    if (resendTimer > 0) return; // Prevent double clicks if timer is running
     
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
@@ -395,12 +399,15 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
         body: urlEncoded
       });
       setToast('OTP Resent to your email!');
-      setResendTimer(300); 
+      setResendTimer(300); // Restart the 5-minute timer
     } catch (err) {
       setError('Failed to resend OTP');
     }
   };
 
+  // =====================================================
+  // FORGOT PASSWORD FLOW (Step 1: Just hit forgetPassword)
+  // =====================================================
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -420,7 +427,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       if (res.ok) {
         setOtp('');
         setNewPassword('');
-        setResendTimer(300); 
+        setResendTimer(300); // Start 5 minutes timer
         setView('resetPassword'); 
       } else {
         setError(data.message || 'Email not found');
@@ -432,6 +439,9 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     }
   };
 
+  // =====================================================
+  // RESET PASSWORD FLOW (Step 2: Hit resetPassword directly)
+  // =====================================================
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -451,11 +461,11 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('email', email);
     urlEncoded.append('otp', otp);
     urlEncoded.append('newPassword', newPassword); 
-    urlEncoded.append('password', newPassword); 
+    urlEncoded.append('password', newPassword); // Fallback depending on exactly how your backend expects it
 
     try {
       const res = await fetch('https://apitest.binnycash.com/api/user/resetPassword', {
-        method: 'POST', 
+        method: 'POST', // Most reset endpoints are POST, occasionally PUT
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
       });
@@ -475,6 +485,10 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       setIsLoading(false);
     }
   };
+
+  // =====================================
+  // PREMIUM UI COMPONENTS
+  // =====================================
 
   const baseInputClass = "w-full bg-[#0B0E14] border border-[#1A1D24] text-white font-medium rounded-[12px] pl-12 pr-11 py-4 outline-none focus:border-[#8B5CF6]/60 focus:bg-[#0E1118] transition-all placeholder:text-[#4B5263] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]";
   const iconClass = "absolute left-4 w-5 h-5 text-[#4B5263] group-focus-within:text-[#8B5CF6] transition-colors pointer-events-none";
@@ -507,7 +521,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       } 
       
       if (showPromo && promoCode.trim()) {
-        params.append('bonusCode', promoCode.trim());
+        params.append('promoCode', promoCode.trim());
       }
 
       window.location.href = `https://apitest.binnycash.com/auth/google?${params.toString()}`;
@@ -530,6 +544,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     );
   };
 
+  // 🔥 NEW SUCCESS SCREEN 🔥
   if (view === 'loginSuccess') {
     return (
       <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#05070A] overflow-hidden font-sans transition-opacity duration-300">
