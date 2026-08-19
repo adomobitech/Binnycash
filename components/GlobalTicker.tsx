@@ -1,67 +1,87 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { io } from "socket.io-client";
 import LiveTicker from '@/components/dashboard/LiveTicker'; 
+
+// --- GLOBAL LOCKS & CACHE (Survives page navigations) ---
+const socket = io("https://apitest.binnycash.com", { transports: ["websocket"] });
+let globalFeedsCache: any[] = [];
+let isActivityFetchedGlobal = false;
 
 export default function GlobalTicker() {
   const pathname = usePathname();
-  const [feeds, setFeeds] = useState<any[]>([]);
-  // Use a ref to track if component is mounted to prevent state updates on unmounted component
-  const isMounted = useRef(true);
+  const [feeds, setFeeds] = useState<any[]>(globalFeedsCache);
 
+  // 1. INITIAL API FETCH (Strictly locked to 1 call per session)
   useEffect(() => {
-    isMounted.current = true;
-    
-    // Home page par fetch nahi karna
-    if (pathname === '/') return;
+    if (pathname === '/' || isActivityFetchedGlobal) return;
 
     const fetchLiveActivity = async () => {
+      isActivityFetchedGlobal = true; // Lock strictly before fetch
+      
       try {
         const token = localStorage.getItem('token');
-        
         const res = await fetch(`https://apitest.binnycash.com/api/user/inbox/userActivity`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
           cache: 'no-store'
         });
         
+        if (!res.ok) {
+           isActivityFetchedGlobal = false; // Unlock if failed so it can retry later
+           return;
+        }
+
         const text = await res.text();
         if (!text || text.trim().startsWith('<')) return;
 
         const json = JSON.parse(text);
-        
-        if (!isMounted.current) return; // Prevent setting state if unmounted during fetch
 
-        if (res.ok && json.code === 200 && Array.isArray(json.data) && json.data.length > 0) {
-          setFeeds(json.data);
-        } else if (res.ok && json.code === 404) {
-          setFeeds([]);
+        if (json.code === 200 && Array.isArray(json.data) && json.data.length > 0) {
+          globalFeedsCache = json.data;
+          setFeeds(globalFeedsCache);
         }
       } catch (error) {
         console.error("Live activity fetch error:", error);
+        isActivityFetchedGlobal = false;
       }
     };
 
-    // Page load ya route change hone par ek baar turant fetch hoga
     fetchLiveActivity();
+  }, [pathname]);
 
-    // HAR 10 SECONDS MEIN AUTO-UPDATE HOGA 🔥
-    const intervalId = setInterval(() => {
-      fetchLiveActivity();
-    }, 10000); // 10000 milliseconds = 10 seconds. Tu isko change kar sakta hai.
+  // 2. SOCKET CONNECTION (Listens silently)
+  useEffect(() => {
+    const handleNewInbox = (newMessage: any) => {
+      const newFeed = {
+        _id: newMessage._id || Date.now().toString(),
+        userName: newMessage.userName || newMessage.username,
+        image: newMessage.image || newMessage.profilePic,
+        amount: newMessage.amount || newMessage.reward,
+        status: newMessage.status || 'Completed',
+      };
 
-    // Cleanup function: jab component unmount hoga ya pathname change hoga toh interval clear kar denge
-    return () => {
-      isMounted.current = false;
-      clearInterval(intervalId);
+      // Add to global cache and local state
+      globalFeedsCache = [newFeed, ...globalFeedsCache];
+      
+      setFeeds((prev) => {
+        const exists = prev.find(f => f._id === newFeed._id);
+        if (exists) return prev;
+        return [newFeed, ...prev];
+      });
     };
 
-  }, [pathname]);
+    socket.on("new-inbox", handleNewInbox);
+
+    return () => {
+      socket.off("new-inbox", handleNewInbox);
+    };
+  }, []);
 
   if (pathname === '/' || feeds.length === 0) return null;
 

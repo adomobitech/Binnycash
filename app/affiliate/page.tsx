@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Copy, Users, ShieldAlert, Clock, Wallet, DollarSign,
@@ -111,6 +111,44 @@ const getAchievementIcon = (level: number) => {
   return <Crown className="w-4 h-4" />;
 };
 
+// 🔥 FIX: Avatar component handles broken images & fallbacks to first letter
+function AffiliateAvatar({ userImage, userName }: { userImage?: string; userName: string }) {
+  const [hasError, setHasError] = useState(false);
+  const initialChar = (userName || 'U').charAt(0).toUpperCase();
+
+  // If no image, it's null, or failed to load
+  if (!userImage || userImage === 'null' || hasError) {
+    const colors = ['bg-[#8B5CF6]', 'bg-[#3B82F6]', 'bg-[#EC4899]', 'bg-[#10B981]', 'bg-[#F59E0B]', 'bg-[#EF4444]'];
+    const charCode = initialChar.charCodeAt(0) || 0;
+    const avatarBg = colors[charCode % colors.length];
+
+    return (
+      <div className={`w-7 h-7 rounded-full ${avatarBg} flex items-center justify-center text-white text-[10px] font-black shrink-0`}>
+        {initialChar}
+      </div>
+    );
+  }
+
+  // Handle relative vs absolute paths
+  let finalImageSrc = userImage;
+  if (userImage.startsWith('/uploads')) {
+    finalImageSrc = `https://apitest.binnycash.com${userImage}`;
+  }
+
+  return (
+    <img
+      src={finalImageSrc}
+      alt={userName}
+      className="w-7 h-7 rounded-full object-cover shrink-0 bg-white/5 border border-white/10"
+      referrerPolicy="no-referrer"
+      onError={() => setHasError(true)}
+    />
+  );
+}
+
+// 🔥 GLOBAL LOCK: Strict Mode ya Page transitions mein double fetch rokne ke liye
+let isFetchingData = false;
+
 export default function AffiliatePage() {
   const currency = useCurrency();
   const [activeTab, setActiveTab] = useState<'tier' | 'affiliate'>('tier');
@@ -125,7 +163,6 @@ export default function AffiliatePage() {
   });
   
   const [referralLink, setReferralLink] = useState('Loading...');
-  const [currentBonusInfo, setCurrentBonusInfo] = useState<{level: number, referalBonus: string}>({ level: 1, referalBonus: "3%" });
   const [tierData, setTierData] = useState<any>({ currentTier: 1, currentReferralEarning: 0, levels: [] });
   const [affiliateUsers, setAffiliateUsers] = useState<any[]>([]);
 
@@ -137,12 +174,23 @@ export default function AffiliatePage() {
 
   const availableBalance = dashboardData?.totalReferEarning || 0;
 
+  const fetchLocked = useRef(false);
+
   useEffect(() => {
+    if (fetchLocked.current) return;
+    fetchLocked.current = true; 
+
+    let isMounted = true;
+
     const fetchAffiliateData = async () => {
       setIsLoading(true);
+
       const token = localStorage.getItem('token') || '';
       const userId = getUserId();
-      if (!userId) { setIsLoading(false); return; }
+      if (!userId) { 
+        if(isMounted) setIsLoading(false); 
+        return; 
+      }
 
       const safeParse = async (res: Response) => {
         try {
@@ -157,21 +205,21 @@ export default function AffiliatePage() {
       };
 
       try {
-        const [dashRes, profileRes, tierRes, affiliateListRes, walletTierRes] = await Promise.all([
+        const [dashRes, profileRes, tierRes, affiliateListRes] = await Promise.all([
           fetch(`https://apitest.binnycash.com/api/user/affiliate_overview`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/userDetails?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/affiliateTierLevel`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`https://apitest.binnycash.com/api/user/referList`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`https://apitest.binnycash.com/api/user/wallet/tier-level`, { headers: { 'Authorization': `Bearer ${token}` } })
+          fetch(`https://apitest.binnycash.com/api/user/referList`, { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
 
-        const [dashJson, profileJson, tierJson, affiliateListJson, walletTierJson] = await Promise.all([
+        const [dashJson, profileJson, tierJson, affiliateListJson] = await Promise.all([
           safeParse(dashRes), 
           safeParse(profileRes), 
           safeParse(tierRes), 
-          safeParse(affiliateListRes), 
-          safeParse(walletTierRes)
+          safeParse(affiliateListRes)
         ]);
+
+        if (!isMounted) return;
 
         if (dashJson.code === 200 && dashJson.data) setDashboardData(dashJson.data);
         
@@ -181,19 +229,24 @@ export default function AffiliatePage() {
         }
 
         if (tierJson.code === 200 && tierJson.data) setTierData(tierJson.data);
-        if (affiliateListJson.code === 200 && Array.isArray(affiliateListJson.data)) {
-          setAffiliateUsers(affiliateListJson.data);
+        
+        if (affiliateListJson.code === 200) {
+          const usersArray = affiliateListJson.data?.users || (Array.isArray(affiliateListJson.data) ? affiliateListJson.data : []);
+          setAffiliateUsers(usersArray);
         }
-
-        if (walletTierJson.code === 200 && walletTierJson.data) setCurrentBonusInfo(walletTierJson.data);
 
       } catch (error) {
         console.error('Error fetching affiliate data:', error);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
+
     fetchAffiliateData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleCopy = () => {
@@ -256,6 +309,7 @@ export default function AffiliatePage() {
           {/* STATS GRID */}
           <div className="flex gap-4 w-full md:w-auto overflow-x-auto no-scrollbar pb-2 md:pb-0">
             {[
+              { icon: Users, color: '#3B82F6', bg: 'bg-[#3B82F6]/20', text: 'Total Referrals', value: dashboardData?.totalRefer || 0 },
               { icon: DollarSign, color: '#A855F7', bg: 'bg-[#8B5CF6]/20', text: 'Total Refer Earnings', value: formatPrice(Number(dashboardData?.totalReferEarning) || 0, currency) },
               { icon: Clock, color: '#F59E0B', bg: 'bg-[#F59E0B]/20', text: 'Pending Amount', value: formatPrice(Number(dashboardData?.totalPendingAmount) || 0, currency) },
               { icon: Wallet, color: '#10B981', bg: 'bg-[#10B981]/20', text: 'Paid Amount', value: formatPrice(Number(dashboardData?.totalCommission) || 0, currency) },
@@ -515,7 +569,7 @@ export default function AffiliatePage() {
             </motion.div>
           )}
 
-          {/* AFFILIATE STATS TAB CONTENT */}
+          {/* AFFILIATE STATS TAB CONTENT - 🔥 FIX: Added Avatar component */}
           {activeTab === 'affiliate' && (
             <motion.div key="affiliate" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-collapse min-w-[700px]">
@@ -534,11 +588,16 @@ export default function AffiliatePage() {
                   ) : (
                     affiliateUsers.map((user, idx) => (
                       <motion.tr key={idx} custom={idx} initial="hidden" animate="visible" variants={rowFade} className="border-b border-white/5 hover:bg-white/[0.02]">
-                        <td className="py-3 px-4 text-xs font-bold text-white">{user.userName || 'User'}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <AffiliateAvatar userImage={user.userImage} userName={user.userName || 'User'} />
+                            <span className="text-xs font-bold text-white">{user.userName || 'User'}</span>
+                          </div>
+                        </td>
                         <td className="py-3 px-4 text-xs font-bold text-white">{formatPrice(Number(user.totalEarning || 0), currency)}</td>
-                        <td className="py-3 px-4 text-xs font-bold text-amber-500">{formatPrice(Number(user.processingCommission || 0), currency)}</td>
-                        <td className="py-3 px-4 text-xs font-bold text-red-400">{formatPrice(Number(user.reverseCommission || 0), currency)}</td>
-                        <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(user.netCommission || 0), currency)}</td>
+                        <td className="py-3 px-4 text-xs font-bold text-amber-500">{formatPrice(Number(user.pendingCommission || 0), currency)}</td>
+                        <td className="py-3 px-4 text-xs font-bold text-red-400">{formatPrice(Number(user.reversalCommission || 0), currency)}</td>
+                        <td className="py-3 px-4 text-xs font-bold text-[#10B981]">{formatPrice(Number(user.totalCommission || 0), currency)}</td>
                       </motion.tr>
                     ))
                   )}

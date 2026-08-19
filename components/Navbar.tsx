@@ -128,6 +128,10 @@ export default function Navbar() {
 
   const navRef = useRef<HTMLElement>(null);
   const lastFetchRef = useRef<number>(0);
+  
+  // 🔥 FIX: Refs for userDetails logic
+  const lastProfileFetchRef = useRef<number>(0);
+  const isProfileFetching = useRef<boolean>(false);
 
   const MAIN_LINKS = [
     { name: t.Navbar?.links?.earn || 'Earn', href: '/dashboard' },
@@ -193,11 +197,11 @@ export default function Navbar() {
     }
   };
 
-  // 🔥 WALLET FETCH: Updated API & Removed aggressive logout on failure
   useEffect(() => {
     let isMounted = true;
+    let isFetching = false;
 
-    const fetchWalletBalance = async (force = false) => {
+    const fetchWalletBalance = async () => {
       if (typeof window === 'undefined' || window.location.pathname.startsWith('/v9')) return;
 
       const token = localStorage.getItem('token');
@@ -209,9 +213,10 @@ export default function Navbar() {
       if (isMounted) setIsLoggedIn(true);
 
       const now = Date.now();
-      if (!force && now - lastFetchRef.current < 60000) {
+      if (isFetching || (now - lastFetchRef.current < 2000)) {
         return;
       }
+      isFetching = true;
       lastFetchRef.current = now;
 
       try {
@@ -221,37 +226,39 @@ export default function Navbar() {
           cache: 'no-store'
         });
 
-        // 🔥 FIX: Do not force logout on balance error. Let it fail silently so it doesn't break login/signup.
         if (!res.ok) {
+           isFetching = false;
            return; 
         }
 
         const text = await res.text();
-        if (!text || text.trim().startsWith('<')) return;
+        if (!text || text.trim().startsWith('<')) {
+           isFetching = false;
+           return;
+        }
         const data = JSON.parse(text);
 
         if (isMounted && data && data.data !== undefined) {
-          setBalance(data.data);
-          localStorage.setItem('cached_balance', data.data);
+          setBalance(String(data.data));
+          localStorage.setItem('cached_balance', String(data.data));
         }
       } catch (err) {
          console.error("Wallet fetch error:", err);
+      } finally {
+         isFetching = false;
       }
     };
 
     if (isLoggedIn) {
-      fetchWalletBalance(true);
+      fetchWalletBalance();
     }
 
-    const handleWalletUpdate = () => fetchWalletBalance(true);
+    const handleWalletUpdate = () => fetchWalletBalance();
     window.addEventListener('walletUpdated', handleWalletUpdate);
-
-    const interval = setInterval(() => fetchWalletBalance(false), 60000);
 
     return () => {
       isMounted = false;
       window.removeEventListener('walletUpdated', handleWalletUpdate);
-      clearInterval(interval);
     };
   }, [isLoggedIn]);
 
@@ -261,56 +268,88 @@ export default function Navbar() {
     return `https://apitest.binnycash.com${imgSrc}`;
   };
 
-  // 🔥 USER DATA FETCH: Removed aggressive logout on failure
-  const fetchUserData = () => {
+  // 🔥 PROFILE FETCH FIX: Reads from LocalStorage first to prevent double API call
+  const fetchUserData = async (forceFetch = false) => {
     if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return;
 
     const token = localStorage.getItem('token');
     if (!token || token.includes('[object Object]')) return;
 
-    fetch('https://apitest.binnycash.com/api/user/userDetails', {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(async res => {
-       // 🔥 FIX: Silent failure instead of throwing user out on 401/404 during background checks
-       if (!res.ok) return null;
+    // Helper to process and set user data
+    const processUser = (user: any) => {
+       if (!user) return false;
+       if (user.id || user._id) setTrueUserId(String(user.id || user._id));
        
-       const text = await res.text();
-       if (!text || text.trim().startsWith('<')) return null;
-       try { return JSON.parse(text); } catch (e) { return null; }
-    })
-    .then(data => {
-       if (!data) return;
-       const user = data?.data?.user || data?.data || data?.userDetails || data;
-       if (user) {
-          if (user.id || user._id) setTrueUserId(String(user.id || user._id));
-          
-          let display = user.userName || user.username || user.firstName;
-          if (!display && user.email) {
-            display = user.email.split('@')[0];
-          }
-          if (display) setUserName(display);
-          
-          const rawPic = user.image || user.profilePic || user.picture || user.avatar;
-          if (rawPic) {
-            setUserAvatar(resolveImage(rawPic));
-            setImageError(false);
-          } else {
-            setUserAvatar(null);
-          }
+       let display = user.userName || user.username || user.firstName;
+       if (!display && user.email) {
+          display = user.email.split('@')[0];
        }
-    })
-    .catch(err => {
+       if (display) setUserName(display);
+       
+       const rawPic = user.image || user.profilePic || user.picture || user.avatar;
+       if (rawPic) {
+          setUserAvatar(resolveImage(rawPic));
+          setImageError(false);
+       } else {
+          setUserAvatar(null);
+       }
+       return true;
+    };
+
+    // 1. Check LocalStorage first (Skips API call if data is already loaded by AuthContext)
+    if (!forceFetch) {
+       try {
+          const raw = localStorage.getItem('userDetails') || localStorage.getItem('loginResponse') || localStorage.getItem('user');
+          if (raw) {
+             const parsed = JSON.parse(raw);
+             const user = parsed?.data?.user || parsed?.data?.userDetails || parsed?.data || parsed?.userDetails || parsed;
+             if (user && (user.userName || user.email || user.firstName)) {
+                processUser(user);
+                return; // Stop here, no network call needed!
+             }
+          }
+       } catch(e) {}
+    }
+
+    // 2. Throttle API call if forced or not found in storage
+    const now = Date.now();
+    if (isProfileFetching.current || (now - lastProfileFetchRef.current < 2000)) return;
+    
+    isProfileFetching.current = true;
+    lastProfileFetchRef.current = now;
+
+    try {
+      const res = await fetch('https://apitest.binnycash.com/api/user/userDetails', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!res.ok) return;
+      const text = await res.text();
+      if (!text || text.trim().startsWith('<')) return;
+      
+      const data = JSON.parse(text);
+      if (data) {
+         const user = data?.data?.user || data?.data || data?.userDetails || data;
+         if (user) {
+            processUser(user);
+            // Save to localStorage for future rapid loading
+            localStorage.setItem('userDetails', JSON.stringify(data));
+         }
+      }
+    } catch (err) {
        console.error("Profile fetch error:", err);
-    });
+    } finally {
+       isProfileFetching.current = false;
+    }
   };
 
   useEffect(() => {
     if (isLoggedIn) {
-      fetchUserData();
+      fetchUserData(false); // Normal load (tries cache first)
+      
       const handleProfileUpdate = () => {
-        fetchUserData();
+        fetchUserData(true); // Force fetch on profile update
       };
       window.addEventListener('profileUpdated', handleProfileUpdate);
       return () => {
@@ -319,26 +358,31 @@ export default function Navbar() {
     }
   }, [isLoggedIn]);
 
-  useEffect(() => {
-    if (isLoggedIn && !hasFetchedAlerts && pathname && !pathname.startsWith('/v9') && !pathname.startsWith('/admin')) {
-      const token = localStorage.getItem('token');
-      if (token && !token.includes('[object Object]')) {
-        fetch('https://apitest.binnycash.com/api/user/userAlertList', {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.code === 200 && data.data) {
-            setUnreadCount(data.data.unreadCount || 0);
-          }
-        })
-        .catch(() => {});
-      }
-    }
-  }, [isLoggedIn, hasFetchedAlerts, pathname]);
+  const checkInitialAlerts = async () => {
+    if (!isLoggedIn || hasFetchedAlerts || (pathname && (pathname.startsWith('/v9') || pathname.startsWith('/admin')))) return;
+    
+    const token = localStorage.getItem('token');
+    if (!token || token.includes('[object Object]')) return;
 
-  // 🔥 ALERTS FETCH: Removed aggressive logout on failure
+    try {
+      const res = await fetch('https://apitest.binnycash.com/api/user/userAlertList?limit=1', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.code === 200 && data.data) {
+        setUnreadCount(data.data.unreadCount || 0);
+        setHasFetchedAlerts(true);
+      }
+    } catch (e) {
+      console.error("Initial alert check error:", e);
+    }
+  };
+
+  useEffect(() => {
+    checkInitialAlerts();
+  }, [isLoggedIn, pathname]);
+
   const fetchInboxMessages = async () => {
     if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return;
 
@@ -352,7 +396,6 @@ export default function Navbar() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      // 🔥 FIX: No force logout if notifications fail to fetch
       if (!res.ok) {
          setIsInboxLoading(false);
          return;
@@ -372,7 +415,6 @@ export default function Navbar() {
       if (data?.data?.unreadCount !== undefined) {
         setUnreadCount(data.data.unreadCount);
       }
-      setHasFetchedAlerts(true);
     } catch (err) {
       console.error("Alerts fetch error:", err);
     } finally { 
