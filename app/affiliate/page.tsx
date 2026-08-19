@@ -204,7 +204,7 @@ export default function AffiliatePage() {
         // 🔥 NEW: Page khulte hi Auto Claim wali API hit hogi baaki sab data se pehle
         try {
           const claimRes = await fetch(`https://apitest.binnycash.com/api/user/autoCliam`, { 
-            method: 'GET', // Note: Agar backend ko POST chahiye toh isse 'POST' kar dena
+            method: 'POST', // Note: Agar backend ko POST chahiye toh isse 'POST' kar dena
             headers: { 
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
