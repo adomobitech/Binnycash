@@ -136,7 +136,6 @@ export default function MyOffersPage() {
       if (!token) return;
       setIsLoadingCompleted(true);
       try {
-        // Fetches from the updated endpoint tracking/completeUserData
         const res = await fetch(`https://apitest.binnycash.com/api/user/tracking/completeUserData?page=${completedPage}&limit=12`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -152,7 +151,6 @@ export default function MyOffersPage() {
           let offersData: any[] = [];
           let paginationData: any = {};
 
-          // Flexible mapping tailored for both old and new potential structures
           if (json.data?.list) {
             offersData = json.data.list;
             paginationData = { totalPages: json.data.totalPages || 1 };
@@ -442,21 +440,22 @@ export default function MyOffersPage() {
                         </thead>
                         <tbody>
                           {completedOffers.map((offer, idx) => {
-                            // Flexible handling to capture fields across both endpoints seamlessly
                             const rawImg = offer.image_url || offer.offerImage || offer.logo || offer.offer?.image_url || '';
                             const displayImg = resolveImageUrl(rawImg);
                             const partnerName = offer.network || offer.offerPartnerName || 'Partner';
                             const payoutVal = Number(offer.reward || offer.userCredits || offer.amount || 0);
                             
-                            // Event & Status extraction logic
+                            // 🔥 COMPLETED TAB STATUS FIX 🔥
                             const eventName = offer.eventName ? offer.eventName : '-';
-                            const isCompleted = offer.status === 1 || String(offer.status).toLowerCase() === 'completed';
-                            const statusText = isCompleted ? 'Completed' : (offer.status || 'Pending');
+                            const rawStatus = String(offer.status || '').toLowerCase();
+                            const isReversed = rawStatus === 'reversed' || rawStatus === 'rejected' || rawStatus === 'chargeback';
                             
-                            // Dynamic color classes based on completion status
-                            const statusBgColor = isCompleted ? 'bg-[#00E57A]/10 border-[#00E57A]/20' : 'bg-amber-500/10 border-amber-500/20';
-                            const statusTextColor = isCompleted ? 'text-[#00E57A]' : 'text-amber-500';
-                            const StatusIcon = isCompleted ? CheckCircle2 : Loader2;
+                            const isCompleted = !isReversed;
+                            const statusText = isReversed ? (offer.status || 'Reversed') : 'Completed';
+                            
+                            const statusBgColor = isCompleted ? 'bg-[#00E57A]/10 border-[#00E57A]/20' : 'bg-red-500/10 border-red-500/20';
+                            const statusTextColor = isCompleted ? 'text-[#00E57A]' : 'text-red-500';
+                            const StatusIcon = isCompleted ? CheckCircle2 : AlertCircle;
 
                             return (
                               <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
@@ -488,7 +487,7 @@ export default function MyOffersPage() {
                                 </td>
                                 <td className="py-3 px-5">
                                   <div className={`inline-flex items-center gap-1.5 border px-2.5 py-1 rounded-md ${statusBgColor}`}>
-                                    <StatusIcon className={`w-3.5 h-3.5 ${statusTextColor} ${!isCompleted && 'animate-spin'}`} />
+                                    <StatusIcon className={`w-3.5 h-3.5 ${statusTextColor}`} />
                                     <span className={`text-[10px] font-bold uppercase tracking-wider capitalize ${statusTextColor}`}>{statusText}</span>
                                   </div>
                                 </td>

@@ -497,20 +497,22 @@ export default function CashoutPage() {
       const userId = getUserId();
       const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 
-      const [resEarning, resView, resUserData] = await Promise.all([
-        fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', { method: 'GET', headers }),
-        fetch('https://apitest.binnycash.com/api/user/wallet/view', { method: 'GET', headers }),
+      // 🔥 FIX: total-amount removed, only fetching from balance/view and userDetails 🔥
+      const [resBalanceView, resUserData] = await Promise.all([
+        fetch('https://apitest.binnycash.com/api/user/balance/view', { method: 'GET', headers }),
         fetch(`https://apitest.binnycash.com/api/user/userDetails?userId=${userId}`, { method: 'GET', headers })
       ]);
 
-      const [jsonEarning, jsonView, jsonUserData] = await Promise.all([
-        safeJsonParse(resEarning),
-        safeJsonParse(resView),
+      const [jsonBalanceView, jsonUserData] = await Promise.all([
+        safeJsonParse(resBalanceView),
         safeJsonParse(resUserData)
       ]);
 
-      if (jsonEarning.code === 200 && jsonEarning.data) setTotalEarning(jsonEarning.data);
-      if (jsonView.code === 200 && jsonView.data) setPendingAmount(jsonView.data.totalPendingAmount ?? '0.00');
+      // Using availableBalance from view API
+      if (jsonBalanceView.code === 200 && jsonBalanceView.data) {
+        setTotalEarning(String(jsonBalanceView.data.availableBalance ?? '0.00'));
+        setPendingAmount(String(jsonBalanceView.data.pendingHoldAmount ?? jsonBalanceView.data.totalPendingBalance ?? '0.00'));
+      }
       
       if (jsonUserData.code === 200) {
         const user = jsonUserData.data?.user || jsonUserData.data;

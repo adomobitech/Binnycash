@@ -78,18 +78,14 @@ export default function TransactionsPage() {
       const token = localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 
-      const [resEarning, resView] = await Promise.all([
-        fetch('https://apitest.binnycash.com/api/user/wallet/total-amount', { method: 'GET', headers }),
-        fetch('https://apitest.binnycash.com/api/user/wallet/view', { method: 'GET', headers })
-      ]);
+      // 🔥 FIX: Sirf ek API se saara data fetch ho raha hai ab 🔥
+      const resView = await fetch('https://apitest.binnycash.com/api/user/balance/view', { method: 'GET', headers });
+      const jsonView = await safeJsonParse(resView);
 
-      const [jsonEarning, jsonView] = await Promise.all([
-        safeJsonParse(resEarning),
-        safeJsonParse(resView)
-      ]);
-
-      if (jsonEarning.code === 200 && jsonEarning.data) setTotalEarning(jsonEarning.data);
-      if (jsonView.code === 200 && jsonView.data) setPendingAmount(jsonView.data.totalPendingAmount ?? '0.00');
+      if (jsonView.code === 200 && jsonView.data) {
+        setTotalEarning(jsonView.data.availableBalance ?? '0.00');
+        setPendingAmount(jsonView.data.pendingHoldAmount ?? jsonView.data.totalPendingBalance ?? '0.00');
+      }
       
     } catch (err) {
       console.error('Failed to fetch stats data:', err);

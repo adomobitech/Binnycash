@@ -73,9 +73,9 @@ export default function RewardsPage() {
       const cacheBust = `?t=${Date.now()}`;
 
       const [resToday, resStreak, resStreakWallet] = await Promise.all([
-        fetch(`https://apitest.binnycash.com/api/user/wallet/today-earning${cacheBust}`, { method: 'GET', headers, cache: 'no-store' }),
-        fetch(`https://apitest.binnycash.com/api/user/userDailyStreak${cacheBust}`, { method: 'GET', headers, cache: 'no-store' }),
-        fetch(`https://apitest.binnycash.com/api/user/streak/wallet${cacheBust}`, { method: 'GET', headers, cache: 'no-store' })
+        fetch(`https://apitest.binnycash.com/api/user/balance/today-earning${cacheBust}`, { method: 'GET', headers, cache: 'no-store' }),
+        fetch(`https://apitest.binnycash.com/api/user/userDailyRewardStatus${cacheBust}`, { method: 'GET', headers, cache: 'no-store' }),
+        fetch(`https://apitest.binnycash.com/api/user/daily-rewards/wallet${cacheBust}`, { method: 'GET', headers, cache: 'no-store' })
       ]);
 
       const [jsonToday, jsonStreak, jsonStreakWallet] = await Promise.all([
@@ -98,8 +98,10 @@ export default function RewardsPage() {
         setStreakData(jsonStreak.data);
       }
 
-      if (jsonStreakWallet.code === 200 && jsonStreakWallet.data) {
-        setStreakWallet(Number(jsonStreakWallet.data.streakWallet || 0));
+      if (jsonStreakWallet.code === 200) {
+        const walletData = jsonStreakWallet.data || jsonStreakWallet;
+        const walletVal = walletData.dailyRewardWallet ?? walletData.streakWallet ?? 0;
+        setStreakWallet(Number(walletVal));
       }
     } catch (err) {
       console.error("Failed to load streak data:", err);
@@ -123,8 +125,8 @@ export default function RewardsPage() {
         const payload = new URLSearchParams();
         payload.append('day', String(d.day));
 
-        const res = await fetch('https://apitest.binnycash.com/api/user/streak/wallet', {
-          method: 'POST', 
+        const res = await fetch('https://apitest.binnycash.com/api/user/claimDailyReward', {
+          method: 'PUT', 
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/x-www-form-urlencoded' },
           body: payload
         });
@@ -133,7 +135,7 @@ export default function RewardsPage() {
       }
 
       if (successCount > 0) {
-        setClaimSuccess(`Successfully claimed total ${formatPrice(totalClaimableAmount, currency)}!`);
+        setClaimSuccess(`Successfully claimed total ${formatPrice(streakWallet > 0 ? streakWallet : totalClaimableAmount, currency)}!`);
         await fetchAllData(true); 
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('walletUpdated'));
@@ -149,7 +151,7 @@ export default function RewardsPage() {
     }
   };
 
-  // 🔥 NEW BONUS CODE HANDLER 🔥
+  // BONUS CODE HANDLER
   const handleRedeemPromo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!promoCode.trim()) return;
@@ -192,7 +194,10 @@ export default function RewardsPage() {
   
   const isMainButtonClaimable = claimableDays.length > 0;
   const hasClaimedAny = claimedDays.length > 0;
+
+  // 🔥 AMOUNT FIX CALCULATION 🔥
   const totalClaimableAmount = claimableDays.reduce((sum: number, day: any) => sum + Number(day.reward || 0), 0);
+  const totalClaimedAmount = claimedDays.reduce((sum: number, day: any) => sum + Number(day.reward || 0), 0);
 
   const tabs = [
     { id: 'daily_streak', label: 'Daily Streak' },
@@ -443,9 +448,9 @@ export default function RewardsPage() {
                         <>
                           {isMainButtonClaimable ? <Gift className="w-6 h-6" /> : hasClaimedAny ? <CheckCircle2 className="w-6 h-6" /> : <Gift className="w-6 h-6" />}
                           {isMainButtonClaimable 
-                            ? `Claim ${formatPrice(streakWallet, currency)}` 
+                            ? `Claim ${formatPrice(streakWallet > 0 ? streakWallet : totalClaimableAmount, currency)}` 
                             : hasClaimedAny
-                              ? `Claimed ${formatPrice(streakWallet, currency)}`
+                              ? `Claimed ${formatPrice(totalClaimedAmount, currency)}`
                               : 'Complete tasks to Claim'}
                         </>
                       )}
