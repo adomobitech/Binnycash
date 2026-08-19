@@ -5,21 +5,25 @@ import { usePathname } from 'next/navigation';
 import { io } from "socket.io-client";
 import LiveTicker from '@/components/dashboard/LiveTicker'; 
 
-// --- GLOBAL LOCKS & CACHE (Survives page navigations) ---
-const socket = io("https://apitest.binnycash.com", { transports: ["websocket"] });
+// 👇 YAHAN HAIN WO GLOBAL VARIABLES JO MISSING THE 👇
+const socket = io("https://apitest.binnycash.com", { 
+  transports: ["polling", "websocket"], // 400 Bad Request fix karne ke liye
+  withCredentials: true
+});
 let globalFeedsCache: any[] = [];
 let isActivityFetchedGlobal = false;
+// 👆 INKO FUNCTION KE BAHAR HI RAKHNA HAI 👆
 
 export default function GlobalTicker() {
   const pathname = usePathname();
   const [feeds, setFeeds] = useState<any[]>(globalFeedsCache);
 
-  // 1. INITIAL API FETCH (Strictly locked to 1 call per session)
+  // 1. INITIAL API FETCH 
   useEffect(() => {
     if (pathname === '/' || isActivityFetchedGlobal) return;
 
     const fetchLiveActivity = async () => {
-      isActivityFetchedGlobal = true; // Lock strictly before fetch
+      isActivityFetchedGlobal = true; 
       
       try {
         const token = localStorage.getItem('token');
@@ -33,7 +37,7 @@ export default function GlobalTicker() {
         });
         
         if (!res.ok) {
-           isActivityFetchedGlobal = false; // Unlock if failed so it can retry later
+           isActivityFetchedGlobal = false; 
            return;
         }
 
@@ -43,7 +47,9 @@ export default function GlobalTicker() {
         const json = JSON.parse(text);
 
         if (json.code === 200 && Array.isArray(json.data) && json.data.length > 0) {
-          globalFeedsCache = json.data;
+          // API ka data reverse kar diya taaki NEWEST hamesha LEFT (Start) me aaye
+          const reversedData = json.data.reverse();
+          globalFeedsCache = reversedData;
           setFeeds(globalFeedsCache);
         }
       } catch (error) {
@@ -55,31 +61,39 @@ export default function GlobalTicker() {
     fetchLiveActivity();
   }, [pathname]);
 
-  // 2. SOCKET CONNECTION (Listens silently)
+  // 2. SOCKET CONNECTION (Listens for real-time updates)
   useEffect(() => {
+    if (!socket.connected) {
+      socket.connect();
+    }
+
     const handleNewInbox = (newMessage: any) => {
+      console.log("🔥 Naya Socket Data Aaya:", newMessage); 
+
       const newFeed = {
-        _id: newMessage._id || Date.now().toString(),
+        _id: newMessage._id || (Date.now() + Math.random()).toString(), 
         userName: newMessage.userName || newMessage.username,
         image: newMessage.image || newMessage.profilePic,
         amount: newMessage.amount || newMessage.reward,
         status: newMessage.status || 'Completed',
       };
 
-      // Add to global cache and local state
+      // Naya feed hamesha array ke START me jayega (Left side)
       globalFeedsCache = [newFeed, ...globalFeedsCache];
       
       setFeeds((prev) => {
         const exists = prev.find(f => f._id === newFeed._id);
         if (exists) return prev;
-        return [newFeed, ...prev];
+        return [newFeed, ...prev]; 
       });
     };
 
     socket.on("new-inbox", handleNewInbox);
+    socket.on("userActivity", handleNewInbox);
 
     return () => {
       socket.off("new-inbox", handleNewInbox);
+      socket.off("userActivity", handleNewInbox);
     };
   }, []);
 

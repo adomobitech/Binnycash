@@ -111,12 +111,10 @@ const getAchievementIcon = (level: number) => {
   return <Crown className="w-4 h-4" />;
 };
 
-// 🔥 FIX: Avatar component handles broken images & fallbacks to first letter
 function AffiliateAvatar({ userImage, userName }: { userImage?: string; userName: string }) {
   const [hasError, setHasError] = useState(false);
   const initialChar = (userName || 'U').charAt(0).toUpperCase();
 
-  // If no image, it's null, or failed to load
   if (!userImage || userImage === 'null' || hasError) {
     const colors = ['bg-[#8B5CF6]', 'bg-[#3B82F6]', 'bg-[#EC4899]', 'bg-[#10B981]', 'bg-[#F59E0B]', 'bg-[#EF4444]'];
     const charCode = initialChar.charCodeAt(0) || 0;
@@ -129,7 +127,6 @@ function AffiliateAvatar({ userImage, userName }: { userImage?: string; userName
     );
   }
 
-  // Handle relative vs absolute paths
   let finalImageSrc = userImage;
   if (userImage.startsWith('/uploads')) {
     finalImageSrc = `https://apitest.binnycash.com${userImage}`;
@@ -146,7 +143,6 @@ function AffiliateAvatar({ userImage, userName }: { userImage?: string; userName
   );
 }
 
-// 🔥 GLOBAL LOCK: Strict Mode ya Page transitions mein double fetch rokne ke liye
 let isFetchingData = false;
 
 export default function AffiliatePage() {
@@ -205,6 +201,26 @@ export default function AffiliatePage() {
       };
 
       try {
+        // 🔥 NEW: Page khulte hi Auto Claim wali API hit hogi baaki sab data se pehle
+        try {
+          const claimRes = await fetch(`https://apitest.binnycash.com/api/user/autoCliam`, { 
+            method: 'GET', // Note: Agar backend ko POST chahiye toh isse 'POST' kar dena
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            } 
+          });
+          const claimData = await safeParse(claimRes);
+          
+          // Agar kuch claim hua hai (amount > 0), toh Navbar ka balance bhi instantly update karwa do
+          if (claimData?.code === 200 && claimData?.data?.amount > 0) {
+             window.dispatchEvent(new Event('walletUpdated'));
+          }
+        } catch (err) {
+          console.error("Auto claim fetch error:", err);
+        }
+
+        // Auto Claim ke turant baad tera regular overview, tier aur list fetch ho jayega
         const [dashRes, profileRes, tierRes, affiliateListRes] = await Promise.all([
           fetch(`https://apitest.binnycash.com/api/user/affiliate_overview`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/userDetails?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
@@ -569,7 +585,7 @@ export default function AffiliatePage() {
             </motion.div>
           )}
 
-          {/* AFFILIATE STATS TAB CONTENT - 🔥 FIX: Added Avatar component */}
+          {/* AFFILIATE STATS TAB CONTENT */}
           {activeTab === 'affiliate' && (
             <motion.div key="affiliate" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-collapse min-w-[700px]">
