@@ -1,59 +1,82 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { io } from "socket.io-client";
-import LiveTicker from '@/components/dashboard/LiveTicker'; 
+import LiveTicker from "@/components/dashboard/LiveTicker";
 
-// 👇 YAHAN HAIN WO GLOBAL VARIABLES JO MISSING THE 👇
-const socket = io("https://apitest.binnycash.com", { 
-  transports: ["polling", "websocket"], // 400 Bad Request fix karne ke liye
-  withCredentials: true
+// ============================================
+// SOCKET
+// ============================================
+const socket = io("https://apitest.binnycash.com", {
+  transports: ["polling"],
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
+  timeout: 10000,
 });
 let globalFeedsCache: any[] = [];
 let isActivityFetchedGlobal = false;
-// 👆 INKO FUNCTION KE BAHAR HI RAKHNA HAI 👆
 
 export default function GlobalTicker() {
   const pathname = usePathname();
   const [feeds, setFeeds] = useState<any[]>(globalFeedsCache);
 
-  // 1. INITIAL API FETCH 
+  // ============================================
+  // INITIAL API FETCH
+  // ============================================
   useEffect(() => {
-    if (pathname === '/' || isActivityFetchedGlobal) return;
+    if (pathname === "/" || isActivityFetchedGlobal) return;
 
     const fetchLiveActivity = async () => {
-      isActivityFetchedGlobal = true; 
-      
+      isActivityFetchedGlobal = true;
+
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`https://apitest.binnycash.com/api/user/inbox/userActivity`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          },
-          cache: 'no-store'
-        });
-        
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(
+          "https://apitest.binnycash.com/api/user/inbox/userActivity",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token
+                ? {
+                    Authorization: `Bearer ${token}`,
+                  }
+                : {}),
+            },
+            cache: "no-store",
+          }
+        );
+
         if (!res.ok) {
-           isActivityFetchedGlobal = false; 
-           return;
+          console.error("❌ Activity API Error:", res.status);
+          isActivityFetchedGlobal = false;
+          return;
         }
 
         const text = await res.text();
-        if (!text || text.trim().startsWith('<')) return;
+
+        if (!text || text.trim().startsWith("<")) {
+          console.error("❌ Invalid API response");
+          isActivityFetchedGlobal = false;
+          return;
+        }
 
         const json = JSON.parse(text);
 
-        if (json.code === 200 && Array.isArray(json.data) && json.data.length > 0) {
-          // API ka data reverse kar diya taaki NEWEST hamesha LEFT (Start) me aaye
-          const reversedData = json.data.reverse();
+        if (
+          json.code === 200 &&
+          Array.isArray(json.data)
+        ) {
+          const reversedData = [...json.data].reverse();
+
           globalFeedsCache = reversedData;
-          setFeeds(globalFeedsCache);
+          setFeeds(reversedData);
         }
       } catch (error) {
-        console.error("Live activity fetch error:", error);
+        console.error("❌ Activity Fetch Error:", error);
         isActivityFetchedGlobal = false;
       }
     };
@@ -61,43 +84,174 @@ export default function GlobalTicker() {
     fetchLiveActivity();
   }, [pathname]);
 
-  // 2. SOCKET CONNECTION (Listens for real-time updates)
+  // ============================================
+  // SOCKET
+  // ============================================
   useEffect(() => {
+    console.log("🔌 Starting Socket...");
+
+    const handleConnect = () => {
+      console.log("✅ SOCKET CONNECTED");
+      console.log("🆔 Socket ID:", socket.id);
+
+      if (socket.io?.engine) {
+        console.log(
+          "🚀 Transport:",
+          socket.io.engine.transport.name
+        );
+      }
+    };
+
+    const handleConnectError = (error: Error) => {
+      console.error(
+        "❌ SOCKET CONNECT ERROR:",
+        error.message
+      );
+      console.error("Full socket error:", error);
+    };
+
+    const handleDisconnect = (reason: string) => {
+      console.warn(
+        "🔴 SOCKET DISCONNECTED:",
+        reason
+      );
+    };
+
+    const handleNewInbox = (newMessage: any) => {
+      console.log(
+        "🔥 NEW SOCKET DATA:",
+        newMessage
+      );
+
+      if (!newMessage) return;
+
+      const newFeed = {
+        _id:
+          newMessage._id ||
+          newMessage.id ||
+          `${Date.now()}-${Math.random()}`,
+
+        userName:
+          newMessage.userName ||
+          newMessage.username ||
+          "",
+
+        image:
+          newMessage.image ||
+          newMessage.profilePic ||
+          "",
+
+        amount:
+          newMessage.amount ??
+          newMessage.reward ??
+          0,
+
+        status:
+          newMessage.status ||
+          "Completed",
+      };
+
+      console.log(
+        "📦 Formatted Socket Feed:",
+        newFeed
+      );
+
+      // Global cache
+      globalFeedsCache = [
+        newFeed,
+        ...globalFeedsCache,
+      ];
+
+      // React state
+      setFeeds((prev) => {
+        const exists = prev.some(
+          (item) => item._id === newFeed._id
+        );
+
+        if (exists) {
+          console.log(
+            "⚠️ Duplicate socket item ignored"
+          );
+          return prev;
+        }
+
+        return [
+          newFeed,
+          ...prev,
+        ];
+      });
+    };
+
+    // Socket listeners
+    socket.on(
+      "connect",
+      handleConnect
+    );
+
+    socket.on(
+      "connect_error",
+      handleConnectError
+    );
+
+    socket.on(
+      "disconnect",
+      handleDisconnect
+    );
+
+    socket.on(
+      "new-inbox",
+      handleNewInbox
+    );
+
+    socket.on(
+      "userActivity",
+      handleNewInbox
+    );
+
+    // Connect
     if (!socket.connected) {
       socket.connect();
     }
 
-    const handleNewInbox = (newMessage: any) => {
-      console.log("🔥 Naya Socket Data Aaya:", newMessage); 
-
-      const newFeed = {
-        _id: newMessage._id || (Date.now() + Math.random()).toString(), 
-        userName: newMessage.userName || newMessage.username,
-        image: newMessage.image || newMessage.profilePic,
-        amount: newMessage.amount || newMessage.reward,
-        status: newMessage.status || 'Completed',
-      };
-
-      // Naya feed hamesha array ke START me jayega (Left side)
-      globalFeedsCache = [newFeed, ...globalFeedsCache];
-      
-      setFeeds((prev) => {
-        const exists = prev.find(f => f._id === newFeed._id);
-        if (exists) return prev;
-        return [newFeed, ...prev]; 
-      });
-    };
-
-    socket.on("new-inbox", handleNewInbox);
-    socket.on("userActivity", handleNewInbox);
-
     return () => {
-      socket.off("new-inbox", handleNewInbox);
-      socket.off("userActivity", handleNewInbox);
+      socket.off(
+        "connect",
+        handleConnect
+      );
+
+      socket.off(
+        "connect_error",
+        handleConnectError
+      );
+
+      socket.off(
+        "disconnect",
+        handleDisconnect
+      );
+
+      socket.off(
+        "new-inbox",
+        handleNewInbox
+      );
+
+      socket.off(
+        "userActivity",
+        handleNewInbox
+      );
     };
   }, []);
 
-  if (pathname === '/' || feeds.length === 0) return null;
+  // ============================================
+  // RENDER
+  // ============================================
+  if (
+    pathname === "/" ||
+    feeds.length === 0
+  ) {
+    return null;
+  }
 
-  return <LiveTicker feeds={feeds} />;
+  return (
+    <LiveTicker feeds={feeds} />
+  );
 }

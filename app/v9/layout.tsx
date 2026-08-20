@@ -4,58 +4,31 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  LayoutDashboard, Users, Flame, Ticket, Gift, 
-  HelpCircle, Share2, Bell, Layers, LogOut, ShieldCheck, Menu, X,
-  Search, Moon, ListOrdered, Award, Wallet, CheckSquare, UserSquare, Ban, Trophy, Settings
+  LayoutDashboard, Users, ShieldCheck, Share2, Ticket, 
+  RefreshCcw, Layers, Gift, LogOut, Menu, X, 
+  Moon, Sun, Bell, ListOrdered, Settings
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   if (pathname === '/v9/login') {
     return <div className="min-h-screen bg-[#0B0D14] text-white">{children}</div>;
   }
 
-  const navCategories = [
-    {
-      title: 'USERS',
-      items: [
-        { name: 'All Users', href: '/v9/users', icon: Users },
-        { name: 'User Details', href: '/v9/user-details', icon: UserSquare },
-        { name: 'Blocked Users', href: '/v9/blocked-users', icon: Ban },
-        { name: 'Wallets', href: '/v9/wallets', icon: Wallet },
-      ]
-    },
-    {
-      title: 'OFFERS',
-      items: [
-        { name: 'Offer Partners', href: '/v9/offers', icon: Flame },
-        { name: 'Featured Offers', href: '/v9/featured-offers', icon: Ticket },
-        { name: 'Categories', href: '/v9/categories', icon: Layers },
-      ]
-    },
-    {
-      title: 'SURVEYS',
-      items: [
-        { name: 'Survey Partners', href: '/v9/surveys', icon: CheckSquare },
-      ]
-    },
-    {
-      title: 'AFFILIATE',
-      items: [
-        { name: 'Affiliates', href: '/v9/affiliates', icon: Share2 },
-        { name: 'Leaderboard', href: '/v9/leaderboard', icon: Trophy },
-      ]
-    },
-     {
-      title: 'REWARDS',
-      items: [
-        { name: 'Rewards', href: '/v9/rewards', icon: Gift },
-        { name: 'Promo Codes', href: '/v9/promos', icon: Ticket },
-      ]
-    }
+  // 🚀 TERE BATAYE HUE EXACT OPTIONS
+  const navItems = [
+    { name: 'Dashboard', href: '/v9/dashboard', icon: LayoutDashboard },
+    { name: 'User Management', href: '/v9/users', icon: Users },
+    { name: 'KYC', href: '/v9/kyc', icon: ShieldCheck },
+    { name: 'Affiliates', href: '/v9/affiliates', icon: Share2 },
+    { name: 'Promo Codes', href: '/v9/promos', icon: Ticket },
+    { name: 'Postbacks', href: '/v9/postbacks', icon: RefreshCcw },
+    { name: 'Offerwall', href: '/v9/offerwall', icon: Layers },
+    { name: 'Daily Rewards', href: '/v9/daily-rewards', icon: Gift },
   ];
 
   const handleLogout = () => {
@@ -64,72 +37,76 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="flex min-h-screen bg-[#0B0D14] text-white overflow-hidden font-sans">
+    <div className={`flex min-h-screen transition-colors duration-300 overflow-hidden font-sans ${isDarkMode ? 'bg-[#0B0D14] text-white' : 'bg-gray-50 text-gray-900'}`}>
       
-      {/* SIDEBAR NAVIGATION */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[#12141C] border-r border-white/5 flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+      {/* --- SIDEBAR NAVIGATION --- */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] border-r flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 ${isDarkMode ? 'bg-[#12141C] border-white/5' : 'bg-white border-gray-200'}`}>
         
         {/* BRAND LOGO */}
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+            <div className={`w-8 h-8 rounded-lg border flex items-center justify-center ${isDarkMode ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-emerald-100 border-emerald-300 text-emerald-600'}`}>
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-base leading-tight tracking-wide text-white">BinnyCash</span>
+              <span className={`font-bold text-base leading-tight tracking-wide ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>BinnyCash</span>
               <span className="text-[10px] text-gray-500 tracking-widest uppercase">Admin Panel</span>
             </div>
           </div>
-          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-gray-400 hover:text-white">
+          <button onClick={() => setIsSidebarOpen(false)} className={`lg:hidden ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* NAVIGATION LINKS */}
-        <div className="flex-1 overflow-y-auto px-4 py-2 flex flex-col gap-6 custom-scrollbar">
-          
-          <Link
-            href="/v9/dashboard"
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${pathname === '/v9/dashboard' ? 'bg-[#7C3AED] text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-          >
-            <LayoutDashboard className="w-4 h-4 shrink-0" />
-            Dashboard
-          </Link>
-
-          {navCategories.map((cat, idx) => (
-            <div key={idx} className="flex flex-col gap-1.5">
-              <span className="px-4 text-[10px] font-bold text-gray-500 tracking-wider uppercase mb-1">{cat.title}</span>
-              {cat.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-[#7C3AED] text-white shadow-lg shadow-purple-500/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 custom-scrollbar">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  isActive 
+                    ? 'bg-[#7C3AED] text-white shadow-lg shadow-purple-500/20' 
+                    : isDarkMode 
+                      ? 'text-gray-400 hover:bg-white/5 hover:text-white' 
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                {item.name}
+              </Link>
+            );
+          })}
         </div>
 
-        {/* SETTINGS, LOGOUT & FOOTER AREA */}
-        <div className="p-4 flex flex-col gap-3 border-t border-white/5 bg-[#12141C]">
+        {/* SETTINGS, LOGS & LOGOUT AREA */}
+        <div className={`p-4 flex flex-col gap-3 border-t ${isDarkMode ? 'border-white/5 bg-[#12141C]' : 'border-gray-200 bg-white'}`}>
           <div className="flex flex-col gap-1">
             <Link 
               href="/v9/settings" 
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${pathname === '/v9/settings' ? 'bg-[#7C3AED] text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                pathname === '/v9/settings' 
+                  ? 'bg-[#7C3AED] text-white' 
+                  : isDarkMode 
+                    ? 'text-gray-400 hover:bg-white/5 hover:text-white' 
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
             >
                <Settings className="w-4 h-4" />
                Settings
             </Link>
             <Link 
               href="/v9/logs" 
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${pathname === '/v9/logs' ? 'bg-[#7C3AED] text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                pathname === '/v9/logs' 
+                  ? 'bg-[#7C3AED] text-white' 
+                  : isDarkMode 
+                    ? 'text-gray-400 hover:bg-white/5 hover:text-white' 
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
             >
                <ListOrdered className="w-4 h-4" />
                Logs
@@ -138,55 +115,42 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all cursor-pointer shadow-sm"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 transition-all cursor-pointer shadow-sm"
           >
             <LogOut className="w-4 h-4 shrink-0" />
-            Secure Logout
+            Logout
           </button>
-          <p className="px-2 text-[10px] text-gray-500 text-center">© 2026 BinnyCash Admin Panel</p>
+          <p className="px-2 text-[10px] text-gray-500 text-center">© 2026 BinnyCash Admin</p>
         </div>
       </aside>
 
-      {/* MAIN CONTENT WRAPPER */}
-      <div className="flex-1 flex flex-col lg:pl-[260px]">
+      {/* --- MAIN CONTENT WRAPPER --- */}
+      <div className="flex-1 flex flex-col lg:pl-[260px] relative">
         
-        {/* TOPBAR */}
-        <header className="sticky top-0 z-40 bg-[#0B0D14] border-b border-white/5 px-6 py-4 flex items-center justify-between">
+        {/* --- CLEAN TOP BAR --- */}
+        <header className={`sticky top-0 z-40 border-b px-6 py-4 flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-[#0B0D14] border-white/5' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center gap-4">
-             <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden text-gray-400 hover:text-white p-1">
+             <button onClick={() => setIsSidebarOpen(true)} className={`lg:hidden p-1 ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
                <Menu className="w-5 h-5" />
              </button>
-             
-             <div className="hidden md:flex items-center relative w-[300px]">
-                <Search className="absolute left-3 w-4 h-4 text-gray-500" />
-                <input 
-                  type="text" 
-                  placeholder="Search by user name, email or ID..." 
-                  className="w-full bg-[#12141C] border border-white/5 rounded-lg pl-9 pr-14 py-2 text-xs text-white focus:outline-none focus:border-[#7C3AED] transition-colors"
-                />
-                <div className="absolute right-2 flex items-center gap-1">
-                   <kbd className="hidden sm:inline-block bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-[10px] font-mono text-gray-400">Ctrl</kbd>
-                   <kbd className="hidden sm:inline-block bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-[10px] font-mono text-gray-400">K</kbd>
-                </div>
-             </div>
+             {/* Left side khali chhod diya clean look ke liye */}
           </div>
 
-          <div className="flex items-center gap-4">
-            <button className="text-gray-400 hover:text-white transition-colors">
-               <Moon className="w-5 h-5" />
+          <div className="flex items-center gap-5">
+            {/* THEME TOGGLE */}
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)} 
+              className={`transition-colors flex items-center justify-center w-8 h-8 rounded-full border ${isDarkMode ? 'text-gray-400 hover:text-white bg-white/5 border-white/10' : 'text-gray-600 hover:text-gray-900 bg-gray-100 border-gray-200'}`}
+            >
+               {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <div className="relative">
-                <button className="text-gray-400 hover:text-white transition-colors relative">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute -top-1.5 -right-1.5 bg-[#7C3AED] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-[#0B0D14]">12</span>
-                </button>
-            </div>
             
-            <div className="flex items-center gap-3 border-l border-white/10 pl-4 ml-2">
-                <img src="https://ui-avatars.com/api/?name=Super+Admin&background=F59E0B&color=fff" alt="Admin" className="w-8 h-8 rounded-full border border-white/10" />
-                <div className="hidden sm:flex flex-col">
-                   <span className="text-[10px] text-gray-400">super@binnycash.com</span>
-                </div>
+            {/* NOTIFICATION BELL */}
+            <div className="relative">
+                <button className={`transition-colors flex items-center justify-center w-8 h-8 rounded-full border ${isDarkMode ? 'text-gray-400 hover:text-white bg-white/5 border-white/10' : 'text-gray-600 hover:text-gray-900 bg-gray-100 border-gray-200'}`}>
+                  <Bell className="w-4 h-4" />
+                  <span className={`absolute -top-1 -right-1 bg-[#7C3AED] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 ${isDarkMode ? 'border-[#0B0D14]' : 'border-white'}`}>12</span>
+                </button>
             </div>
           </div>
         </header>
