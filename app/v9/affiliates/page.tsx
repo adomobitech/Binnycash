@@ -1,1324 +1,797 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Users, UserPlus, DollarSign, Clock, RefreshCw, 
-  ShieldAlert, Trophy, BarChart3, PieChart, ArrowUpRight, 
-  Ban, List, X, Search, Filter, History, ChevronLeft, ChevronRight, 
-  CheckCircle2, Loader2, Wallet, Activity, Eye, Share2, UserSquare, Network, Globe, Layers, Lock, Unlock, Edit3, Trash2, Plus
+  Users, Search, Eye, ChevronLeft, ChevronRight, X, Loader2, 
+  AlertCircle, Share2, DollarSign, Activity, MonitorSmartphone, 
+  TrendingUp, Copy, CheckCircle2, RefreshCcw, Lock, Unlock,
+  MousePointerClick, UserPlus, Zap, Globe, ShieldCheck, ListOrdered, Receipt, Filter
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
-export default function AdminAffiliateDashboard() {
+export default function AdminAffiliatesPage() {
   const router = useRouter();
   const currency = useCurrency();
-  const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
   
-  const [stats, setStats] = useState<any>(null);
+  // --- LIST STATES ---
+  const [affiliates, setAffiliates] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // --- PAGINATION STATES ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [paginationData, setPaginationData] = useState({
+    total: 0,
+    page: 1,
+    limit: 50,
+    totalPages: 1
+  });
 
-  const [isTrendModalOpen, setIsTrendModalOpen] = useState(false);
-  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
-  const [isAffiliatesModalOpen, setIsAffiliatesModalOpen] = useState(false);
+  // --- MODAL (DETAIL VIEW) STATES ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [affiliateDetail, setAffiliateDetail] = useState<any>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [isLockActionLoading, setIsLockActionLoading] = useState(false);
 
-  const [tiers, setTiers] = useState<any[]>([]);
-  const [isTiersLoading, setIsTiersLoading] = useState(false);
-  const [isTierModalOpen, setIsTierModalOpen] = useState(false);
-  const [tierFormData, setTierFormData] = useState({ _id: '', level: '', commissionPercent: '', referralAmount: '' });
-  const [isTierSaving, setIsTierSaving] = useState(false);
-  const [isTierDeleting, setIsTierDeleting] = useState(false);
+  // --- TABS & SUB-LIST STATES ---
+  const [activeTab, setActiveTab] = useState<'overview' | 'referrals' | 'commissions'>('overview');
+  
+  // Referrals State
+  const [referralsList, setReferralsList] = useState<any[]>([]);
+  const [isReferralsLoading, setIsReferralsLoading] = useState(false);
+  const [referralsPage, setReferralsPage] = useState(1);
+  const [referralsTotalPages, setReferralsTotalPages] = useState(1);
 
-  const [previewAffiliates, setPreviewAffiliates] = useState<any[]>([]);
-  const [isPreviewAffiliatesLoading, setIsPreviewAffiliatesLoading] = useState(false);
+  // Commissions State
+  const [commissionsList, setCommissionsList] = useState<any[]>([]);
+  const [isCommissionsLoading, setIsCommissionsLoading] = useState(false);
+  const [commissionsPage, setCommissionsPage] = useState(1);
+  const [commissionsTotalPages, setCommissionsTotalPages] = useState(1);
+  
+  // 🔥 NEW: Commission Status Filter State
+  const [commissionStatusFilter, setCommissionStatusFilter] = useState<string>(''); // '' means All
 
-  const [modalAffiliates, setModalAffiliates] = useState<any[]>([]);
-  const [modalAffiliatesPage, setModalAffiliatesPage] = useState(1);
-  const [modalAffiliatesTotalPages, setModalAffiliatesTotalPages] = useState(1);
-  const [modalAffiliatesTotal, setModalAffiliatesTotal] = useState(0);
-  const [isModalAffiliatesLoading, setIsModalAffiliatesLoading] = useState(false);
+  const resolveImage = (imgSrc: string | null) => {
+    if (!imgSrc || imgSrc.trim() === '') return null;
+    return !imgSrc.startsWith('http') ? `https://apitest.binnycash.com${imgSrc}` : imgSrc;
+  };
 
-  const [detailUserId, setDetailUserId] = useState('');
-  const [userDetail, setUserDetail] = useState<any>(null);
-  const [isUserDetailLoading, setIsUserDetailLoading] = useState(false);
-  const [userDetailError, setUserDetailError] = useState<string | null>(null);
-  const [isTogglingLock, setIsTogglingLock] = useState(false);
-  const [refUserId, setRefUserId] = useState('');
-  const [refPage, setRefPage] = useState(1);
-  const [refLimit, setRefLimit] = useState(10);
-  const [referrals, setReferrals] = useState<any[]>([]);
-  const [refTotalPages, setRefTotalPages] = useState(1);
-  const [refTotalRecords, setRefTotalRecords] = useState(0);
-  const [isRefLoading, setIsRefLoading] = useState(false);
-  const [refError, setRefError] = useState<string | null>(null);
+  // 1. Fetch All Users List
+  const fetchAffiliates = async (pageToFetch = 1) => {
+    setIsLoading(true);
+    setErrorMsg(null);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
+    const adminId = typeof window !== 'undefined' ? localStorage.getItem('admin_id') : '';
+    
+    if (!token || !adminId) {
+      router.push('/v9/login');
+      return;
+    }
 
-  const [logUserId, setLogUserId] = useState('');
-  const [logStatus, setLogStatus] = useState(''); 
-  const [logPage, setLogPage] = useState(1);
-  const [logLimit, setLogLimit] = useState(10);
-  const [logs, setLogs] = useState<any[]>([]);
-  const [logsTotalPages, setLogsTotalPages] = useState(1);
-  const [logsTotalRecords, setLogsTotalRecords] = useState(0);
-  const [isLogsLoading, setIsLogsLoading] = useState(false);
-  const [logsError, setLogsError] = useState<string | null>(null);
-
-  const [previewActivities, setPreviewActivities] = useState<any[]>([]);
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-
-  const [modalActivities, setModalActivities] = useState<any[]>([]);
-  const [modalPage, setModalPage] = useState(1);
-  const [hasMoreModal, setHasMoreModal] = useState(true);
-  const [isModalActivityLoading, setIsModalActivityLoading] = useState(false);
-
-
-  const fetchAffiliateStats = async () => {
-    if (!token) { router.push('/v9/login'); return; }
-    setIsLoading(true); setError(null);
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/admin/dashboardStats', {
+      const res = await fetch(`https://apitest.binnycash.com/api/admin/userList?adminId=${encodeURIComponent(adminId)}&page=${pageToFetch}&limit=50`, {
+        method: 'GET',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
-      const data = await res.json();
-      if (res.ok && data.code === 200) setStats(data.data);
-      else setError(data.message || 'Failed to fetch affiliate stats.');
+      const json = await res.json().catch(() => null);
+
+      if (res.ok && json?.code === 200 && json?.data) {
+        const list = Array.isArray(json.data) ? json.data : [];
+        setAffiliates(list);
+        setPaginationData({
+          total: list.length,
+          page: pageToFetch,
+          limit: 50,
+          totalPages: Math.max(1, Math.ceil(list.length / 50))
+        });
+      } else {
+        setErrorMsg(json?.message || "Failed to load users list.");
+        setAffiliates([]);
+      }
     } catch (err) {
-      setError("Network error or server is unreachable.");
+      console.error("Users list fetch error:", err);
+      setErrorMsg("Network error while fetching users.");
+      setAffiliates([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchTiers = async () => {
-    if (!token) return;
-    setIsTiersLoading(true);
-    try {
-      const res = await fetch('https://apitest.binnycash.com/api/admin/tiers', {
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
-      const json = await res.json();
-      if (res.ok && json.code === 200) setTiers(json.data || []);
-    } catch (err) { console.error(err); }
-    finally { setIsTiersLoading(false); }
-  };
+  useEffect(() => {
+    fetchAffiliates(currentPage);
+  }, [currentPage, router]);
 
-  const handleSaveTier = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-    setIsTierSaving(true);
-    try {
-      const payload: any = {
-        level: Number(tierFormData.level),
-        commissionPercent: Number(tierFormData.commissionPercent),
-        referralAmount: Number(tierFormData.referralAmount)
-      };
-      if (tierFormData._id) {
-        payload._id = tierFormData._id; 
-      }
-
-      const res = await fetch('https://apitest.binnycash.com/api/admin/updateTiers', {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (res.ok && data.code === 200) {
-        setIsTierModalOpen(false);
-        fetchTiers();
-      } else {
-        alert(data.message || 'Failed to save tier');
-      }
-    } catch (err) {
-      alert('Network error while saving tier');
-    } finally {
-      setIsTierSaving(false);
-    }
-  };
-
-  const handleDeleteLastTier = async () => {
-    if (!token) return;
-    if (!confirm("Are you sure you want to delete the highest affiliate tier? At least one tier must remain.")) return;
+  // 2. Fetch Detailed Affiliate Stats
+  const handleViewDetails = async (userId: string | number) => {
+    setIsModalOpen(true);
+    setActiveTab('overview');
+    setIsDetailLoading(true);
+    setAffiliateDetail(null);
+    setCopiedCode(false);
+    setReferralsList([]);
+    setCommissionsList([]);
+    setCommissionStatusFilter(''); // Modal khulne par filter hamesha reset hoga
     
-    setIsTierDeleting(true);
+    const token = localStorage.getItem('admin_token');
+
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/admin/tier', {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
-      const data = await res.json();
-      if (res.ok && data.code === 200) {
-        fetchTiers();
-      } else {
-        alert(data.message || 'Failed to delete the tier.');
-      }
-    } catch (err) {
-      alert('Network error while deleting tier');
-    } finally {
-      setIsTierDeleting(false);
-    }
-  };
-
-  const handleOpenAddTier = () => {
-    setTierFormData({ _id: '', level: '', commissionPercent: '', referralAmount: '' });
-    setIsTierModalOpen(true);
-  };
-
-  const handleOpenEditTier = (tier: any) => {
-    setTierFormData({ 
-      _id: tier._id || '', 
-      level: tier.level.toString(), 
-      commissionPercent: tier.commissionPercent.toString(), 
-      referralAmount: tier.referralAmount.toString() 
-    });
-    setIsTierModalOpen(true);
-  };
-
-  const fetchPreviewAffiliates = async () => {
-    if (!token) return;
-    setIsPreviewAffiliatesLoading(true);
-    try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/affiliateUsers?page=1&limit=4`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
-      const json = await res.json();
-      if (res.ok && json.code === 200) setPreviewAffiliates(json.data?.data || []);
-    } catch (err) { console.error(err); } 
-    finally { setIsPreviewAffiliatesLoading(false); }
-  };
-
-  const fetchModalAffiliates = async (pageNumber: number) => {
-    if (!token) return;
-    setIsModalAffiliatesLoading(true);
-    try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/affiliateUsers?page=${pageNumber}&limit=10`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
-      const json = await res.json();
-      if (res.ok && json.code === 200) {
-        setModalAffiliates(json.data?.data || []);
-        setModalAffiliatesTotalPages(json.data?.pagination?.totalPages || 1);
-        setModalAffiliatesTotal(json.data?.pagination?.total || 0);
-      }
-    } catch (err) { console.error(err); } 
-    finally { setIsModalAffiliatesLoading(false); }
-  };
-
-  const fetchUserDetail = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!detailUserId.trim() || !token) return;
-    setIsUserDetailLoading(true); 
-    setUserDetailError(null);
-    setUserDetail(null);
-    try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/userDetail?userId=${detailUserId}`, {
+      const res = await fetch(`https://apitest.binnycash.com/api/admin/affiliates/${encodeURIComponent(userId)}`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
-      const data = await res.json();
-      if (res.ok && data.code === 200 && data.data) {
-        setUserDetail(data.data);
+      const json = await res.json();
+      
+      if (json?.code === 200 && json?.data) {
+        setAffiliateDetail(json.data);
       } else {
-        setUserDetailError(data.message || 'User not found.');
+        setAffiliateDetail({ error: json?.message || 'Affiliate data not available for this user.' });
       }
     } catch (err) {
-      setUserDetailError("Network error.");
+      setAffiliateDetail({ error: 'Network error while fetching details.' });
     } finally {
-      setIsUserDetailLoading(false);
+      setIsDetailLoading(false);
     }
   };
 
+  // 3. ACTION: Toggle Tier Level Lock
   const handleToggleTierLock = async () => {
-    if (!userDetail || !token) return;
-    const currentStatus = userDetail.affiliateStats?.tierLevelStatus;
-    const isCurrentlyLocked = currentStatus === 'Locked';
-    const newLockedState = !isCurrentlyLocked;
+    if (!affiliateDetail?.userInformation?.userId) return;
+    setIsLockActionLoading(true);
+    const token = localStorage.getItem('admin_token');
+    const userId = affiliateDetail.userInformation.userId;
+    
+    const currentStatus = affiliateDetail.affiliateStats?.tierLevelStatus;
+    const isCurrentlyLocked = currentStatus?.toLowerCase() === 'lock' || currentStatus?.toLowerCase() === 'locked';
+    const newLockState = !isCurrentlyLocked;
 
-    setIsTogglingLock(true);
+    const formData = new FormData();
+    formData.append('isLocked', newLockState.toString()); 
+
     try {
-      const formData = new FormData();
-      formData.append('userId', userDetail.userInformation.userId.toString());
-      formData.append('isLocked', String(newLockedState));
-
-      const res = await fetch('https://apitest.binnycash.com/api/admin/user-level-lock-unlock', {
-        method: 'PUT',
+      const res = await fetch(`https://apitest.binnycash.com/api/admin/affiliates/${userId}/level-lock`, {
+        method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
-      const data = await res.json();
-      if (res.ok && data.code === 200) {
-        fetchUserDetail(); 
+      const json = await res.json();
+      if (res.ok && (json?.code === 200 || json?.type === 'success')) {
+        await handleViewDetails(userId);
       } else {
-        alert(data.message || 'Failed to update tier lock status');
+        alert(json?.message || `Failed to update tier lock status.`);
       }
     } catch (err) {
-      alert('Network error while toggling lock status');
+      alert('Network error occurred while updating tier lock.');
     } finally {
-      setIsTogglingLock(false);
+      setIsLockActionLoading(false);
     }
   };
 
-  const fetchReferralsList = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!refUserId.trim() || !token) return;
-    setIsRefLoading(true); setRefError(null);
+  // 4. FETCH REFERRALS LIST
+  const fetchReferrals = async (page = 1) => {
+    if (!affiliateDetail?.userInformation?.userId) return;
+    setIsReferralsLoading(true);
+    const token = localStorage.getItem('admin_token');
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/referrals?userId=${refUserId}&page=${refPage}&limit=${refLimit}`, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
-      const data = await res.json();
-      if (res.ok && data.code === 200) {
-        setReferrals(data.data?.data || []);
-        setRefTotalPages(data.data?.pagination?.totalPages || 1);
-        setRefTotalRecords(data.data?.pagination?.total || 0);
-      } else {
-        setRefError(data.message || 'Failed to fetch referrals.');
-        setReferrals([]);
-      }
-    } catch (err) {
-      setRefError("Network error.");
-      setReferrals([]);
-    } finally {
-      setIsRefLoading(false);
-    }
-  };
-
-  const fetchPreviewActivities = async () => {
-    if (!token) return;
-    setIsPreviewLoading(true);
-    try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/recentActivity?page=1&limit=5`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+      const res = await fetch(`https://apitest.binnycash.com/api/admin/affiliates/${affiliateDetail.userInformation.userId}/referrals?page=${page}&limit=10`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       const json = await res.json();
-      if (res.ok && json.code === 200) setPreviewActivities(json?.data?.data || []);
-    } catch (err) { console.error(err); } 
-    finally { setIsPreviewLoading(false); }
-  };
-
-  const fetchModalActivities = async (pageNumber: number) => {
-    if (!token) return;
-    setIsModalActivityLoading(true);
-    try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/recentActivity?page=${pageNumber}&limit=20`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
-      const json = await res.json();
-      if (res.ok && json.code === 200) {
-        const newActivities = json?.data?.data || [];
-        const pagination = json?.data?.pagination;
-        setModalActivities(prev => {
-          if (pageNumber === 1) return newActivities;
-          const existingIds = new Set(prev.map(a => a._id || a.createdAt));
-          const filtered = newActivities.filter((a: any) => !existingIds.has(a._id || a.createdAt));
-          return [...prev, ...filtered];
-        });
-        setHasMoreModal(pageNumber < (pagination?.totalPages || 1));
-      } else { setHasMoreModal(false); }
-    } catch (err) { setHasMoreModal(false); } 
-    finally { setIsModalActivityLoading(false); }
-  };
-
-  const fetchCommissionLogs = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!logUserId.trim() || !token) return;
-    setIsLogsLoading(true); setLogsError(null);
-    try {
-      let url = `https://apitest.binnycash.com/api/admin/commissionLogs?userId=${logUserId}&page=${logPage}&limit=${logLimit}`;
-      if (logStatus) url += `&status=${logStatus}`;
-      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-      const data = await res.json();
-      if (res.ok && data.code === 200) {
-        const logsList = data?.data?.logs || data?.data?.list || data?.data || [];
-        setLogs(Array.isArray(logsList) ? logsList : []);
-        setLogsTotalPages(data?.data?.totalPages || 1);
-        setLogsTotalRecords(data?.data?.totalRecords || logsList.length);
+      if (json?.code === 200 && json?.data) {
+        setReferralsList(json.data.data || []);
+        setReferralsPage(json.data.pagination?.page || 1);
+        setReferralsTotalPages(json.data.pagination?.totalPages || 1);
       } else {
-        setLogsError(data.message || 'Failed to fetch commission logs.');
+        setReferralsList([]);
       }
-    } catch (err) {
-      setLogsError("Network error.");
+    } catch (e) {
+      setReferralsList([]);
     } finally {
-      setIsLogsLoading(false);
+      setIsReferralsLoading(false);
     }
   };
+
+  // 🔥 5. FETCH COMMISSIONS LIST (With Status Filter)
+  const fetchCommissions = async (page = 1, status = commissionStatusFilter) => {
+    if (!affiliateDetail?.userInformation?.userId) return;
+    setIsCommissionsLoading(true);
+    const token = localStorage.getItem('admin_token');
+    
+    // Build URL with optional status query
+    let url = `https://apitest.binnycash.com/api/admin/affiliates/${affiliateDetail.userInformation.userId}/commissions?page=${page}&limit=10`;
+    if (status && status !== '') {
+      url += `&status=${status}`;
+    }
+
+    try {
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (json?.code === 200 && json?.data) {
+        setCommissionsList(json.data.data || []);
+        setCommissionsPage(json.data.pagination?.page || 1);
+        setCommissionsTotalPages(json.data.pagination?.totalPages || 1);
+      } else {
+        setCommissionsList([]);
+      }
+    } catch (e) {
+      setCommissionsList([]);
+    } finally {
+      setIsCommissionsLoading(false);
+    }
+  };
+
+  // Handle Commission Filter Change
+  const handleCommissionFilterChange = (newStatus: string) => {
+    setCommissionStatusFilter(newStatus);
+    fetchCommissions(1, newStatus);
+  };
+
+  // Trigger sub-list fetches when tabs change
   useEffect(() => {
-    fetchAffiliateStats();
-    fetchPreviewActivities();
-    fetchPreviewAffiliates();
-    fetchTiers();
-  }, [router]);
+    if (activeTab === 'referrals' && referralsList.length === 0) fetchReferrals(1);
+    if (activeTab === 'commissions' && commissionsList.length === 0) fetchCommissions(1, commissionStatusFilter);
+  }, [activeTab]);
 
-  useEffect(() => { if (logUserId) fetchCommissionLogs(); }, [logPage, logLimit]);
-  useEffect(() => { if (refUserId) fetchReferralsList(); }, [refPage, refLimit]);
-  useEffect(() => { if (modalPage > 1 && isActivityModalOpen) fetchModalActivities(modalPage); }, [modalPage]);
+  const safeAffiliates = Array.isArray(affiliates) ? affiliates : [];
+  const filteredAffiliates = safeAffiliates.filter(a => {
+    const name = a?.userName || '';
+    const code = a?.referralCode || '';
+    const query = searchQuery.toLowerCase();
+    return name.toLowerCase().includes(query) || code.toLowerCase().includes(query);
+  });
 
-  const handleOpenActivityModal = () => {
-    setIsActivityModalOpen(true);
-    if (modalActivities.length === 0) { setModalPage(1); fetchModalActivities(1); }
-  };
-
-  const handleOpenAffiliatesModal = () => {
-    setIsAffiliatesModalOpen(true);
-    if (modalAffiliates.length === 0) { setModalAffiliatesPage(1); fetchModalAffiliates(1); }
-  };
-
-  const observer = useRef<IntersectionObserver | null>(null);
-  const lastModalElementRef = useCallback((node: HTMLDivElement) => {
-    if (isModalActivityLoading) return;
-    if (observer.current) observer.current.disconnect();
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMoreModal) { setModalPage(prev => prev + 1); }
-    });
-    if (node) observer.current.observe(node);
-  }, [isModalActivityLoading, hasMoreModal, modalPage]);
-
-  const resolveImage = (imgSrc: string) => imgSrc && !imgSrc.startsWith('http') ? `https://apitest.binnycash.com${imgSrc}` : imgSrc;
-  const trendData = stats?.referralCommissionTrend || [];
-
-  const getActivityIcon = (type: string) => {
-    switch(type) {
-      case 'WITHDRAWAL_REQUEST': return <Wallet className="w-4 h-4 text-amber-500" />;
-      case 'NEW_REFERRAL': return <UserPlus className="w-4 h-4 text-blue-500" />;
-      case 'COMMISSION_APPROVED': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-      default: return <Activity className="w-4 h-4 text-[#8B5CF6]" />;
-    }
-  };
-
-  const formatActivityDate = (dateString: string) => {
-    if (!dateString) return '';
-    const d = new Date(dateString);
-    return `${d.toLocaleDateString('en-US')} at ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
   };
 
   return (
-    <div className="flex flex-col gap-8 text-black w-full max-w-[1500px] mx-auto relative pb-10">
+    <div className="flex flex-col gap-6 text-white w-full max-w-[1600px] mx-auto pb-10 font-sans">
       
-      {/* SECTION 1: DASHBOARD OVERVIEW */}
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black uppercase tracking-wider text-black">Affiliate Dashboard</h1>
-            <p className="text-xs text-gray-500">Monitor referral performance, commissions, and top partners</p>
-          </div>
-          <button 
-            onClick={() => { fetchAffiliateStats(); fetchPreviewActivities(); fetchPreviewAffiliates(); fetchTiers(); }}
-            disabled={isLoading}
-            className="bg-white hover:bg-gray-50 border border-gray-200 text-black px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 text-[#8B5CF6] ${isLoading ? 'animate-spin' : ''}`} /> 
-            Refresh Dashboard
-          </button>
-        </div>
-
-        {error && (
-          <div className="w-full bg-red-50 border border-red-200 text-red-600 p-4 rounded-2xl flex items-center gap-3">
-            <ShieldAlert className="w-5 h-5 shrink-0" />
-            <span className="text-sm font-bold">{error}</span>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">Total Affiliates</span>
-              <div className="w-8 h-8 rounded-lg bg-[#8B5CF6]/10 text-[#8B5CF6] flex items-center justify-center"><Users className="w-4 h-4" /></div>
-            </div>
-            <div className="mt-4">
-              <h2 className="text-2xl font-black text-black">{isLoading ? '...' : (stats?.totalAffiliates || 0)}</h2>
-              <span className="text-green-600 text-[11px] font-bold flex items-center gap-1 mt-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> {stats?.activeAffiliates || 0} Active currently
-              </span>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">Total Referrals</span>
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center"><UserPlus className="w-4 h-4" /></div>
-            </div>
-            <div className="mt-4">
-              <h2 className="text-2xl font-black text-black">{isLoading ? '...' : (stats?.totalReferrals || 0)}</h2>
-              <span className="text-blue-500 text-[11px] font-bold flex items-center gap-1 mt-1"><ArrowUpRight className="w-3 h-3" /> +{stats?.todayReferrals || 0} Referrals Today</span>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">Commission Paid</span>
-              <div className="w-8 h-8 rounded-lg bg-green-50 text-green-500 flex items-center justify-center"><DollarSign className="w-4 h-4" /></div>
-            </div>
-            <div className="mt-4">
-              <h2 className="text-2xl font-black text-black">{isLoading ? '...' : formatPrice(Number(stats?.totalCommissionPaid || 0), currency)}</h2>
-              <span className="text-gray-500 text-[11px] font-medium mt-1 block">Out of {formatPrice(Number(stats?.totalCommission || 0), currency)} total</span>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">Pending Payouts</span>
-              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center"><Clock className="w-4 h-4" /></div>
-            </div>
-            <div className="mt-4">
-              <h2 className="text-2xl font-black text-black">{isLoading ? '...' : formatPrice(Number(stats?.pendingCommission || 0), currency)}</h2>
-              <span className="text-red-500 text-[11px] font-medium mt-1 flex items-center gap-1"><Ban className="w-3 h-3" /> {formatPrice(Number(stats?.reversedCommission || 0), currency)} Reversed</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 flex flex-col gap-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-black font-bold text-base">Referral & Commission Trend</h3>
-                <p className="text-gray-500 text-xs">Full history performance chart</p>
-              </div>
-              <button onClick={() => setIsTrendModalOpen(true)} className="flex items-center gap-2 bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 text-[#8B5CF6] px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer">
-                <List className="w-4 h-4" /> View Full Table
-              </button>
-            </div>
-            <div className="w-full h-[240px] bg-gray-50 rounded-xl border border-gray-200 p-4 overflow-hidden flex flex-col">
-              {isLoading ? (
-                <div className="flex-1 flex items-center justify-center text-xs text-gray-500 animate-pulse">Loading trend data...</div>
-              ) : trendData.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-xs text-gray-500">No trend data available.</div>
-              ) : (
-                <div className="w-full h-full flex items-end gap-1.5 sm:gap-2 pt-6 px-1 overflow-x-auto custom-scrollbar pb-2">
-                  {trendData.map((item: any, idx: number) => {
-                    const maxComm = Math.max(...trendData.map((d:any) => d.commission || 0)) || 1;
-                    const heightPercent = Math.min(Math.max(((item.commission || 0) / maxComm) * 100, 5), 100);
-                    const dateStr = item.date ? item.date.split('-').slice(1).join('/') : `D${idx}`;
-                    return (
-                      <div key={idx} className="flex flex-col items-center gap-2 h-full justify-end group relative min-w-[20px] sm:min-w-[30px]">
-                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] py-1.5 px-2.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
-                          {item.date}<br/>
-                          <span className="text-[#8B5CF6] font-bold">{item.referrals} Refs</span> | <span className="text-green-400">{formatPrice(item.commission, currency)}</span>
-                        </div>
-                        <div style={{ height: `${heightPercent}%` }} className={`w-full rounded-t-lg transition-all duration-300 group-hover:brightness-90 ${item.commission > 0 ? 'bg-gradient-to-t from-[#8B5CF6]/60 to-[#8B5CF6]' : 'bg-gray-200'}`} />
-                        <span className="text-[8px] sm:text-[9px] text-gray-500">{dateStr}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col gap-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-black font-bold text-base">Commission Status</h3>
-                <p className="text-gray-500 text-xs">Breakdown by approval state</p>
-              </div>
-              <PieChart className="w-5 h-5 text-[#8B5CF6]" />
-            </div>
-            <div className="flex flex-col gap-4 mt-2 justify-center flex-1">
-              {isLoading ? (
-                <div className="text-xs text-gray-500 animate-pulse">Loading status...</div>
-              ) : stats?.commissionByStatus?.length > 0 ? (
-                stats.commissionByStatus.map((status: any, idx: number) => (
-                  <div key={idx} className="flex flex-col gap-1.5 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <div className="flex justify-between items-center text-xs font-bold">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: status.color || '#8B5CF6' }}></span>
-                        <span className="text-black">{status.name}</span>
-                      </div>
-                      <span style={{ color: status.color || '#8B5CF6' }}>{formatPrice(status.value, currency)} ({status.pct}%)</span>
-                    </div>
-                    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
-                      <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${status.pct}%`, backgroundColor: status.color || '#8B5CF6' }} />
-                    </div>
-                  </div>
-                ))
-              ) : (
-                 <div className="text-xs text-gray-500">No distribution data available.</div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ==========================================
-          SECTION 2: USER DETAIL SEARCH & TOGGLE LOCK
-      ========================================== */}
-      <div className="flex items-center gap-4 mt-8 mb-2 opacity-50">
-        <div className="h-px bg-gray-300 flex-1" />
-        <UserSquare className="w-5 h-5 text-gray-400" />
-        <div className="h-px bg-gray-300 flex-1" />
-      </div>
-
-      <div className="flex flex-col gap-6">
+      {/* --- HEADER --- */}
+      <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-2xl font-black uppercase tracking-wider text-black">Affiliate User Lookup</h2>
-          <p className="text-xs text-gray-500 mt-1">Fetch detailed profile, stats, and device information of a specific affiliate user.</p>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+             <Share2 className="w-6 h-6 text-[#7C3AED]" /> Affiliate Management
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">Monitor user referral performances, tiers, and earnings.</p>
         </div>
-
-        {userDetailError && (
-          <div className="w-full bg-red-50 border border-red-200 text-red-600 p-4 rounded-2xl flex items-center gap-3 animate-shake">
-            <ShieldAlert className="w-5 h-5 shrink-0" /><span className="text-sm font-bold">{userDetailError}</span>
-          </div>
-        )}
-
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <form onSubmit={fetchUserDetail} className="flex flex-col sm:flex-row gap-4 items-end">
-            <div className="flex flex-col gap-2 flex-1">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">Affiliate User ID <span className="text-red-500">*</span></label>
-              <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input 
-                  type="text" required value={detailUserId} onChange={(e) => setDetailUserId(e.target.value)} 
-                  placeholder="Enter User ID (e.g., 30)" 
-                  className="w-full bg-white border border-gray-300 rounded-xl pl-10 pr-4 py-3 text-sm text-black focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all" 
-                />
-              </div>
-            </div>
-            <button 
-              type="submit" disabled={isUserDetailLoading} 
-              className="bg-[#8B5CF6] hover:bg-[#7c3aed] text-white font-bold py-3 px-8 rounded-xl transition-all shadow-[0_4px_15px_rgba(139,92,246,0.3)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
-            >
-              {isUserDetailLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Fetch Details'}
-            </button>
-          </form>
-        </div>
-
-        {userDetail && userDetail.userInformation && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#8B5CF6]/5 rounded-bl-full pointer-events-none" />
-            
-            <img 
-              src={resolveImage(userDetail.userInformation.profilePic) || `https://ui-avatars.com/api/?name=${userDetail.userInformation.userName}&background=8B5CF6&color=fff`} 
-              alt={userDetail.userInformation.userName} 
-              className="w-24 h-24 rounded-2xl object-cover border-2 border-gray-100 shadow-sm shrink-0" 
-            />
-            
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-              
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Affiliate Name</span>
-                <span className="text-lg font-black text-black flex items-center gap-2">
-                  {userDetail.userInformation.userName || 'N/A'}
-                  {userDetail.userInformation.kycStatus && <span title="KYC Verified"><CheckCircle2 className="w-4 h-4 text-green-500" /></span>}
-                </span>
-                <span className="text-sm text-gray-500">{userDetail.userInformation.email || 'N/A'}</span>
-                <span className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                  <Globe className="w-3 h-3" /> {userDetail.userInformation.country || 'Unknown Location'}
-                </span>
-              </div>
-              
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Referral Activity</span>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="bg-[#8B5CF6]/10 text-[#8B5CF6] px-2.5 py-1 rounded-md text-xs font-bold border border-[#8B5CF6]/20">Code: {userDetail.userInformation.referralCode || 'N/A'}</span>
-                </div>
-                <span className="text-sm text-gray-600 font-medium mt-1">
-                  {userDetail.referralActivity?.totalReferrals || userDetail.userInformation.referralCount || 0} Successful Users
-                </span>
-                <span className="text-xs text-gray-400">
-                  {userDetail.referralActivity?.totalClicks || 0} Clicks | {userDetail.referralActivity?.totalConversions || 0} Conversions
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tier Status</span>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="font-black text-black">Tier {userDetail.affiliateStats?.tier || '1'}</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${userDetail.affiliateStats?.tierLevelStatus === 'Unlock' || userDetail.affiliateStats?.tierLevelStatus === 'Active' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-                    {userDetail.affiliateStats?.tierLevelStatus || 'N/A'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-sm text-gray-500">Bonus: {userDetail.affiliateStats?.commissionPercent || 0}%</span>
-                  <button 
-                    onClick={handleToggleTierLock}
-                    disabled={isTogglingLock}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer disabled:opacity-50 ${userDetail.affiliateStats?.tierLevelStatus === 'Locked' ? 'bg-green-50 hover:bg-green-100 text-green-600 border-green-200' : 'bg-red-50 hover:bg-red-100 text-red-600 border-red-200'}`}
-                  >
-                    {isTogglingLock ? <Loader2 className="w-3 h-3 animate-spin" /> : (userDetail.affiliateStats?.tierLevelStatus === 'Locked' ? <><Unlock className="w-3 h-3" /> Unlock</> : <><Lock className="w-3 h-3" /> Lock</>)}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Earnings Stats</span>
-                <span className="text-xl font-black text-green-600" title="Total Earned">
-                  {formatPrice(Number(userDetail.affiliateStats?.totalReferEarnings || 0), currency)}
-                </span>
-                <div className="flex gap-2 text-[10px] font-bold mt-0.5">
-                  <span className="text-amber-500" title="Pending">{formatPrice(Number(userDetail.affiliateStats?.pendingEarnings || 0), currency)} Pend</span>
-                  <span className="text-red-500" title="Reversed">{formatPrice(Number(userDetail.affiliateStats?.reverseReferEarnings || 0), currency)} Rev</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-2">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">System & Registration</span>
-                <span className="text-sm text-gray-600 font-medium">Joined: {userDetail.userInformation.joinedOn ? new Date(userDetail.userInformation.joinedOn).toLocaleString() : 'N/A'}</span>
-                {userDetail.deviceInfo && (
-                  <span className="text-xs text-gray-400 mt-1 line-clamp-1">
-                    IP: {userDetail.deviceInfo.ipAddress || 'N/A'} • {userDetail.deviceInfo.os || 'Unknown OS'} • {userDetail.deviceInfo.browser || 'Unknown Browser'}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        <button 
+          onClick={() => fetchAffiliates(currentPage)} 
+          disabled={isLoading}
+          className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+        >
+          <RefreshCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh Data
+        </button>
       </div>
 
-      {/* ==========================================
-          SECTION 3: AFFILIATE REFERRALS LIST
-      ========================================== */}
-      <div className="flex items-center gap-4 mt-8 mb-2 opacity-50">
-        <div className="h-px bg-gray-300 flex-1" />
-        <Network className="w-5 h-5 text-gray-400" />
-        <div className="h-px bg-gray-300 flex-1" />
+      {errorMsg && (
+        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span className="text-sm font-bold">{errorMsg}</span>
+        </div>
+      )}
+
+      {/* --- SEARCH BAR --- */}
+      <div className="flex flex-wrap items-center gap-4 bg-[#12141C] p-4 rounded-xl border border-white/5">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+           <input 
+             type="text" 
+             value={searchQuery}
+             onChange={(e) => setSearchQuery(e.target.value)}
+             placeholder="Search by Username or Referral Code..." 
+             className="w-full bg-[#0B0D14] border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7C3AED] transition-colors"
+           />
+        </div>
       </div>
 
-      <div className="flex flex-col gap-6">
-        <div>
-          <h2 className="text-2xl font-black uppercase tracking-wider text-black">Affiliate Referrals List</h2>
-          <p className="text-xs text-gray-500 mt-1">Get the paginated list of users referred by a specific affiliate user.</p>
-        </div>
-
-        {refError && (
-          <div className="w-full bg-red-50 border border-red-200 text-red-600 p-4 rounded-2xl flex items-center gap-3 animate-shake">
-            <ShieldAlert className="w-5 h-5 shrink-0" /><span className="text-sm font-bold">{refError}</span>
-          </div>
-        )}
-
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <form onSubmit={(e) => { setRefPage(1); fetchReferralsList(e); }} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <div className="flex flex-col gap-2 md:col-span-7">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">User ID <span className="text-red-500">*</span></label>
-              <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input 
-                  type="text" required value={refUserId} onChange={(e) => setRefUserId(e.target.value)} 
-                  placeholder="Enter Affiliate User ID" 
-                  className="w-full bg-white border border-gray-300 rounded-xl pl-10 pr-4 py-3 text-sm text-black focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all" 
-                />
-              </div>
-            </div>
-            
-            <div className="flex flex-col gap-2 md:col-span-2">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Per Page</label>
-              <select value={refLimit} onChange={(e) => setRefLimit(Number(e.target.value))} className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all cursor-pointer">
-                <option value="10">10 Records</option>
-                <option value="20">20 Records</option>
-                <option value="50">50 Records</option>
-              </select>
-            </div>
-
-            <div className="md:col-span-3">
-              <button type="submit" disabled={isRefLoading} className="w-full bg-[#8B5CF6] hover:bg-[#7c3aed] text-white font-bold py-3 rounded-xl transition-all shadow-[0_4px_15px_rgba(139,92,246,0.3)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70">
-                {isRefLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Fetch Referrals'}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 text-gray-500 text-[11px] font-bold uppercase tracking-wider bg-gray-50">
-                  <th className="py-4 px-5">Referred User Details</th>
-                  <th className="py-4 px-5">Join Date</th>
-                  <th className="py-4 px-5 text-right">Status / Info</th>
+      {/* --- AFFILIATES TABLE --- */}
+      <div className="bg-[#12141C] border border-white/5 rounded-xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse whitespace-nowrap">
+            <thead>
+              <tr className="border-b border-white/10 text-gray-400 text-xs font-bold uppercase tracking-wider bg-[#161821]">
+                <th className="py-4 px-5">ID</th>
+                <th className="py-4 px-4">Affiliate User</th>
+                <th className="py-4 px-4 text-center">Referral Code</th>
+                <th className="py-4 px-4 text-center">Referrals</th>
+                <th className="py-4 px-4 text-right">Total Earnings</th>
+                <th className="py-4 px-4 text-center">Tier & Status</th>
+                <th className="py-4 px-4 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-sm">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="py-16 text-center text-gray-500 font-medium">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#7C3AED]" /> Loading users data...
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 text-sm bg-white">
-                {isRefLoading ? (
-                  <tr><td colSpan={3} className="py-12 text-center text-gray-500 animate-pulse font-medium"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#8B5CF6]" />Fetching referrals...</td></tr>
-                ) : referrals.length > 0 ? (
-                  referrals.map((ref: any, idx: number) => (
-                    <tr key={ref.id || ref._id || idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-5">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-black">{ref.userName || ref.name || `User ID: ${ref.userId || 'N/A'}`}</span>
-                          <span className="text-gray-500 text-xs">{ref.email || 'No email provided'}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-5 text-gray-500">
-                        {ref.createdAt || ref.joinedOn ? new Date(ref.createdAt || ref.joinedOn).toLocaleDateString() : 'N/A'}
-                      </td>
-                      <td className="py-4 px-5 text-right">
-                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200">
-                          {ref.status || 'Registered'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr><td colSpan={3} className="py-12 text-center text-gray-500">{refUserId ? "No referrals found for this user." : "Enter an Affiliate User ID and click fetch to see referrals."}</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {referrals.length > 0 && (
-            <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-              <span className="text-xs font-medium text-gray-500">Showing page <strong className="text-black">{refPage}</strong> of <strong className="text-black">{refTotalPages}</strong> {refTotalRecords > 0 && ` (${refTotalRecords} total records)`}</span>
-              <div className="flex items-center gap-2">
-                <button onClick={() => { if (refPage > 1) setRefPage(p => p - 1); }} disabled={refPage === 1 || isRefLoading} className="w-9 h-9 rounded-xl bg-white hover:bg-gray-200 border border-gray-300 flex items-center justify-center text-black disabled:opacity-50 transition-colors cursor-pointer"><ChevronLeft className="w-5 h-5" /></button>
-                <button onClick={() => { if (refPage < refTotalPages) setRefPage(p => p + 1); }} disabled={refPage >= refTotalPages || isRefLoading} className="w-9 h-9 rounded-xl bg-white hover:bg-gray-200 border border-gray-300 flex items-center justify-center text-black disabled:opacity-50 transition-colors cursor-pointer"><ChevronRight className="w-5 h-5" /></button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+              ) : filteredAffiliates.length > 0 ? (
+                filteredAffiliates.map((u: any, idx: number) => {
+                  const avatarUrl = resolveImage(u?.image || u?.profilePic);
+                  const firstLetter = (u?.userName || 'U').charAt(0).toUpperCase();
 
-      {/* ==========================================
-          SECTION 4: AFFILIATE USERS LIST (PREVIEW)
-      ========================================== */}
-      <div className="flex items-center gap-4 mt-8 mb-2 opacity-50">
-        <div className="h-px bg-gray-300 flex-1" />
-        <Share2 className="w-5 h-5 text-gray-400" />
-        <div className="h-px bg-gray-300 flex-1" />
-      </div>
-
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-black uppercase tracking-wider text-black">Affiliate Users Directory</h2>
-            <p className="text-gray-500 text-sm mt-1">Complete list of registered affiliate partners and their current tiers.</p>
-          </div>
-          <button 
-            onClick={handleOpenAffiliatesModal}
-            className="flex items-center gap-2 bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 text-[#8B5CF6] px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer"
-          >
-            <Eye className="w-4 h-4" /> View All
-          </button>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 text-gray-500 text-[11px] font-bold uppercase tracking-wider bg-gray-50">
-                  <th className="py-4 px-5">Affiliate Details</th>
-                  <th className="py-4 px-5">Referral Code</th>
-                  <th className="py-4 px-5">Referrals</th>
-                  <th className="py-4 px-5">Tier Level</th>
-                  <th className="py-4 px-5 text-right">Total Earning</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 text-sm bg-white">
-                {isPreviewAffiliatesLoading ? (
-                  <tr><td colSpan={5} className="py-12 text-center text-gray-500 animate-pulse font-medium"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#8B5CF6]" />Loading users...</td></tr>
-                ) : previewAffiliates.length > 0 ? (
-                  previewAffiliates.map((user: any) => (
-                    <tr key={user.userId} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-5">
+                  return (
+                    <tr key={u?.id || u?.userId || idx} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3 px-5 text-gray-400 font-mono">#{u?.id || u?.userId}</td>
+                      <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <img src={resolveImage(user.profilePic) || `https://ui-avatars.com/api/?name=${user.userName}&background=8B5CF6&color=fff`} alt={user.userName} className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
+                          <div className="w-9 h-9 rounded-full bg-[#7C3AED]/20 border border-[#7C3AED]/40 flex items-center justify-center text-[#7C3AED] font-bold text-sm shrink-0 overflow-hidden">
+                            {avatarUrl ? <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" /> : firstLetter}
+                          </div>
                           <div className="flex flex-col">
-                            <span className="font-bold text-black text-[15px]">{user.userName}</span>
-                            <span className="text-gray-500 text-xs">{user.email}</span>
+                            <span className="font-medium text-white">{u?.userName || 'Unknown'}</span>
+                            <span className="text-xs text-gray-500">{u?.email || 'N/A'}</span>
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 px-5">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20">
-                          {user.referralCode}
+                      <td className="py-3 px-4 text-center">
+                        <span className="text-xs font-mono bg-white/5 border border-white/10 px-2 py-1 rounded text-emerald-400 tracking-wider">
+                          {u?.referralCode || 'N/A'}
                         </span>
                       </td>
-                      <td className="py-4 px-5 text-gray-600 font-medium">{user.referrals} Users</td>
-                      <td className="py-4 px-5">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-black text-sm">Tier {user.tier}</span>
-                          <span className="text-[10px] text-gray-500">Bonus: {user.tierBouns}%</span>
+                      <td className="py-3 px-4 text-center font-bold text-white">
+                        {u?.referrals || u?.referralCount || 0}
+                      </td>
+                      <td className="py-3 px-4 text-right font-black text-emerald-400">
+                        {formatPrice(Number(u?.totalReferEarning || 0), currency)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-xs font-bold bg-[#7C3AED]/10 text-[#7C3AED] px-2 py-0.5 rounded border border-[#7C3AED]/20">
+                            Tier {u?.tier || 1}
+                          </span>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider ${u?.tierLevelStatus?.toLowerCase() === 'lock' || u?.tierLevelStatus?.toLowerCase() === 'locked' ? 'text-rose-400' : (u?.tierLevelStatus === 'Active' || u?.tierLevelStatus === 'Unlock' ? 'text-emerald-400' : 'text-gray-500')}`}>
+                            {u?.tierLevelStatus || 'N/A'}
+                          </span>
                         </div>
                       </td>
-                      <td className="py-4 px-5 text-right font-black text-green-600">
-                        {formatPrice(Number(user.totalReferEarning || 0), currency)}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr><td colSpan={5} className="py-12 text-center text-gray-500">No affiliate users found.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* ==========================================
-          SECTION 5: TIER SYSTEM OVERVIEW (WITH ADD/EDIT/DELETE)
-      ========================================== */}
-      <div className="flex items-center gap-4 mt-8 mb-2 opacity-50">
-        <div className="h-px bg-gray-300 flex-1" />
-        <Layers className="w-5 h-5 text-gray-400" />
-        <div className="h-px bg-gray-300 flex-1" />
-      </div>
-
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-black uppercase tracking-wider text-black">Affiliate Tier System</h2>
-            <p className="text-gray-500 text-sm mt-1">Current system configurations for tier levels, commissions, and requirements.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={handleDeleteLastTier}
-              disabled={isTierDeleting || tiers.length === 0}
-              className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer disabled:opacity-50"
-            >
-              {isTierDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              Delete Highest Tier
-            </button>
-            <button 
-              onClick={handleOpenAddTier}
-              className="flex items-center gap-2 bg-[#8B5CF6] hover:bg-[#7c3aed] text-white px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-md cursor-pointer"
-            >
-              <Plus className="w-4 h-4" /> Add New Tier
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 text-gray-500 text-[11px] font-bold uppercase tracking-wider bg-gray-50">
-                  <th className="py-4 px-5">Tier Level</th>
-                  <th className="py-4 px-5">Commission Rate</th>
-                  <th className="py-4 px-5">Required Referrals Amount</th>
-                  <th className="py-4 px-5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 text-sm bg-white">
-                {isTiersLoading ? (
-                  <tr><td colSpan={4} className="py-12 text-center text-gray-500 animate-pulse font-medium"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#8B5CF6]" />Loading tiers...</td></tr>
-                ) : tiers.length > 0 ? (
-                  tiers.map((tier: any, idx: number) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-5">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20">
-                          Tier {tier.level}
-                        </span>
-                      </td>
-                      <td className="py-4 px-5 font-black text-green-600">{tier.commissionPercent}%</td>
-                      <td className="py-4 px-5 font-medium text-black">
-                        {formatPrice(Number(tier.referralAmount || 0), currency)}
-                      </td>
-                      <td className="py-4 px-5 text-right">
+                      <td className="py-3 px-4 text-center">
                         <button 
-                          onClick={() => handleOpenEditTier(tier)}
-                          className="bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 p-2 rounded-lg transition-colors cursor-pointer"
-                          title="Edit Tier"
+                          onClick={() => handleViewDetails(u?.id || u?.userId)}
+                          className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-4 py-2 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 text-xs font-bold mx-auto shadow-sm"
                         >
-                          <Edit3 className="w-4 h-4" />
+                          <Eye className="w-4 h-4" /> View Stats
                         </button>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr><td colSpan={4} className="py-12 text-center text-gray-500">No tiers configured.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={7} className="py-16 text-center text-gray-500">No users found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </div>
-
-      {/* ==========================================
-          SECTION 6: RECENT ACTIVITY PREVIEW
-      ========================================== */}
-      <div className="flex items-center gap-4 mt-8 mb-2 opacity-50">
-        <div className="h-px bg-gray-300 flex-1" />
-        <Activity className="w-5 h-5 text-gray-400" />
-        <div className="h-px bg-gray-300 flex-1" />
-      </div>
-
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-black uppercase tracking-wider text-black">Recent Platform Activity</h2>
-            <p className="text-gray-500 text-sm mt-1">Live feed of withdrawals, referrals, and approved commissions</p>
-          </div>
-          <button 
-            onClick={handleOpenActivityModal}
-            className="flex items-center gap-2 bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 text-[#8B5CF6] px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer"
-          >
-            <Eye className="w-4 h-4" /> View All
-          </button>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col gap-4">
-          {isPreviewLoading ? (
-            <div className="flex justify-center items-center py-10">
-              <Loader2 className="w-6 h-6 animate-spin text-[#8B5CF6]" />
-            </div>
-          ) : previewActivities.length === 0 ? (
-             <div className="text-center py-10 text-gray-500 text-sm">No recent activity found.</div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {previewActivities.map((act: any, idx: number) => (
-                <div key={idx} className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors">
-                  <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center border border-gray-200 bg-white">
-                    {getActivityIcon(act.type)}
-                  </div>
-                  <div className="flex flex-col flex-1">
-                    <span className="font-bold text-black text-[15px]">{act.title}</span>
-                    <span className="text-gray-500 text-sm mt-0.5">{act.description}</span>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <span className="text-gray-500 text-xs">{formatActivityDate(act.createdAt)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ==========================================
-          SECTION 7: COMMISSION LOGS
-      ========================================== */}
-      <div className="flex items-center gap-4 mt-8 mb-2 opacity-50">
-        <div className="h-px bg-gray-300 flex-1" />
-        <History className="w-5 h-5 text-gray-400" />
-        <div className="h-px bg-gray-300 flex-1" />
-      </div>
-
-      <div className="flex flex-col gap-6">
-        <div>
-          <h2 className="text-2xl font-black uppercase tracking-wider text-black">Detailed Commission Logs</h2>
-          <p className="text-xs text-gray-500 mt-1">Search and filter individual commission payouts by User ID</p>
-        </div>
-
-        {logsError && (
-          <div className="w-full bg-red-50 border border-red-200 text-red-600 p-4 rounded-2xl flex items-center gap-3 animate-shake">
-            <ShieldAlert className="w-5 h-5 shrink-0" /><span className="text-sm font-bold">{logsError}</span>
+        
+        {!isLoading && paginationData.totalPages > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-white/5 bg-[#12141C] gap-4">
+             <span className="text-sm text-gray-400">
+               Showing Page <strong className="text-white">{paginationData.page}</strong> of <strong className="text-white">{paginationData.totalPages}</strong>
+             </span>
+             <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded border border-white/10 text-gray-300 hover:text-white hover:bg-white/5 disabled:opacity-30 transition-colors text-sm cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <div className="bg-[#7C3AED] text-white px-3 py-1.5 rounded font-bold text-sm">{currentPage}</div>
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, paginationData.totalPages))}
+                  disabled={currentPage === paginationData.totalPages}
+                  className="px-3 py-1.5 rounded border border-white/10 text-gray-300 hover:text-white hover:bg-white/5 disabled:opacity-30 transition-colors text-sm cursor-pointer"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+             </div>
           </div>
         )}
-
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <form onSubmit={(e) => { setLogPage(1); fetchCommissionLogs(e); }} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <div className="flex flex-col gap-2 md:col-span-4">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">User ID <span className="text-red-500">*</span></label>
-              <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input type="text" required value={logUserId} onChange={(e) => setLogUserId(e.target.value)} placeholder="Enter Affiliate User ID" className="w-full bg-white border border-gray-300 rounded-xl pl-10 pr-4 py-3 text-sm text-black focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all" />
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 md:col-span-3">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Status Filter</label>
-              <div className="relative">
-                <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select value={logStatus} onChange={(e) => setLogStatus(e.target.value)} className="w-full bg-white border border-gray-300 rounded-xl pl-10 pr-4 py-3 text-sm text-black focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all appearance-none cursor-pointer">
-                  <option value="">All Statuses</option>
-                  <option value="COMPLETE">COMPLETE</option>
-                  <option value="REVERSE">REVERSE</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 md:col-span-2">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Per Page</label>
-              <select value={logLimit} onChange={(e) => setLogLimit(Number(e.target.value))} className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all cursor-pointer">
-                <option value="10">10 Records</option>
-                <option value="20">20 Records</option>
-                <option value="50">50 Records</option>
-              </select>
-            </div>
-            <div className="md:col-span-3">
-              <button type="submit" disabled={isLogsLoading} className="w-full bg-[#8B5CF6] hover:bg-[#7c3aed] text-white font-bold py-3 rounded-xl transition-all shadow-[0_4px_15px_rgba(139,92,246,0.3)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70">
-                {isLogsLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Fetch Logs'}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 text-gray-500 text-[11px] font-bold uppercase tracking-wider bg-gray-50">
-                  <th className="py-4 px-5">Log Reference</th>
-                  <th className="py-4 px-5">Date & Time</th>
-                  <th className="py-4 px-5">Commission Amount</th>
-                  <th className="py-4 px-5 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 text-sm bg-white">
-                {isLogsLoading ? (
-                  <tr><td colSpan={4} className="py-12 text-center text-gray-500 animate-pulse font-medium"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#8B5CF6]" />Fetching records...</td></tr>
-                ) : logs.length > 0 ? (
-                  logs.map((log: any, idx: number) => (
-                    <tr key={log._id || idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-5 font-medium text-black">{log.referenceId || log._id || `LOG-${idx + 1000}`}</td>
-                      <td className="py-4 px-5 text-gray-500">{log.createdAt ? new Date(log.createdAt).toLocaleString() : 'N/A'}</td>
-                      <td className="py-4 px-5 font-black text-green-600">{formatPrice(Number(log.amount || log.commission || 0), currency)}</td>
-                      <td className="py-4 px-5 text-right flex justify-end">
-                        {log.status === 'REVERSE' ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-red-50 text-red-600 border border-red-200"><Ban className="w-3.5 h-3.5" /> Reversed</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-green-50 text-green-600 border border-green-200"><CheckCircle2 className="w-3.5 h-3.5" /> Completed</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr><td colSpan={4} className="py-12 text-center text-gray-500">{logUserId ? "No logs found for this user." : "Enter a User ID and click fetch to see logs."}</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {logs.length > 0 && (
-            <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-              <span className="text-xs font-medium text-gray-500">Showing page <strong className="text-black">{logPage}</strong> of <strong className="text-black">{logsTotalPages}</strong> {logsTotalRecords > 0 && ` (${logsTotalRecords} total records)`}</span>
-              <div className="flex items-center gap-2">
-                <button onClick={() => { if (logPage > 1) setLogPage(p => p - 1); }} disabled={logPage === 1 || isLogsLoading} className="w-9 h-9 rounded-xl bg-white hover:bg-gray-200 border border-gray-300 flex items-center justify-center text-black disabled:opacity-50 transition-colors cursor-pointer"><ChevronLeft className="w-5 h-5" /></button>
-                <button onClick={() => { if (logPage < logsTotalPages) setLogPage(p => p + 1); }} disabled={logPage >= logsTotalPages || isLogsLoading} className="w-9 h-9 rounded-xl bg-white hover:bg-gray-200 border border-gray-300 flex items-center justify-center text-black disabled:opacity-50 transition-colors cursor-pointer"><ChevronRight className="w-5 h-5" /></button>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* ==========================================
-          MODALS SECTION (POP-UPS)
-      ========================================== */}
-      
-      {/* 0. ADD/EDIT TIER MODAL */}
-      {isTierModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white border border-gray-200 w-full max-w-md rounded-[24px] shadow-xl flex flex-col relative overflow-hidden">
-            <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-              <div>
-                <h3 className="text-lg font-black text-black flex items-center gap-2"><Layers className="w-5 h-5 text-[#8B5CF6]" /> {tierFormData._id ? 'Edit Tier' : 'Add New Tier'}</h3>
-                <p className="text-xs text-gray-500 mt-1">Configure tier level, commission, and requirement.</p>
-              </div>
-              <button onClick={() => setIsTierModalOpen(false)} className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:text-black transition-colors cursor-pointer"><X className="w-4 h-4" /></button>
-            </div>
+      {/* --- AFFILIATE DETAIL MODAL --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-md overflow-y-auto">
+          <div className="bg-[#0B0D14] border border-white/10 w-full max-w-5xl rounded-[24px] shadow-2xl relative flex flex-col overflow-hidden max-h-[95vh]">
             
-            <form onSubmit={handleSaveTier} className="p-5 flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tier Level <span className="text-red-500">*</span></label>
-                <input 
-                  type="number" required value={tierFormData.level} onChange={(e) => setTierFormData({...tierFormData, level: e.target.value})} 
-                  placeholder="e.g. 1" 
-                  className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all" 
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Commission Percent (%) <span className="text-red-500">*</span></label>
-                <input 
-                  type="number" required step="any" value={tierFormData.commissionPercent} onChange={(e) => setTierFormData({...tierFormData, commissionPercent: e.target.value})} 
-                  placeholder="e.g. 5" 
-                  className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all" 
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Required Referral Amount <span className="text-red-500">*</span></label>
-                <input 
-                  type="number" required step="any" value={tierFormData.referralAmount} onChange={(e) => setTierFormData({...tierFormData, referralAmount: e.target.value})} 
-                  placeholder="e.g. 100" 
-                  className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all" 
-                />
-              </div>
+            {/* Modal Header */}
+            <div className="bg-[#12141C] border-b border-white/5 px-6 py-4 flex items-center justify-between shrink-0">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <Activity className="w-5 h-5 text-[#7C3AED]" /> Detailed Affiliate Intelligence
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 bg-gradient-to-b from-white/[0.02] to-transparent">
               
-              <div className="flex justify-end gap-3 mt-4">
-                <button type="button" onClick={() => setIsTierModalOpen(false)} className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors cursor-pointer">
-                  Cancel
-                </button>
-                <button type="submit" disabled={isTierSaving} className="bg-[#8B5CF6] hover:bg-[#7c3aed] text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70">
-                  {isTierSaving && <Loader2 className="w-4 h-4 animate-spin" />} Save Tier
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 1. TREND MODAL */}
-      {isTrendModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white border border-gray-200 w-full max-w-2xl max-h-[80vh] rounded-[24px] shadow-xl flex flex-col relative overflow-hidden">
-            <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-              <div>
-                <h3 className="text-lg font-black text-black flex items-center gap-2"><List className="w-5 h-5 text-[#8B5CF6]" /> Full Trend History</h3>
-                <p className="text-xs text-gray-500 mt-1">Detailed view of dates, referrals, and commissions.</p>
-              </div>
-              <button onClick={() => setIsTrendModalOpen(false)} className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:text-black transition-colors cursor-pointer"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
-              <table className="w-full text-left border-collapse">
-                <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
-                  <tr className="border-b border-gray-200 text-gray-500 text-[11px] font-bold uppercase tracking-wider">
-                    <th className="py-3 px-4">Date</th>
-                    <th className="py-3 px-4 text-center">Referrals Generated</th>
-                    <th className="py-3 px-4 text-right">Commission Earned</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 text-xs text-black">
-                  {trendData.length > 0 ? (
-                    [...trendData].reverse().map((item: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-3 px-4 font-medium text-black">{item.date}</td>
-                        <td className="py-3 px-4 text-center"><span className={`px-2 py-1 rounded font-bold ${item.referrals > 0 ? 'bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'text-gray-500'}`}>{item.referrals}</span></td>
-                        <td className="py-3 px-4 text-right"><span className={`font-bold ${item.commission > 0 ? 'text-green-600' : 'text-gray-500'}`}>{formatPrice(item.commission, currency)}</span></td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr><td colSpan={3} className="py-6 text-center text-gray-500">No data available.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 2. AFFILIATE USERS FULL MODAL */}
-      {isAffiliatesModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white border border-gray-200 w-full max-w-5xl h-[90vh] rounded-[24px] shadow-xl flex flex-col relative overflow-hidden">
-            <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-gray-50 shrink-0">
-              <div>
-                <h3 className="text-lg font-black text-black flex items-center gap-2"><Share2 className="w-5 h-5 text-[#8B5CF6]" /> Full Affiliate Directory</h3>
-                <p className="text-gray-500 text-sm mt-1">Complete paginated list of all registered affiliate partners.</p>
-              </div>
-              <button onClick={() => setIsAffiliatesModalOpen(false)} className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:text-black transition-colors cursor-pointer"><X className="w-4 h-4" /></button>
-            </div>
-            
-            <div className="flex-1 overflow-hidden flex flex-col bg-gray-50/50 p-5">
-              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col h-full">
-                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                  <table className="w-full text-left border-collapse relative">
-                    <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm border-b border-gray-200">
-                      <tr className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">
-                        <th className="py-4 px-5">Affiliate Details</th>
-                        <th className="py-4 px-5">Referral Code</th>
-                        <th className="py-4 px-5">Referrals</th>
-                        <th className="py-4 px-5">Tier Level</th>
-                        <th className="py-4 px-5 text-right">Total Earning</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 text-sm bg-white">
-                      {isModalAffiliatesLoading ? (
-                        <tr><td colSpan={5} className="py-12 text-center text-gray-500 animate-pulse font-medium"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#8B5CF6]" />Loading users...</td></tr>
-                      ) : modalAffiliates.length > 0 ? (
-                        modalAffiliates.map((user: any) => (
-                          <tr key={user.userId} className="hover:bg-gray-50 transition-colors">
-                            <td className="py-4 px-5">
-                              <div className="flex items-center gap-3">
-                                <img src={resolveImage(user.profilePic) || `https://ui-avatars.com/api/?name=${user.userName}&background=8B5CF6&color=fff`} alt={user.userName} className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-black text-[15px]">{user.userName}</span>
-                                  <span className="text-gray-500 text-xs">{user.email}</span>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-5">
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20">
-                                {user.referralCode}
-                              </span>
-                            </td>
-                            <td className="py-4 px-5 text-gray-600 font-medium">{user.referrals} Users</td>
-                            <td className="py-4 px-5">
-                              <div className="flex flex-col">
-                                <span className="font-bold text-black text-sm">Tier {user.tier}</span>
-                                <span className="text-[10px] text-gray-500">Bonus: {user.tierBouns}%</span>
-                              </div>
-                            </td>
-                            <td className="py-4 px-5 text-right font-black text-green-600">
-                              {formatPrice(Number(user.totalReferEarning || 0), currency)}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr><td colSpan={5} className="py-12 text-center text-gray-500">No affiliate users found.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+              {isDetailLoading ? (
+                <div className="py-32 flex flex-col items-center justify-center gap-4">
+                  <Loader2 className="w-10 h-10 animate-spin text-[#7C3AED]" />
+                  <span className="text-gray-400 font-medium">Gathering intelligence data...</span>
                 </div>
-                
-                {/* Modal Pagination */}
-                {modalAffiliates.length > 0 && (
-                  <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
-                    <span className="text-xs font-medium text-gray-500">
-                      Showing page <strong className="text-black">{modalAffiliatesPage}</strong> of <strong className="text-black">{modalAffiliatesTotalPages}</strong> 
-                      {modalAffiliatesTotal > 0 && ` (${modalAffiliatesTotal} total)`}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => { 
-                          const next = modalAffiliatesPage - 1;
-                          setModalAffiliatesPage(next); 
-                          fetchModalAffiliates(next);
-                        }} 
-                        disabled={modalAffiliatesPage === 1 || isModalAffiliatesLoading} 
-                        className="w-9 h-9 rounded-xl bg-white hover:bg-gray-200 border border-gray-300 flex items-center justify-center text-black disabled:opacity-50 transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                      </button>
-                      <button 
-                        onClick={() => { 
-                          const next = modalAffiliatesPage + 1;
-                          setModalAffiliatesPage(next); 
-                          fetchModalAffiliates(next);
-                        }} 
-                        disabled={modalAffiliatesPage >= modalAffiliatesTotalPages || isModalAffiliatesLoading} 
-                        className="w-9 h-9 rounded-xl bg-white hover:bg-gray-200 border border-gray-300 flex items-center justify-center text-black disabled:opacity-50 transition-colors cursor-pointer"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3. ACTIVITY MODAL */}
-      {isActivityModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white border border-gray-200 w-full max-w-4xl h-[85vh] rounded-[24px] shadow-xl flex flex-col relative overflow-hidden">
-            <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-gray-50 shrink-0">
-              <div>
-                <h3 className="text-lg font-black text-black flex items-center gap-2"><Activity className="w-5 h-5 text-[#8B5CF6]" /> Recent Platform Activity</h3>
-                <p className="text-gray-500 text-sm mt-1">Live feed of withdrawals, referrals, and approved commissions</p>
-              </div>
-              <button onClick={() => setIsActivityModalOpen(false)} className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:text-black transition-colors cursor-pointer"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
-              {modalActivities.length === 0 && !isModalActivityLoading ? (
-                <div className="text-center py-10 text-gray-500 text-sm">No recent activity found.</div>
+              ) : affiliateDetail?.error ? (
+                <div className="py-16 text-center text-amber-400 bg-amber-500/5 rounded-2xl border border-amber-500/20 p-6">
+                  <AlertCircle className="w-10 h-10 mx-auto mb-3" />
+                  <p className="font-bold text-lg">{affiliateDetail.error}</p>
+                  <p className="text-sm mt-2 text-amber-500/70">This user may not have any affiliate data yet.</p>
+                </div>
               ) : (
-                <div className="flex flex-col gap-3">
-                  {modalActivities.map((act: any, idx: number) => {
-                    const isLastElement = modalActivities.length === idx + 1;
-                    return (
-                      <div key={idx} ref={isLastElement ? lastModalElementRef : null} className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors">
-                        <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center border border-gray-200 bg-white">
-                          {getActivityIcon(act.type)}
+                <div className="flex flex-col gap-6">
+                  
+                  {/* 1. PROFILE HEADER CARD */}
+                  <div className="bg-[#12141C]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-lg flex flex-col md:flex-row gap-6 items-center justify-between relative overflow-hidden">
+                     <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#7C3AED]/20 blur-[80px] pointer-events-none rounded-full" />
+                     <div className="flex items-center gap-5 z-10 w-full md:w-auto">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] p-0.5 shadow-[0_0_20px_rgba(139,92,246,0.3)] shrink-0">
+                          <div className="w-full h-full rounded-full bg-[#12141C] flex items-center justify-center overflow-hidden text-2xl font-black text-white">
+                            {resolveImage(affiliateDetail?.userInformation?.profilePic) ? (
+                              <img src={resolveImage(affiliateDetail.userInformation.profilePic)!} alt="User" className="w-full h-full object-cover" />
+                            ) : (affiliateDetail?.userInformation?.userName?.charAt(0).toUpperCase() || 'U')}
+                          </div>
                         </div>
-                        <div className="flex flex-col flex-1">
-                          <span className="font-bold text-black text-[15px]">{act.title}</span>
-                          <span className="text-gray-500 text-sm mt-0.5">{act.description}</span>
+                        <div className="flex flex-col">
+                          <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1 flex items-center gap-1.5">
+                            <ShieldCheck className="w-3 h-3 text-emerald-400" /> Affiliate Partner
+                          </p>
+                          <h2 className="text-3xl font-black text-white leading-none mb-1.5">{affiliateDetail?.userInformation?.userName || 'Unknown'}</h2>
+                          <span className="text-sm text-gray-400">{affiliateDetail?.userInformation?.email}</span>
                         </div>
-                        <div className="shrink-0 text-right">
-                          <span className="text-gray-500 text-xs">{formatActivityDate(act.createdAt)}</span>
-                        </div>
+                     </div>
+
+                     <div className="z-10 w-full md:w-auto bg-[#0B0D14] border border-white/10 px-5 py-3 rounded-xl flex items-center justify-between md:justify-start gap-4 shadow-inner">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ref Code</span>
+                        <span className="font-mono text-emerald-400 font-bold text-xl">{affiliateDetail?.userInformation?.referralCode || 'N/A'}</span>
+                        <button 
+                          onClick={() => handleCopyCode(affiliateDetail?.userInformation?.referralCode || '')} 
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 transition-colors cursor-pointer"
+                        >
+                          {copiedCode ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                     </div>
+                  </div>
+
+                  {/* --- TAB NAVIGATION --- */}
+                  <div className="flex items-center gap-2 p-1 bg-[#12141C] rounded-xl border border-white/5 w-fit">
+                    <button onClick={() => setActiveTab('overview')} className={`px-5 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === 'overview' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}>
+                      <Activity className="w-4 h-4"/> Overview
+                    </button>
+                    <button onClick={() => setActiveTab('referrals')} className={`px-5 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === 'referrals' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}>
+                      <Users className="w-4 h-4"/> Referrals List
+                    </button>
+                    <button onClick={() => setActiveTab('commissions')} className={`px-5 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === 'commissions' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}>
+                      <Receipt className="w-4 h-4"/> Commissions
+                    </button>
+                  </div>
+
+                  {/* --- TAB CONTENT: OVERVIEW --- */}
+                  {activeTab === 'overview' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in zoom-in duration-300">
+                      
+                      <div className="bg-[#12141C] border border-white/5 rounded-2xl p-6 flex flex-col gap-5 relative overflow-hidden">
+                         <h4 className="text-sm font-black text-white flex items-center gap-2">
+                           <DollarSign className="w-5 h-5 text-emerald-400" /> Earning Overview
+                         </h4>
+                         <div className="flex justify-between items-center bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/30 p-4 rounded-xl shadow-inner">
+                           <span className="text-xs text-emerald-400 font-black uppercase tracking-widest">Total Earned</span>
+                           <span className="text-2xl font-black text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+                             {formatPrice(Number(affiliateDetail?.affiliateStats?.totalReferEarnings || 0), currency)}
+                           </span>
+                         </div>
+                         <div className="flex flex-col gap-3 mt-2">
+                           <div className="flex justify-between items-center text-sm border-b border-white/5 pb-3">
+                             <span className="text-gray-400">Paid Earnings</span>
+                             <span className="text-white font-bold">{formatPrice(Number(affiliateDetail?.affiliateStats?.paidEarnings || 0), currency)}</span>
+                           </div>
+                           <div className="flex justify-between items-center text-sm border-b border-white/5 pb-3">
+                             <span className="text-gray-400">Pending</span>
+                             <span className="text-amber-400 font-bold">{formatPrice(Number(affiliateDetail?.affiliateStats?.pendingEarnings || 0), currency)}</span>
+                           </div>
+                           <div className="flex justify-between items-center text-sm border-b border-white/5 pb-3">
+                             <span className="text-gray-400">Reversed</span>
+                             <span className="text-rose-400 font-bold">{formatPrice(Number(affiliateDetail?.affiliateStats?.reverseReferEarnings || 0), currency)}</span>
+                           </div>
+                           <div className="flex justify-between items-center text-sm pt-1">
+                             <span className="text-gray-400 font-bold">Total Withdrawals</span>
+                             <span className="text-blue-400 font-black">{formatPrice(Number(affiliateDetail?.affiliateStats?.totalReferWithdraw || 0), currency)}</span>
+                           </div>
+                         </div>
                       </div>
-                    );
-                  })}
+
+                      <div className="bg-[#12141C] border border-white/5 rounded-2xl p-6 flex flex-col gap-6">
+                         <h4 className="text-sm font-black text-white flex items-center gap-2">
+                           <TrendingUp className="w-5 h-5 text-blue-400" /> Conversion Funnel
+                         </h4>
+                         <div className="flex items-center justify-between px-2 pt-2">
+                            <div className="flex flex-col items-center gap-2 w-16">
+                              <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400"><MousePointerClick className="w-5 h-5"/></div>
+                              <span className="text-2xl font-black text-white">{affiliateDetail?.referralActivity?.totalClicks || 0}</span>
+                              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Clicks</span>
+                            </div>
+                            <div className="flex-1 h-px bg-gradient-to-r from-blue-500/50 to-purple-500/50 dashed-line"></div>
+                            <div className="flex flex-col items-center gap-2 w-16">
+                              <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400"><UserPlus className="w-5 h-5"/></div>
+                              <span className="text-2xl font-black text-white">{affiliateDetail?.referralActivity?.totalReferrals || 0}</span>
+                              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Joined</span>
+                            </div>
+                            <div className="flex-1 h-px bg-gradient-to-r from-purple-500/50 to-emerald-500/50 dashed-line"></div>
+                            <div className="flex flex-col items-center gap-2 w-16">
+                              <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]"><Zap className="w-5 h-5"/></div>
+                              <span className="text-2xl font-black text-emerald-400">{affiliateDetail?.referralActivity?.totalConversions || 0}</span>
+                              <span className="text-[9px] text-emerald-500/70 font-bold uppercase tracking-wider">Conv.</span>
+                            </div>
+                         </div>
+
+                         <div className="mt-auto bg-gradient-to-br from-[#1A1C2A] to-[#12141C] border border-[#7C3AED]/30 rounded-xl p-4 flex flex-col gap-3 relative overflow-hidden">
+                           <div className="absolute top-0 right-0 w-32 h-32 bg-[#7C3AED]/10 blur-[40px]" />
+                           <div className="flex justify-between items-center z-10">
+                             <span className="text-[10px] font-black text-[#8B5CF6] uppercase tracking-widest">Tier System</span>
+                             <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${affiliateDetail?.affiliateStats?.tierLevelStatus?.toLowerCase() === 'lock' || affiliateDetail?.affiliateStats?.tierLevelStatus?.toLowerCase() === 'locked' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                               Status: {affiliateDetail?.affiliateStats?.tierLevelStatus || 'Unlock'}
+                             </span>
+                           </div>
+                           <div className="flex items-center justify-between z-10">
+                             <div className="flex items-center gap-2.5">
+                               <span className="text-white text-xl font-black">Level {affiliateDetail?.affiliateStats?.tier || 1}</span>
+                               <span className="text-white text-xs font-bold bg-[#8B5CF6] px-2 py-0.5 rounded shadow-sm">{affiliateDetail?.affiliateStats?.commissionPercent || 0}%</span>
+                             </div>
+                             
+                             <button 
+                               onClick={handleToggleTierLock} 
+                               disabled={isLockActionLoading}
+                               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-md disabled:opacity-50 ${
+                                 affiliateDetail?.affiliateStats?.tierLevelStatus?.toLowerCase() === 'lock' || affiliateDetail?.affiliateStats?.tierLevelStatus?.toLowerCase() === 'locked'
+                                   ? 'bg-emerald-500 hover:bg-emerald-600 text-black'
+                                   : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20'
+                               }`}
+                             >
+                               {isLockActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 
+                                (affiliateDetail?.affiliateStats?.tierLevelStatus?.toLowerCase() === 'lock' || affiliateDetail?.affiliateStats?.tierLevelStatus?.toLowerCase() === 'locked' ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />)
+                               }
+                               {(affiliateDetail?.affiliateStats?.tierLevelStatus?.toLowerCase() === 'lock' || affiliateDetail?.affiliateStats?.tierLevelStatus?.toLowerCase() === 'locked') ? 'Unlock Tier' : 'Lock Tier'}
+                             </button>
+                           </div>
+                         </div>
+                      </div>
+
+                      <div className="bg-[#12141C] border border-white/5 rounded-2xl p-6 flex flex-col gap-5">
+                         <h4 className="text-sm font-black text-white flex items-center gap-2">
+                           <MonitorSmartphone className="w-5 h-5 text-amber-400" /> Device & Intelligence
+                         </h4>
+                         <div className="flex flex-col gap-4">
+                           <div>
+                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 block">Country & KYC</span>
+                             <div className="flex items-center gap-3">
+                               <span className="text-sm text-white font-bold flex items-center gap-1.5"><Globe className="w-4 h-4 text-blue-400"/> {affiliateDetail?.userInformation?.country || 'Unknown'}</span>
+                               <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-black tracking-wider border ${affiliateDetail?.userInformation?.kycStatus ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                 {affiliateDetail?.userInformation?.kycStatus ? 'Verified' : 'Unverified'}
+                               </span>
+                             </div>
+                           </div>
+                           <div className="border-t border-white/5 pt-3">
+                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 block">Last IP Address</span>
+                             <span className="text-sm text-white font-mono bg-[#0B0D14] px-2 py-1 rounded border border-white/5 inline-block">{affiliateDetail?.deviceInfo?.ipAddress || 'N/A'}</span>
+                           </div>
+                           <div className="border-t border-white/5 pt-3">
+                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 block">OS & Browser</span>
+                             <p className="text-xs text-gray-300 bg-[#0B0D14] px-3 py-2 rounded-lg border border-white/5 leading-relaxed">
+                               {affiliateDetail?.deviceInfo?.os} <br/>
+                               <span className="text-gray-500">{affiliateDetail?.deviceInfo?.browser}</span>
+                             </p>
+                           </div>
+                           <div className="mt-auto border-t border-white/5 pt-3 flex justify-between items-center">
+                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Joined Network</span>
+                             <span className="text-xs text-white font-bold">{affiliateDetail?.userInformation?.joinedOn ? new Date(affiliateDetail.userInformation.joinedOn).toLocaleString() : 'N/A'}</span>
+                           </div>
+                         </div>
+                      </div>
+
+                    </div>
+                  )}
+
+                  {/* --- TAB CONTENT: REFERRALS LIST --- */}
+                  {activeTab === 'referrals' && (
+                    <div className="bg-[#12141C] border border-white/5 rounded-2xl overflow-hidden flex flex-col animate-in fade-in duration-300 min-h-[300px]">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse whitespace-nowrap">
+                          <thead>
+                            <tr className="border-b border-white/10 text-gray-400 text-xs font-bold uppercase tracking-wider bg-[#161821]">
+                              <th className="py-4 px-5">User ID</th>
+                              <th className="py-4 px-4">Username / Email</th>
+                              <th className="py-4 px-4 text-center">Status</th>
+                              <th className="py-4 px-4 text-right">Joined Date</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5 text-sm">
+                            {isReferralsLoading ? (
+                              <tr>
+                                <td colSpan={4} className="py-20 text-center">
+                                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#7C3AED] mb-3" />
+                                  <span className="text-gray-500 font-medium">Fetching referrals...</span>
+                                </td>
+                              </tr>
+                            ) : referralsList.length > 0 ? (
+                              referralsList.map((ref: any, idx: number) => (
+                                <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                                  <td className="py-3 px-5 text-gray-400 font-mono">#{ref.id || ref.userId || 'N/A'}</td>
+                                  <td className="py-3 px-4">
+                                    <span className="font-bold text-white block">{ref.userName || ref.username || 'Unknown'}</span>
+                                    <span className="text-xs text-gray-500">{ref.email || 'N/A'}</span>
+                                  </td>
+                                  <td className="py-3 px-4 text-center">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
+                                      {ref.status || 'Active'}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-4 text-right text-gray-400">
+                                    {ref.joinedAt || ref.createdAt ? new Date(ref.joinedAt || ref.createdAt).toLocaleDateString() : 'N/A'}
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={4} className="py-20 text-center">
+                                  <div className="flex flex-col items-center gap-2 opacity-50">
+                                    <ListOrdered className="w-10 h-10 text-gray-500" />
+                                    <span className="text-gray-400 font-bold">No Referrals Found</span>
+                                    <span className="text-xs text-gray-500">This user hasn't invited anyone yet.</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      {/* Pagination for Referrals */}
+                      {!isReferralsLoading && referralsTotalPages > 0 && (
+                        <div className="mt-auto p-4 border-t border-white/5 flex items-center justify-between bg-black/20">
+                          <span className="text-xs text-gray-400">Page {referralsPage} of {referralsTotalPages}</span>
+                          <div className="flex gap-2">
+                            <button onClick={() => fetchReferrals(Math.max(referralsPage - 1, 1))} disabled={referralsPage === 1} className="p-1.5 rounded border border-white/10 text-gray-400 hover:text-white disabled:opacity-30 cursor-pointer">
+                              <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => fetchReferrals(Math.min(referralsPage + 1, referralsTotalPages))} disabled={referralsPage === referralsTotalPages} className="p-1.5 rounded border border-white/10 text-gray-400 hover:text-white disabled:opacity-30 cursor-pointer">
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* --- TAB CONTENT: COMMISSIONS LIST --- */}
+                  {activeTab === 'commissions' && (
+                    <div className="bg-[#12141C] border border-white/5 rounded-2xl overflow-hidden flex flex-col animate-in fade-in duration-300 min-h-[300px]">
+                      
+                      {/* 🔥 NEW: Commission Filter Bar */}
+                      <div className="px-5 py-3 border-b border-white/5 flex flex-wrap gap-4 justify-between items-center bg-black/20">
+                        <div className="flex items-center gap-2">
+                           <Filter className="w-4 h-4 text-gray-400" />
+                           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Filter Logs</span>
+                        </div>
+                        <select
+                           value={commissionStatusFilter}
+                           onChange={(e) => handleCommissionFilterChange(e.target.value)}
+                           className="bg-[#1A1C24] border border-white/10 text-xs font-bold rounded-lg px-3 py-1.5 text-white outline-none cursor-pointer hover:bg-[#252836] transition-colors focus:border-[#7C3AED]"
+                        >
+                          <option value="">All Status</option>
+                          <option value="COMPLETE">Complete</option>
+                          <option value="REVERSE">Reverse</option>
+                        </select>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse whitespace-nowrap">
+                          <thead>
+                            <tr className="border-b border-white/10 text-gray-400 text-xs font-bold uppercase tracking-wider bg-[#161821]">
+                              <th className="py-4 px-5">Transaction ID</th>
+                              <th className="py-4 px-4">Source / Details</th>
+                              <th className="py-4 px-4 text-center">Type</th>
+                              <th className="py-4 px-4 text-right">Amount</th>
+                              <th className="py-4 px-4 text-right">Date</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5 text-sm">
+                            {isCommissionsLoading ? (
+                              <tr>
+                                <td colSpan={5} className="py-20 text-center">
+                                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-400 mb-3" />
+                                  <span className="text-gray-500 font-medium">Loading commission logs...</span>
+                                </td>
+                              </tr>
+                            ) : commissionsList.length > 0 ? (
+                              commissionsList.map((comm: any, idx: number) => (
+                                <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                                  <td className="py-3 px-5 text-gray-400 font-mono">#{comm.id || comm.transactionId || 'N/A'}</td>
+                                  <td className="py-3 px-4">
+                                    <span className="font-bold text-white block">{comm.source || comm.description || 'Referral Bonus'}</span>
+                                    <span className="text-xs text-gray-500">From User: #{comm.fromUserId || 'Unknown'}</span>
+                                  </td>
+                                  <td className="py-3 px-4 text-center">
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
+                                      comm.type?.toLowerCase() === 'reverse' || comm.status?.toLowerCase() === 'reverse'
+                                        ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                        : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                    }`}>
+                                      {comm.type || comm.status || 'Complete'}
+                                    </span>
+                                  </td>
+                                  <td className={`py-3 px-4 text-right font-black ${
+                                    comm.type?.toLowerCase() === 'reverse' || comm.status?.toLowerCase() === 'reverse' ? 'text-rose-400' : 'text-emerald-400'
+                                  }`}>
+                                    {comm.type?.toLowerCase() === 'reverse' || comm.status?.toLowerCase() === 'reverse' ? '-' : '+'}
+                                    {formatPrice(Number(comm.amount || 0), currency)}
+                                  </td>
+                                  <td className="py-3 px-4 text-right text-gray-400">
+                                    {comm.createdAt || comm.date ? new Date(comm.createdAt || comm.date).toLocaleDateString() : 'N/A'}
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={5} className="py-20 text-center">
+                                  <div className="flex flex-col items-center gap-2 opacity-50">
+                                    <Receipt className="w-10 h-10 text-gray-500" />
+                                    <span className="text-gray-400 font-bold">No Commissions Found</span>
+                                    <span className="text-xs text-gray-500">
+                                      {commissionStatusFilter !== '' 
+                                        ? `No ${commissionStatusFilter.toLowerCase()} commissions available.` 
+                                        : "This user hasn't earned any commissions."}
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      {/* Pagination for Commissions */}
+                      {!isCommissionsLoading && commissionsTotalPages > 0 && (
+                        <div className="mt-auto p-4 border-t border-white/5 flex items-center justify-between bg-black/20">
+                          <span className="text-xs text-gray-400">Page {commissionsPage} of {commissionsTotalPages}</span>
+                          <div className="flex gap-2">
+                            <button onClick={() => fetchCommissions(Math.max(commissionsPage - 1, 1), commissionStatusFilter)} disabled={commissionsPage === 1} className="p-1.5 rounded border border-white/10 text-gray-400 hover:text-white disabled:opacity-30 cursor-pointer">
+                              <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => fetchCommissions(Math.min(commissionsPage + 1, commissionsTotalPages), commissionStatusFilter)} disabled={commissionsPage === commissionsTotalPages} className="p-1.5 rounded border border-white/10 text-gray-400 hover:text-white disabled:opacity-30 cursor-pointer">
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                 </div>
               )}
-              <div className="w-full py-6 flex justify-center">
-                {isModalActivityLoading && (
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-[#8B5CF6]" />
-                    <span className="text-xs text-gray-500 font-bold tracking-widest uppercase">Loading more...</span>
-                  </div>
-                )}
-                {!hasMoreModal && modalActivities.length > 0 && !isModalActivityLoading && (
-                  <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">End of activity history</span>
-                )}
-              </div>
             </div>
           </div>
         </div>
       )}
+
+      <style dangerouslySetInnerHTML={{__html: `
+        .dashed-line {
+          background-image: linear-gradient(to right, currentColor 33%, rgba(255,255,255,0) 0%);
+          background-position: bottom;
+          background-size: 6px 1px;
+          background-repeat: repeat-x;
+          height: 1px;
+          background-color: transparent;
+        }
+      `}} />
 
     </div>
   );

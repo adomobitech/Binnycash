@@ -127,9 +127,6 @@ export default function Navbar() {
   const [isAppModalOpen, setIsAppModalOpen] = useState(false);
 
   const navRef = useRef<HTMLElement>(null);
-  const lastFetchRef = useRef<number>(0);
-  
-  // 🔥 FIX: Refs for userDetails logic
   const lastProfileFetchRef = useRef<number>(0);
   const isProfileFetching = useRef<boolean>(false);
 
@@ -197,6 +194,7 @@ export default function Navbar() {
     }
   };
 
+  // 🔥 WALLET FETCH - EVENT DRIVEN ONLY (NO setInterval Polling)
   useEffect(() => {
     let isMounted = true;
     let isFetching = false;
@@ -212,54 +210,74 @@ export default function Navbar() {
 
       if (isMounted) setIsLoggedIn(true);
 
-      const now = Date.now();
-      if (isFetching || (now - lastFetchRef.current < 2000)) {
-        return;
-      }
+      if (isFetching) return;
       isFetching = true;
-      lastFetchRef.current = now;
 
       try {
-        const res = await fetch('https://apitest.binnycash.com/api/user/balance/total-amount', {
+        const res = await fetch(`https://apitest.binnycash.com/api/user/balance/total-amount?t=${Date.now()}`, {
           method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` },
-          cache: 'no-store'
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
+          cache: 'no-store' 
         });
 
         if (!res.ok) {
+           if (isMounted) {
+             setBalance('0.00');
+             localStorage.setItem('cached_balance', '0.00');
+           }
            isFetching = false;
            return; 
         }
 
         const text = await res.text();
         if (!text || text.trim().startsWith('<')) {
+           if (isMounted) {
+             setBalance('0.00');
+             localStorage.setItem('cached_balance', '0.00');
+           }
            isFetching = false;
            return;
         }
+        
         const data = JSON.parse(text);
 
         if (isMounted && data && data.data !== undefined) {
-          setBalance(String(data.data));
-          localStorage.setItem('cached_balance', String(data.data));
+          const liveBalance = Number(data.data).toFixed(2);
+          setBalance(liveBalance);
+          localStorage.setItem('cached_balance', liveBalance);
         }
       } catch (err) {
          console.error("Wallet fetch error:", err);
+         if (isMounted) {
+           setBalance('0.00');
+           localStorage.setItem('cached_balance', '0.00');
+         }
       } finally {
          isFetching = false;
       }
     };
 
     if (isLoggedIn) {
+      // 1. Initial fetch on load
       fetchWalletBalance();
+
+      // 2. Fetch on custom event 'walletUpdated'
+      window.addEventListener('walletUpdated', fetchWalletBalance);
+      
+      // 3. Fetch when user returns to the tab
+      window.addEventListener('focus', fetchWalletBalance);
+
+      return () => {
+        isMounted = false;
+        window.removeEventListener('walletUpdated', fetchWalletBalance);
+        window.removeEventListener('focus', fetchWalletBalance);
+      };
     }
-
-    const handleWalletUpdate = () => fetchWalletBalance();
-    window.addEventListener('walletUpdated', handleWalletUpdate);
-
-    return () => {
-      isMounted = false;
-      window.removeEventListener('walletUpdated', handleWalletUpdate);
-    };
   }, [isLoggedIn]);
 
   const resolveImage = (imgSrc: string) => {
@@ -268,14 +286,12 @@ export default function Navbar() {
     return `https://apitest.binnycash.com${imgSrc}`;
   };
 
-  // 🔥 PROFILE FETCH FIX: Reads from LocalStorage first to prevent double API call
   const fetchUserData = async (forceFetch = false) => {
     if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return;
 
     const token = localStorage.getItem('token');
     if (!token || token.includes('[object Object]')) return;
 
-    // Helper to process and set user data
     const processUser = (user: any) => {
        if (!user) return false;
        if (user.id || user._id) setTrueUserId(String(user.id || user._id));
@@ -296,7 +312,6 @@ export default function Navbar() {
        return true;
     };
 
-    // 1. Check LocalStorage first (Skips API call if data is already loaded by AuthContext)
     if (!forceFetch) {
        try {
           const raw = localStorage.getItem('userDetails') || localStorage.getItem('loginResponse') || localStorage.getItem('user');
@@ -305,13 +320,12 @@ export default function Navbar() {
              const user = parsed?.data?.user || parsed?.data?.userDetails || parsed?.data || parsed?.userDetails || parsed;
              if (user && (user.userName || user.email || user.firstName)) {
                 processUser(user);
-                return; // Stop here, no network call needed!
+                return;
              }
           }
        } catch(e) {}
     }
 
-    // 2. Throttle API call if forced or not found in storage
     const now = Date.now();
     if (isProfileFetching.current || (now - lastProfileFetchRef.current < 2000)) return;
     
@@ -333,7 +347,6 @@ export default function Navbar() {
          const user = data?.data?.user || data?.data || data?.userDetails || data;
          if (user) {
             processUser(user);
-            // Save to localStorage for future rapid loading
             localStorage.setItem('userDetails', JSON.stringify(data));
          }
       }
@@ -346,10 +359,10 @@ export default function Navbar() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      fetchUserData(false); // Normal load (tries cache first)
+      fetchUserData(false);
       
       const handleProfileUpdate = () => {
-        fetchUserData(true); // Force fetch on profile update
+        fetchUserData(true);
       };
       window.addEventListener('profileUpdated', handleProfileUpdate);
       return () => {
@@ -946,7 +959,6 @@ export default function Navbar() {
                   <span className="text-sm font-bold">Affiliates</span>
                 </Link>
 
-                {/* 櫨 GET THE APP MOBILE MENU BUTTON 櫨 */}
                 <button 
                   onClick={() => { setIsMobileMenuOpen(false); setIsAppModalOpen(true); }} 
                   className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-gradient-to-r from-[#8B5CF6]/20 to-transparent border border-[#8B5CF6]/30 hover:border-[#8B5CF6]/50 text-white transition-all mt-2 cursor-pointer"
