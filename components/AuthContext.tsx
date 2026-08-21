@@ -135,6 +135,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             
             localStorage.setItem('currency', resolvedCurrency);
             window.dispatchEvent(new CustomEvent('currencyChanged', { detail: resolvedCurrency }));
+
+            // 🔥 FIX: Google-login redirect often only carries id/token (no name/username),
+            // so the earlier userDetails saved by captureGoogleAuthFromUrl can be incomplete.
+            // Now that we've fetched the full profile from the backend, merge it into
+            // localStorage['userDetails'] as well, so Dashboard shows the real username
+            // on first paint instead of the "User" fallback (same as OTP login/signup).
+            try {
+              const existingRaw = localStorage.getItem('userDetails');
+              const existing = existingRaw ? JSON.parse(existingRaw) : {};
+              const mergedUser = { ...existing, ...user };
+              localStorage.setItem('userDetails', JSON.stringify(mergedUser));
+
+              const mergedId = mergedUser.id || mergedUser._id || mergedUser.userId;
+              if (mergedId) {
+                localStorage.setItem('userId', String(mergedId));
+              }
+            } catch {
+              localStorage.setItem('userDetails', JSON.stringify(user));
+            }
+
+            window.dispatchEvent(new Event('storage'));
+            window.dispatchEvent(new CustomEvent('profileUpdated'));
           }
         } else {
           // If strictly unauthorized, remove tokens

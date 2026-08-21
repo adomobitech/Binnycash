@@ -52,7 +52,6 @@ export default function GlobalTicker() {
 
   useEffect(() => {
     if (pathname === "/") {
-       // Disconnect socket if user goes to homepage to save requests
        if(socket) {
            socket.disconnect();
            socket = null;
@@ -65,7 +64,7 @@ export default function GlobalTicker() {
         transports: ["polling"],
         autoConnect: true,
         reconnection: true,
-        reconnectionDelay: 5000, // Thoda aur delay add kiya error aane pe
+        reconnectionDelay: 5000, 
       });
 
       socket.on("new-inbox", handleNewInbox);
@@ -92,7 +91,6 @@ export default function GlobalTicker() {
     }
 
     return () => {
-       // Only cleanup the listener, keep the socket alive unless on homepage
        if(socket) {
            socket.off("new-inbox", handleNewInbox);
            socket.off("userActivity", handleNewInbox);
