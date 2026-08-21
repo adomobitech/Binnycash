@@ -158,7 +158,7 @@ export default function AffiliatePage() {
     totalCommission: 0
   });
   
-  const [referralLink, setReferralLink] = useState('Loading...');
+  const [referralLink, setReferralLink] = useState('...');
   const [tierData, setTierData] = useState<any>({ currentTier: 1, currentReferralEarning: 0, levels: [] });
   const [affiliateUsers, setAffiliateUsers] = useState<any[]>([]);
 
@@ -183,44 +183,41 @@ export default function AffiliatePage() {
 
       const token = localStorage.getItem('token') || '';
       const userId = getUserId();
+      
       if (!userId) { 
         if(isMounted) setIsLoading(false); 
         return; 
       }
 
+      // Safe JSON Parser
       const safeParse = async (res: Response) => {
         try {
           const text = await res.text();
           if (text && !text.trim().startsWith('<')) {
             return JSON.parse(text);
           }
-          return { code: 500, data: null, message: "HTML returned instead of JSON" };
+          return { code: 500, data: null, message: "HTML Format Returned" };
         } catch (error) {
-          return { code: 500, data: null, message: "Parse Failed" };
+          return { code: 500, data: null, message: "JSON Parse Failed" };
         }
       };
 
       try {
-        // 🔥 NEW: Page khulte hi Auto Claim wali API hit hogi baaki sab data se pehle
-        try {
-          const claimRes = await fetch(`https://apitest.binnycash.com/api/user/autoCliam`, { 
-            method: 'POST', // Note: Agar backend ko POST chahiye toh isse 'POST' kar dena
-            headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            } 
-          });
+        // 🔥 FIX 1: Auto-Claim fetch is now non-blocking
+        fetch(`https://apitest.binnycash.com/api/user/autoCliam`, { 
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }).then(async (claimRes) => {
           const claimData = await safeParse(claimRes);
-          
-          // Agar kuch claim hua hai (amount > 0), toh Navbar ka balance bhi instantly update karwa do
           if (claimData?.code === 200 && claimData?.data?.amount > 0) {
              window.dispatchEvent(new Event('walletUpdated'));
           }
-        } catch (err) {
-          console.error("Auto claim fetch error:", err);
-        }
+        }).catch(err => console.error("Auto claim fetch error:", err));
 
-        // Auto Claim ke turant baad tera regular overview, tier aur list fetch ho jayega
+        // 🔥 FIX 2: Parallel fetching of all core APIs
         const [dashRes, profileRes, tierRes, affiliateListRes] = await Promise.all([
           fetch(`https://apitest.binnycash.com/api/user/affiliate_overview`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`https://apitest.binnycash.com/api/user/userDetails?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
@@ -237,14 +234,24 @@ export default function AffiliatePage() {
 
         if (!isMounted) return;
 
-        if (dashJson.code === 200 && dashJson.data) setDashboardData(dashJson.data);
+        if (dashJson.code === 200 && dashJson.data) {
+          setDashboardData(dashJson.data);
+        }
         
+        // Extract referralLink intelligently
         const userObj = profileJson?.data?.user || profileJson?.data || profileJson;
         if (userObj?.referralUrl) {
           setReferralLink(userObj.referralUrl);
+        } else if (userObj?.referralCode) {
+          // Fallback if URL is missing but code is present
+          setReferralLink(`https://www.binnycash.com/?ref=${userObj.referralCode}`);
+        } else {
+          setReferralLink('No Link Available');
         }
 
-        if (tierJson.code === 200 && tierJson.data) setTierData(tierJson.data);
+        if (tierJson.code === 200 && tierJson.data) {
+          setTierData(tierJson.data);
+        }
         
         if (affiliateListJson.code === 200) {
           const usersArray = affiliateListJson.data?.users || (Array.isArray(affiliateListJson.data) ? affiliateListJson.data : []);
@@ -326,7 +333,6 @@ export default function AffiliatePage() {
           <div className="flex gap-4 w-full md:w-auto overflow-x-auto no-scrollbar pb-2 md:pb-0">
             {[
               { icon: Users, color: '#3B82F6', bg: 'bg-[#3B82F6]/20', text: 'Total Referrals', value: dashboardData?.totalRefer || 0 },
-              { icon: DollarSign, color: '#A855F7', bg: 'bg-[#8B5CF6]/20', text: 'Total Refer Earnings', value: formatPrice(Number(dashboardData?.totalReferEarning) || 0, currency) },
               { icon: Clock, color: '#F59E0B', bg: 'bg-[#F59E0B]/20', text: 'Pending Amount', value: formatPrice(Number(dashboardData?.totalPendingAmount) || 0, currency) },
               { icon: Wallet, color: '#10B981', bg: 'bg-[#10B981]/20', text: 'Paid Amount', value: formatPrice(Number(dashboardData?.totalCommission) || 0, currency) },
               { icon: ShieldAlert, color: '#EF4444', bg: 'bg-[#EF4444]/20', text: 'Reversal Amount', value: formatPrice(Number(dashboardData?.totalReversalAmount) || 0, currency) },
@@ -390,7 +396,7 @@ export default function AffiliatePage() {
              <div>
                 <h3 className="text-sm font-bold text-white mb-4">Referral Link</h3>
                 <div className="flex items-center w-full bg-[#0B0D14] border border-white/10 rounded-xl p-1.5 focus-within:border-[#8B5CF6] transition-colors mb-2 shadow-inner">
-                  <input type="text" readOnly value={referralLink} className="w-full bg-transparent px-3 py-2 text-xs text-[#8F95A3] focus:outline-none truncate" />
+                  <input type="text" readOnly value={referralLink} className="w-full bg-transparent px-3 py-2 text-xs text-white opacity-80 focus:outline-none truncate font-mono" />
                   <motion.button whileTap={{ scale: 0.95 }} onClick={handleCopy} className="h-9 px-4 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0">
                     <AnimatePresence mode="wait" initial={false}>
                       {copied ? (

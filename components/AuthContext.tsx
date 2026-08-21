@@ -12,6 +12,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// 🔥 FIX: Run URL extraction immediately so dashboard components get the token on first render
 function captureGoogleAuthFromUrl() {
   if (typeof window === 'undefined') return false;
 
@@ -36,12 +37,20 @@ function captureGoogleAuthFromUrl() {
     }
   }
 
+  let extractedId = directId;
+
   if (userDetails) {
     localStorage.setItem('userDetails', JSON.stringify(userDetails));
+    extractedId = userDetails.id || userDetails._id || userDetails.userId || directId;
   } else if (directId) {
     localStorage.setItem('userDetails', JSON.stringify({ id: directId }));
   }
 
+  if (extractedId) {
+    localStorage.setItem('userId', String(extractedId));
+  }
+
+  // Cleanup URL
   params.delete('token');
   params.delete('accessToken');
   params.delete('access_token');
@@ -54,14 +63,24 @@ function captureGoogleAuthFromUrl() {
   const cleanUrl = window.location.pathname + (cleanQuery ? `?${cleanQuery}` : '') + window.location.hash;
   window.history.replaceState({}, '', cleanUrl);
   
+  // WAKE UP ENTIRE APP IMMEDIATELY
+  setTimeout(() => {
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('profileUpdated'));
+  }, 50);
+
   return true;
+}
+
+// 🔥 GLOBAL EXECUTION: Runs before React Hydration is complete 🔥
+if (typeof window !== 'undefined') {
+  captureGoogleAuthFromUrl();
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [initialView, setInitialView] = useState<'login' | 'register'>('login');
   
-  // 🔥 HYDRATION STATE 🔥
   const [isAppLoading, setIsAppLoading] = useState(true);
   
   const router = useRouter();
@@ -69,14 +88,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleAuthCheck = async () => {
-      captureGoogleAuthFromUrl();
-
       const token = localStorage.getItem('token');
       
       const protectedRoutes = ['/dashboard', '/myoffers', '/affiliate', '/leaderboard', '/cashout', '/rewards', '/profile'];
       const isProtectedRoute = protectedRoutes.some(route => pathname?.startsWith(route));
 
-      // 🔥 AUTO-OPEN SIGNUP IF REF PARAM IS PRESENT 🔥
+      // AUTO-OPEN SIGNUP IF REF PARAM IS PRESENT
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         if (params.get('ref') && (!token || token === 'undefined')) {
@@ -94,14 +111,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        // 🔥 FIX: ENDPOINT CHANGED TO /userDetails 🔥
         const res = await fetch('https://apitest.binnycash.com/api/user/userDetails', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (res.ok) {
-          // 🔥 FIX: 100% BULLETPROOF JSON PARSE 🔥
           let data: any = null;
           try {
             const text = await res.text();
@@ -112,7 +127,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.warn("AuthContext Parse Error Safely Handled");
           }
           
-          // Maps new JSON structure dynamically
           const user = data?.data?.user || data?.data || data?.userDetails || data;
           
           if (user) {

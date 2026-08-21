@@ -127,6 +127,7 @@ export default function Navbar() {
   const [isAppModalOpen, setIsAppModalOpen] = useState(false);
 
   const navRef = useRef<HTMLElement>(null);
+  const lastFetchRef = useRef<number>(0);
   const lastProfileFetchRef = useRef<number>(0);
   const isProfileFetching = useRef<boolean>(false);
 
@@ -158,16 +159,16 @@ export default function Navbar() {
     };
   }, []);
 
+  // 🔥 DIRECT REDIRECT FROM HOMEPAGE (No Splash Screen Conflicts) 🔥
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && token !== 'undefined' && pathname === '/') {
       setIsRouting(true);
-      const timer = setTimeout(() => setIsRouting(false), 4000);
-      return () => clearTimeout(timer);
+      router.replace('/dashboard'); 
     } else {
       setIsRouting(false);
     }
-  }, [pathname]);
+  }, [pathname, router]);
 
   useEffect(() => {
     const currentLangObj = LANGUAGES.find(l => l.code === locale) || LANGUAGES[0];
@@ -194,7 +195,6 @@ export default function Navbar() {
     }
   };
 
-  // 🔥 WALLET FETCH - EVENT DRIVEN ONLY (NO setInterval Polling)
   useEffect(() => {
     let isMounted = true;
     let isFetching = false;
@@ -263,13 +263,8 @@ export default function Navbar() {
     };
 
     if (isLoggedIn) {
-      // 1. Initial fetch on load
       fetchWalletBalance();
-
-      // 2. Fetch on custom event 'walletUpdated'
       window.addEventListener('walletUpdated', fetchWalletBalance);
-      
-      // 3. Fetch when user returns to the tab
       window.addEventListener('focus', fetchWalletBalance);
 
       return () => {

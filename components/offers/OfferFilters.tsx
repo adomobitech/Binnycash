@@ -37,24 +37,40 @@ export default function OfferFilters({
   onSelectDevice 
 }: any) {
   
-  // 🔥 FIX: Bridge logic to support both Dashboard (Array) and Offers Page (String) 🔥
-  let activeList: string[] = [];
-  if (typeof selectedDevice === 'string') {
-    activeList = [selectedDevice];
-  } else if (Array.isArray(selectedDevices)) {
-    activeList = selectedDevices;
+  // 🔥 STRICTLY EXTRACT THE SINGLE ACTIVE FILTER 🔥
+  let currentActive = 'all';
+
+  if (typeof selectedDevice === 'string' && selectedDevice.trim() !== '') {
+    currentActive = selectedDevice.toLowerCase();
+  } 
+  else if (Array.isArray(selectedDevices) && selectedDevices.length > 0) {
+    // Parent me array hone par bhi hamesha last (newly clicked) item ko hi sach manenge
+    currentActive = String(selectedDevices[selectedDevices.length - 1]).toLowerCase();
+  } 
+  else if (typeof selectedDevices === 'string' && selectedDevices !== '') {
+    currentActive = selectedDevices.toLowerCase();
   }
 
-  const isAllSelected = activeList.length === 0 || activeList.includes('all') || activeList.includes('');
+  const isAllSelected = currentActive === 'all';
 
   const handleSelect = (id: string) => {
-    if (onSelectDevice) onSelectDevice(id);
+    if (!onSelectDevice) return;
+
+    // 🔥 "Dusra select ho toh pehla hat jaye" - Absolute Fix 🔥
+    // Agar Dashboard Array form me data expect karta hai, toh hum purani array 
+    // ko append karne ke bajaye *overwrite* kar denge sirf 1 naye element ke sath.
+    if (Array.isArray(selectedDevices)) {
+      onSelectDevice([id]); 
+    } else {
+      // Agar Offers Page String form expect karta hai
+      onSelectDevice(id);
+    }
   };
 
   return (
     <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
       {devices.map((dev) => {
-        const isActive = dev.id === 'all' ? isAllSelected : activeList.includes(dev.id); 
+        const isActive = dev.id === 'all' ? isAllSelected : currentActive === dev.id; 
         
         return (
           <button

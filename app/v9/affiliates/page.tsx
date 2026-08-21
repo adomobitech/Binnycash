@@ -6,7 +6,7 @@ import {
   Users, Search, Eye, ChevronLeft, ChevronRight, X, Loader2, 
   AlertCircle, Share2, DollarSign, Activity, MonitorSmartphone, 
   TrendingUp, Copy, CheckCircle2, RefreshCcw, Lock, Unlock,
-  MousePointerClick, UserPlus, Zap, Globe, ShieldCheck, ListOrdered, Receipt, Filter
+  MousePointerClick, UserPlus, Zap, Globe, ShieldCheck, ListOrdered, Receipt, Filter, Settings, Edit2, Save, Trash2, Plus, Info
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -29,30 +29,35 @@ export default function AdminAffiliatesPage() {
     totalPages: 1
   });
 
-  // --- MODAL (DETAIL VIEW) STATES ---
+  // --- AFFILIATE DETAIL MODAL STATES ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [affiliateDetail, setAffiliateDetail] = useState<any>(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [isLockActionLoading, setIsLockActionLoading] = useState(false);
-
-  // --- TABS & SUB-LIST STATES ---
   const [activeTab, setActiveTab] = useState<'overview' | 'referrals' | 'commissions'>('overview');
   
-  // Referrals State
+  // Sub-list States
   const [referralsList, setReferralsList] = useState<any[]>([]);
   const [isReferralsLoading, setIsReferralsLoading] = useState(false);
   const [referralsPage, setReferralsPage] = useState(1);
   const [referralsTotalPages, setReferralsTotalPages] = useState(1);
 
-  // Commissions State
   const [commissionsList, setCommissionsList] = useState<any[]>([]);
   const [isCommissionsLoading, setIsCommissionsLoading] = useState(false);
   const [commissionsPage, setCommissionsPage] = useState(1);
   const [commissionsTotalPages, setCommissionsTotalPages] = useState(1);
-  
-  // 🔥 NEW: Commission Status Filter State
-  const [commissionStatusFilter, setCommissionStatusFilter] = useState<string>(''); // '' means All
+  const [commissionStatusFilter, setCommissionStatusFilter] = useState<string>('');
+
+  // 🔥 NEW: TIER SETTINGS STATES 🔥
+  const [isTierModalOpen, setIsTierModalOpen] = useState(false);
+  const [tierLevels, setTierLevels] = useState<any[]>([]);
+  const [isTierLoading, setIsTierLoading] = useState(false);
+  const [editingTierId, setEditingTierId] = useState<string | number | null>(null);
+  const [editFormData, setEditFormData] = useState({ commissionPercent: 0, referralAmount: 0 });
+  const [isSavingTier, setIsSavingTier] = useState(false);
+  const [isDeletingTier, setIsDeletingTier] = useState(false);
+  const [isAddingTier, setIsAddingTier] = useState(false);
 
   const resolveImage = (imgSrc: string | null) => {
     if (!imgSrc || imgSrc.trim() === '') return null;
@@ -113,7 +118,7 @@ export default function AdminAffiliatesPage() {
     setCopiedCode(false);
     setReferralsList([]);
     setCommissionsList([]);
-    setCommissionStatusFilter(''); // Modal khulne par filter hamesha reset hoga
+    setCommissionStatusFilter(''); 
     
     const token = localStorage.getItem('admin_token');
 
@@ -136,7 +141,6 @@ export default function AdminAffiliatesPage() {
     }
   };
 
-  // 3. ACTION: Toggle Tier Level Lock
   const handleToggleTierLock = async () => {
     if (!affiliateDetail?.userInformation?.userId) return;
     setIsLockActionLoading(true);
@@ -169,7 +173,6 @@ export default function AdminAffiliatesPage() {
     }
   };
 
-  // 4. FETCH REFERRALS LIST
   const fetchReferrals = async (page = 1) => {
     if (!affiliateDetail?.userInformation?.userId) return;
     setIsReferralsLoading(true);
@@ -193,17 +196,13 @@ export default function AdminAffiliatesPage() {
     }
   };
 
-  // 🔥 5. FETCH COMMISSIONS LIST (With Status Filter)
   const fetchCommissions = async (page = 1, status = commissionStatusFilter) => {
     if (!affiliateDetail?.userInformation?.userId) return;
     setIsCommissionsLoading(true);
     const token = localStorage.getItem('admin_token');
     
-    // Build URL with optional status query
     let url = `https://apitest.binnycash.com/api/admin/affiliates/${affiliateDetail.userInformation.userId}/commissions?page=${page}&limit=10`;
-    if (status && status !== '') {
-      url += `&status=${status}`;
-    }
+    if (status && status !== '') url += `&status=${status}`;
 
     try {
       const res = await fetch(url, {
@@ -224,17 +223,150 @@ export default function AdminAffiliatesPage() {
     }
   };
 
-  // Handle Commission Filter Change
   const handleCommissionFilterChange = (newStatus: string) => {
     setCommissionStatusFilter(newStatus);
     fetchCommissions(1, newStatus);
   };
 
-  // Trigger sub-list fetches when tabs change
   useEffect(() => {
     if (activeTab === 'referrals' && referralsList.length === 0) fetchReferrals(1);
     if (activeTab === 'commissions' && commissionsList.length === 0) fetchCommissions(1, commissionStatusFilter);
   }, [activeTab]);
+
+
+  // 🔥 TIER LEVEL FUNCTIONS 🔥
+  const fetchAllTiers = async () => {
+    setIsTierLoading(true);
+    const token = localStorage.getItem('admin_token');
+    try {
+      const res = await fetch(`https://apitest.binnycash.com/api/admin/levels`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+      });
+      const json = await res.json();
+      if (res.ok && json.code === 200 && Array.isArray(json.data)) {
+        setTierLevels(json.data);
+      } else {
+        setTierLevels([]);
+      }
+    } catch (e) {
+      alert("Network Error while loading tiers.");
+    } finally {
+      setIsTierLoading(false);
+    }
+  };
+
+  const openTierSettings = () => {
+    setIsTierModalOpen(true);
+    setEditingTierId(null);
+    fetchAllTiers();
+  };
+
+  const startEditingTier = (tier: any) => {
+    setEditingTierId(tier._id || tier.level);
+    setEditFormData({ 
+      commissionPercent: tier.commissionPercent || 0, 
+      referralAmount: tier.referralAmount || 0 
+    });
+  };
+
+  const saveTier = async (tier: any) => {
+    setIsSavingTier(true);
+    const token = localStorage.getItem('admin_token');
+
+    const payload = {
+      _id: tier._id || "", 
+      level: tier.level,
+      commissionPercent: Number(editFormData.commissionPercent),
+      referralAmount: Number(editFormData.referralAmount)
+    };
+
+    try {
+      const res = await fetch(`https://apitest.binnycash.com/api/admin/levels`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const json = await res.json();
+      if (res.ok && (json.code === 200 || json.type === 'success')) {
+        setTierLevels(prev => prev.map(t => (t._id === tier._id || t.level === tier.level) ? { ...t, ...payload } : t));
+        setEditingTierId(null);
+      } else {
+        alert(json.message || "Failed to update tier.");
+      }
+    } catch (e) {
+      alert("Network Error while saving tier.");
+    } finally {
+      setIsSavingTier(false);
+    }
+  };
+
+  // NEW: Add Tier Level
+  const addNewTierLevel = async () => {
+    setIsAddingTier(true);
+    const token = localStorage.getItem('admin_token');
+    
+    const sorted = [...tierLevels].sort((a, b) => a.level - b.level);
+    const nextLevel = sorted.length > 0 ? sorted[sorted.length - 1].level + 1 : 1;
+
+    const payload = {
+      level: nextLevel,
+      commissionPercent: 0,
+      referralAmount: 0
+    };
+
+    try {
+      const res = await fetch(`https://apitest.binnycash.com/api/admin/levels`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const json = await res.json();
+      if (res.ok && (json.code === 200 || json.type === 'success')) {
+        await fetchAllTiers(); // Refetch to get actual _id from DB
+      } else {
+        alert(json.message || "Failed to add new tier.");
+      }
+    } catch (e) {
+      alert("Network Error while adding tier.");
+    } finally {
+      setIsAddingTier(false);
+    }
+  };
+
+  // NEW: Delete Highest Tier Level
+  const deleteLastTier = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this level? This action cannot be undone.")) return;
+    
+    setIsDeletingTier(true);
+    const token = localStorage.getItem('admin_token');
+
+    try {
+      const res = await fetch(`https://apitest.binnycash.com/api/admin/levels/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+      });
+      
+      const json = await res.json();
+      if (res.ok && (json.code === 200 || json.type === 'success')) {
+        setTierLevels(prev => prev.filter(t => t._id !== id));
+      } else {
+        alert(json.message || "Cannot delete the last remaining level.");
+      }
+    } catch (e) {
+      alert("Network Error while deleting tier.");
+    } finally {
+      setIsDeletingTier(false);
+    }
+  };
 
   const safeAffiliates = Array.isArray(affiliates) ? affiliates : [];
   const filteredAffiliates = safeAffiliates.filter(a => {
@@ -261,13 +393,21 @@ export default function AdminAffiliatesPage() {
           </h1>
           <p className="text-sm text-gray-400 mt-1">Monitor user referral performances, tiers, and earnings.</p>
         </div>
-        <button 
-          onClick={() => fetchAffiliates(currentPage)} 
-          disabled={isLoading}
-          className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
-        >
-          <RefreshCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh Data
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={openTierSettings} 
+            className="flex items-center gap-2 bg-[#12141C] hover:bg-[#1A1C24] border border-[#7C3AED]/30 text-[#A855F7] px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm cursor-pointer"
+          >
+            <Settings className="w-4 h-4" /> Tier Settings
+          </button>
+          <button 
+            onClick={() => fetchAffiliates(currentPage)} 
+            disabled={isLoading}
+            className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+          >
+            <RefreshCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
+          </button>
+        </div>
       </div>
 
       {errorMsg && (
@@ -356,7 +496,7 @@ export default function AdminAffiliatesPage() {
                       <td className="py-3 px-4 text-center">
                         <button 
                           onClick={() => handleViewDetails(u?.id || u?.userId)}
-                          className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-4 py-2 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 text-xs font-bold mx-auto shadow-sm"
+                          className="bg-[#7C3AED]/10 hover:bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/20 px-4 py-2 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 text-xs font-bold mx-auto shadow-sm"
                         >
                           <Eye className="w-4 h-4" /> View Stats
                         </button>
@@ -404,7 +544,6 @@ export default function AdminAffiliatesPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-md overflow-y-auto">
           <div className="bg-[#0B0D14] border border-white/10 w-full max-w-5xl rounded-[24px] shadow-2xl relative flex flex-col overflow-hidden max-h-[95vh]">
             
-            {/* Modal Header */}
             <div className="bg-[#12141C] border-b border-white/5 px-6 py-4 flex items-center justify-between shrink-0">
               <h3 className="text-lg font-black text-white flex items-center gap-2">
                 <Activity className="w-5 h-5 text-[#7C3AED]" /> Detailed Affiliate Intelligence
@@ -415,7 +554,7 @@ export default function AdminAffiliatesPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 bg-gradient-to-b from-white/[0.02] to-transparent">
-              
+              {/* Rest of Affiliate View Logic (Same as before) */}
               {isDetailLoading ? (
                 <div className="py-32 flex flex-col items-center justify-center gap-4">
                   <Loader2 className="w-10 h-10 animate-spin text-[#7C3AED]" />
@@ -430,7 +569,7 @@ export default function AdminAffiliatesPage() {
               ) : (
                 <div className="flex flex-col gap-6">
                   
-                  {/* 1. PROFILE HEADER CARD */}
+                  {/* PROFILE HEADER CARD */}
                   <div className="bg-[#12141C]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-lg flex flex-col md:flex-row gap-6 items-center justify-between relative overflow-hidden">
                      <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#7C3AED]/20 blur-[80px] pointer-events-none rounded-full" />
                      <div className="flex items-center gap-5 z-10 w-full md:w-auto">
@@ -462,7 +601,7 @@ export default function AdminAffiliatesPage() {
                      </div>
                   </div>
 
-                  {/* --- TAB NAVIGATION --- */}
+                  {/* TAB NAVIGATION */}
                   <div className="flex items-center gap-2 p-1 bg-[#12141C] rounded-xl border border-white/5 w-fit">
                     <button onClick={() => setActiveTab('overview')} className={`px-5 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === 'overview' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}>
                       <Activity className="w-4 h-4"/> Overview
@@ -475,7 +614,7 @@ export default function AdminAffiliatesPage() {
                     </button>
                   </div>
 
-                  {/* --- TAB CONTENT: OVERVIEW --- */}
+                  {/* OVERVIEW TAB */}
                   {activeTab === 'overview' && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in zoom-in duration-300">
                       
@@ -600,7 +739,7 @@ export default function AdminAffiliatesPage() {
                     </div>
                   )}
 
-                  {/* --- TAB CONTENT: REFERRALS LIST --- */}
+                  {/* REFERRALS LIST TAB */}
                   {activeTab === 'referrals' && (
                     <div className="bg-[#12141C] border border-white/5 rounded-2xl overflow-hidden flex flex-col animate-in fade-in duration-300 min-h-[300px]">
                       <div className="overflow-x-auto">
@@ -654,7 +793,6 @@ export default function AdminAffiliatesPage() {
                         </table>
                       </div>
                       
-                      {/* Pagination for Referrals */}
                       {!isReferralsLoading && referralsTotalPages > 0 && (
                         <div className="mt-auto p-4 border-t border-white/5 flex items-center justify-between bg-black/20">
                           <span className="text-xs text-gray-400">Page {referralsPage} of {referralsTotalPages}</span>
@@ -671,11 +809,9 @@ export default function AdminAffiliatesPage() {
                     </div>
                   )}
 
-                  {/* --- TAB CONTENT: COMMISSIONS LIST --- */}
+                  {/* COMMISSIONS LIST TAB */}
                   {activeTab === 'commissions' && (
                     <div className="bg-[#12141C] border border-white/5 rounded-2xl overflow-hidden flex flex-col animate-in fade-in duration-300 min-h-[300px]">
-                      
-                      {/* 🔥 NEW: Commission Filter Bar */}
                       <div className="px-5 py-3 border-b border-white/5 flex flex-wrap gap-4 justify-between items-center bg-black/20">
                         <div className="flex items-center gap-2">
                            <Filter className="w-4 h-4 text-gray-400" />
@@ -758,7 +894,6 @@ export default function AdminAffiliatesPage() {
                         </table>
                       </div>
                       
-                      {/* Pagination for Commissions */}
                       {!isCommissionsLoading && commissionsTotalPages > 0 && (
                         <div className="mt-auto p-4 border-t border-white/5 flex items-center justify-between bg-black/20">
                           <span className="text-xs text-gray-400">Page {commissionsPage} of {commissionsTotalPages}</span>
@@ -775,6 +910,168 @@ export default function AdminAffiliatesPage() {
                     </div>
                   )}
 
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- 🔥 NEW PREMIUM TIER LEVEL SETTINGS MODAL 🔥 --- */}
+      {isTierModalOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-[#0B0E14] border border-white/10 w-full max-w-3xl rounded-[24px] shadow-2xl relative flex flex-col overflow-hidden max-h-[90vh]">
+            
+            <div className="bg-[#12151E] border-b border-white/5 px-6 py-5 flex items-center justify-between shrink-0">
+              <h3 className="text-xl font-black text-white flex items-center gap-3">
+                <Settings className="w-6 h-6 text-[#A882FF]" /> Affiliate Tier Settings
+              </h3>
+              <button onClick={() => setIsTierModalOpen(false)} className="text-[#8F95A3] hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+              {isTierLoading ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-4">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#A882FF]" />
+                  <span className="text-[#8F95A3] text-sm font-medium">Loading tier rules...</span>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-6">
+                  
+                  {/* Premium Info Box */}
+                  <div className="bg-[#1A1625] border border-[#2D2440] rounded-xl p-4 flex items-start gap-3 shadow-inner">
+                    <Info className="w-5 h-5 text-[#A882FF] shrink-0 mt-0.5" />
+                    <p className="text-sm text-[#A882FF]/80 leading-relaxed">
+                      Configure the global rules for your affiliate program. Define the <strong className="text-[#A882FF] font-black">Commission Percentage</strong> users earn at each level, and the <strong className="text-[#A882FF] font-black">Total Referral Amount</strong> they need to generate to unlock it.
+                    </p>
+                  </div>
+
+                  <div className="bg-[#12151E] border border-white/5 rounded-2xl overflow-hidden shadow-lg">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse whitespace-nowrap">
+                        <thead>
+                          <tr className="border-b border-white/5 text-[#8F95A3] text-[11px] font-bold uppercase tracking-wider bg-[#0B0E14]/50">
+                            <th className="py-4 px-6">Level</th>
+                            <th className="py-4 px-4">Commission %</th>
+                            <th className="py-4 px-4">Required Earnings ($)</th>
+                            <th className="py-4 px-6 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-sm">
+                          {tierLevels.length === 0 ? (
+                            <tr><td colSpan={4} className="py-10 text-center text-[#8F95A3]">No tiers configured.</td></tr>
+                          ) : (
+                            tierLevels.sort((a, b) => a.level - b.level).map((tier: any, index: number, arr: any[]) => {
+                              const isEditing = editingTierId === (tier._id || tier.level);
+                              const isLastLevel = index === arr.length - 1; // Find the highest level for delete button
+                              
+                              return (
+                                <tr key={tier._id || tier.level} className={`transition-colors ${isEditing ? 'bg-[#A882FF]/5' : 'hover:bg-white/[0.02]'}`}>
+                                  <td className="py-4 px-6">
+                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                                      {tier.level}
+                                    </div>
+                                  </td>
+                                  
+                                  <td className="py-4 px-4">
+                                    {isEditing ? (
+                                      <div className="relative w-24">
+                                        <input 
+                                          type="number" 
+                                          value={editFormData.commissionPercent}
+                                          onChange={(e) => setEditFormData({...editFormData, commissionPercent: Number(e.target.value)})}
+                                          className="w-full bg-[#0B0E14] border border-[#A882FF]/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#A882FF] transition-colors"
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F95A3] text-xs font-bold">%</span>
+                                      </div>
+                                    ) : (
+                                      <span className="font-bold text-[#00E57A] bg-[#00E57A]/10 px-2.5 py-1 rounded border border-[#00E57A]/20">
+                                        {tier.commissionPercent}%
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  <td className="py-4 px-4">
+                                    {isEditing ? (
+                                      <div className="relative w-32">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8F95A3] text-sm font-bold">$</span>
+                                        <input 
+                                          type="number" 
+                                          value={editFormData.referralAmount}
+                                          onChange={(e) => setEditFormData({...editFormData, referralAmount: Number(e.target.value)})}
+                                          className="w-full bg-[#0B0E14] border border-[#A882FF]/50 rounded-lg pl-7 pr-3 py-2 text-white text-sm focus:outline-none focus:border-[#A882FF] transition-colors"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <span className="font-bold text-white text-[15px]">
+                                        ${tier.referralAmount}
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  <td className="py-4 px-6 text-right">
+                                    {isEditing ? (
+                                      <div className="flex justify-end gap-2">
+                                        <button 
+                                          onClick={() => setEditingTierId(null)}
+                                          className="p-2 rounded-lg bg-white/5 text-[#8F95A3] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                                        >
+                                          <X className="w-4 h-4" />
+                                        </button>
+                                        <button 
+                                          onClick={() => saveTier(tier)}
+                                          disabled={isSavingTier}
+                                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#A882FF] hover:bg-[#8B5CF6] text-white font-bold text-xs transition-colors shadow-md disabled:opacity-50 cursor-pointer"
+                                        >
+                                          {isSavingTier ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                                          Save
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex justify-end gap-2">
+                                        <button 
+                                          onClick={() => startEditingTier(tier)}
+                                          className="w-8 h-8 rounded-lg bg-[#1D283A] text-[#38BDF8] flex items-center justify-center hover:bg-[#25354D] transition-colors cursor-pointer"
+                                          title="Edit Tier"
+                                        >
+                                          <Edit2 className="w-4 h-4" />
+                                        </button>
+                                        {isLastLevel && (
+                                          <button 
+                                            onClick={() => deleteLastTier(tier._id || tier.level)}
+                                            disabled={isDeletingTier}
+                                            className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center hover:bg-rose-500/20 transition-colors cursor-pointer disabled:opacity-50"
+                                            title="Delete Last Tier"
+                                          >
+                                            {isDeletingTier ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    {/* Add New Level Button */}
+                    <div className="p-4 border-t border-white/5 flex justify-center bg-black/10">
+                      <button 
+                        onClick={addNewTierLevel}
+                        disabled={isAddingTier}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-bold transition-all disabled:opacity-50 cursor-pointer"
+                      >
+                        {isAddingTier ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                        Add New Level
+                      </button>
+                    </div>
+                  </div>
+                  
                 </div>
               )}
             </div>

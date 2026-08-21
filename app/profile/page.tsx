@@ -173,7 +173,6 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
       data.append('documentType', finalDocType);
       data.append('documentFrontImage', frontImage);
 
-      // 🔥 USING PUT METHOD AS REQUESTED 🔥
       const json = await safeFetchJson('https://apitest.binnycash.com/api/user/kyc/submit', {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
@@ -393,7 +392,6 @@ export default function ProfilePage() {
   const router = useRouter();
   
   const currency = useCurrency();
-  const isCoin = currency === 'Coin' || currency === 'COIN';
 
   const [userData, setUserData] = useState<any>(null);
   const [dashboardSummary, setDashboardSummary] = useState<any>(null);
@@ -417,6 +415,11 @@ export default function ProfilePage() {
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isKycOpen, setIsKycOpen] = useState(false);
   const [avatarMode, setAvatarMode] = useState<'library' | 'upload'>('library');
+
+  // 🔥 DELETE ACCOUNT STATES 🔥
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Form State for Edit Profile
   const [formData, setFormData] = useState({
@@ -659,6 +662,42 @@ export default function ProfilePage() {
     }
   };
 
+  // 🔥 DELETE ACCOUNT API CALL 🔥
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    setDeleteError(null);
+    
+    const token = localStorage.getItem('token') || '';
+    const userId = getUserId();
+
+    try {
+      // Required query param ?userId= as requested
+      const res = await fetch(`https://apitest.binnycash.com/api/user/deleteUser?userId=${userId}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const json = await res.json();
+      
+      if (res.ok || json.code === 200 || json.type === 'success') {
+        // Successfully Deleted -> Logout User
+        localStorage.removeItem('token');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userDetails');
+        localStorage.removeItem('cached_balance');
+        window.dispatchEvent(new Event('storage'));
+        
+        router.replace('/');
+      } else {
+        setDeleteError(json.message || "Failed to delete account. Please contact support.");
+      }
+    } catch (err) {
+      setDeleteError("Network error while deleting account.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     alert('Copied to clipboard!');
@@ -677,7 +716,6 @@ export default function ProfilePage() {
 
   const joinDate = userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently';
   
-  // 🔥 DYNAMIC KYC STATUS MAPPING FROM userData.documentStatus 🔥
   const kycStatus = userData?.documentStatus || userData?.documents?.status || userData?.kycStatus || 'Not Submitted';
 
   const formatDate = (dateString: string) => {
@@ -1146,7 +1184,6 @@ export default function ProfilePage() {
               </table>
             </div>
 
-            {/* Render Pagination only if data exists and is not loading */}
             {!isTableLoading && (
               <Pagination 
                 current={tablePage} 
@@ -1331,14 +1368,67 @@ export default function ProfilePage() {
                     </button>
                   </form>
                   
+                  {/* 🔥 TRIGGER DELETE MODAL 🔥 */}
                   <div className="mt-8 pt-4 border-t border-[#FF5D73]/20 text-center">
-                    <button className="text-sm font-bold text-[#FF5D73] hover:text-[#FF5D73]/80 transition-colors cursor-pointer">
+                    <button 
+                      onClick={() => setIsDeleteModalOpen(true)}
+                      className="text-sm font-bold text-[#FF5D73] hover:text-[#FF5D73]/80 transition-colors cursor-pointer"
+                    >
                       Delete account
                     </button>
                   </div>
 
               </div>
 
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- 🔥 NEW: DELETE CONFIRMATION MODAL 🔥 --- */}
+      <AnimatePresence>
+        {isDeleteModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050409]/90 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-[400px] bg-[#120F1A] border border-[#FF5D73]/30 rounded-3xl p-6 sm:p-8 text-center shadow-[0_20px_60px_rgba(255,93,115,0.15)] flex flex-col items-center overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#FF5D73] to-transparent" />
+              
+              <div className="w-16 h-16 rounded-full bg-[#FF5D73]/10 flex items-center justify-center mb-5 border border-[#FF5D73]/20">
+                <ShieldAlert className="w-8 h-8 text-[#FF5D73]" />
+              </div>
+
+              <h2 className="text-xl font-black text-white mb-2">Delete Account?</h2>
+              <p className="text-[#8D89A8] text-sm mb-6 leading-relaxed">
+                This action is permanent and cannot be undone. All your data, earnings, and referrals will be lost forever.
+              </p>
+
+              {deleteError && (
+                <div className="w-full mb-6 p-3 rounded-lg bg-[#FF5D73]/10 border border-[#FF5D73]/30 text-[#FF5D73] text-xs font-bold text-center">
+                  {deleteError}
+                </div>
+              )}
+
+              <div className="w-full flex gap-3">
+                <button 
+                  disabled={isDeleting}
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-sm transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button 
+                  disabled={isDeleting}
+                  onClick={handleDeleteAccount}
+                  className="flex-1 py-3 rounded-xl bg-[#FF5D73] hover:bg-red-600 text-white font-bold text-sm transition-colors shadow-lg shadow-[#FF5D73]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  Yes, Delete
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

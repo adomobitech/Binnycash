@@ -7,28 +7,28 @@ import OfferFilters from '@/components/offers/OfferFilters';
 import { Sparkles, ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
 
 export function filterOffersByDevice(offers: any[], filterInput: any) {
-  let selected: string[] = [];
-  if (typeof filterInput === 'string') {
-    selected = [filterInput];
-  } else if (Array.isArray(filterInput)) {
-    selected = filterInput;
+  let selected = 'all';
+
+  if (typeof filterInput === 'string' && filterInput.trim() !== '') {
+    selected = filterInput.toLowerCase();
+  } else if (Array.isArray(filterInput) && filterInput.length > 0) {
+    selected = String(filterInput[filterInput.length - 1]).toLowerCase();
   }
 
-  if (selected.length === 0 || selected.includes('all') || selected.includes('')) return offers;
+  if (selected === 'all' || selected === '') return offers;
 
   return offers.filter((offer) => {
     const rawDevice = String(offer?.device || offer?.devices || offer?.browsers || offer?.platform || offer?.os || offer?.device_type || '').toLowerCase();
     
     if (rawDevice === 'all' || rawDevice === 'global' || rawDevice === '') return true; 
     
-    return selected.some((device) => {
-      if (device === 'android') return rawDevice.includes('android');
-      if (device === 'ios') return rawDevice.includes('ios') || rawDevice.includes('iphone') || rawDevice.includes('ipad');
-      if (device === 'windows') return rawDevice.includes('windows') || rawDevice.includes('win') || rawDevice.includes('pc') || rawDevice.includes('desktop') || rawDevice.includes('web') || rawDevice.includes('mac');
-      if (device === 'mac') return rawDevice.includes('mac') || rawDevice.includes('osx') || rawDevice.includes('desktop') || rawDevice.includes('windows');
-      if (device === 'ipad') return rawDevice.includes('ipad') || rawDevice.includes('ios');
-      return false;
-    });
+    if (selected === 'android') return rawDevice.includes('android');
+    if (selected === 'ios') return rawDevice.includes('ios') || rawDevice.includes('iphone') || rawDevice.includes('ipad');
+    if (selected === 'windows') return rawDevice.includes('windows') || rawDevice.includes('win') || rawDevice.includes('pc') || rawDevice.includes('desktop') || rawDevice.includes('web') || rawDevice.includes('mac');
+    if (selected === 'mac') return rawDevice.includes('mac') || rawDevice.includes('osx') || rawDevice.includes('desktop') || rawDevice.includes('windows');
+    if (selected === 'ipad') return rawDevice.includes('ipad') || rawDevice.includes('ios');
+    
+    return false;
   });
 }
 
@@ -44,7 +44,6 @@ export default function OfferSlider({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  // Fallback to array if string is undefined
   const activeFilter = selectedDevice !== undefined ? selectedDevice : (selectedDevices || []);
   const filteredOffers = filterOffersByDevice(offers, activeFilter);
 

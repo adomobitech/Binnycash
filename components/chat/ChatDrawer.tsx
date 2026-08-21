@@ -53,8 +53,6 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const activeUserId = getUserId();
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
@@ -121,6 +119,8 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
     if (!newMessage.trim() || isSending) return;
 
     const token = localStorage.getItem('token');
+    // 🔥 FIX: Fetch activeUserId dynamically HERE, so it never has stale memory 🔥
+    const activeUserId = getUserId();
 
     if (!token || token.includes('[object Object]')) {
       setErrorPopup("Session expired or invalid. Please log in again.");
@@ -157,6 +157,7 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
         fetchMessages();
       } else {
          const errorData = await res.json();
+         // If backend throws an error (e.g. muted, banned, or backend minimum criteria), it shows here
          setErrorPopup(errorData.message || "Failed to send message. Action restricted.");
          setTimeout(() => setErrorPopup(null), 4000);
       }
@@ -256,7 +257,9 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
                 </div>
               ) : (
                 messages.map((msg, index) => {
-                  const isMe = String(msg.userId) === String(activeUserId) || msg.userName === 'You';
+                  // Re-fetching activeUserId here so the bubbles align properly
+                  const currentActiveUserId = getUserId();
+                  const isMe = String(msg.userId) === String(currentActiveUserId) || msg.userName === 'You';
                   
                   return (
                     <div key={msg._id || index} className={`flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'} w-full`}>

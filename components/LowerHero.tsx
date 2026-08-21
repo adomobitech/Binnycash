@@ -55,7 +55,8 @@ export default function LowerHero() {
   const formatAmount = (val: number | string) => {
     const num = Number(val);
     if (isNaN(num)) return val;
-    return num.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    // Changed en-IN to en-US for proper dollar comma formatting
+    return num.toLocaleString('en-US', { maximumFractionDigits: 2 });
   };
 
   return (
@@ -116,7 +117,7 @@ export default function LowerHero() {
                 <div className="h-16 w-64 bg-white/5 animate-pulse rounded-2xl mx-auto"></div>
               ) : (
                 <div className="text-4xl sm:text-6xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-[#e9d5ff] to-[#00E57A] tracking-tighter drop-shadow-[0_0_35px_rgba(0,229,122,0.25)]">
-                  ₹{formatAmount(totalPaid)}
+                  ${formatAmount(totalPaid)}
                 </div>
               )}
             </div>

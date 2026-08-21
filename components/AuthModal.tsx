@@ -14,7 +14,9 @@ import {
   ArrowRight, 
   Zap, 
   Loader2,
-  Rocket
+  Rocket,
+  AlertCircle,
+  X
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -95,7 +97,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   const formatTime = (timeInSeconds: number) => {
     const minutes = Math.floor(timeInSeconds / 60);
     const seconds = timeInSeconds % 60;
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    return `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   };
 
   // Auto-clear error after 4 seconds
@@ -153,7 +155,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   };
 
   // =====================================
-  // API LOGIC
+  // API LOGIC (WITH ULTRA-STRICT VALIDATION)
   // =====================================
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,6 +173,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
     urlEncoded.append('password', password);
+    // 🔥 FIXED: As per Swagger, exactly device_id 🔥
     urlEncoded.append('device_id', getOrCreateDeviceId());
 
     if (isUrlReferral && refCodeValue) {
@@ -189,15 +192,23 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       });
       const data = await res.json();
       
-      if (res.ok) {
+      const errCode = data?.code || data?.responseCode;
+      const errMsg = data?.message || data?.responseMessage || '';
+      
+      const isError = !res.ok || errCode === 400 || errCode === 403 || errCode === 409 || data?.type === 'error' || errMsg.toLowerCase().includes('already') || errMsg.toLowerCase().includes('alredy') || errMsg.toLowerCase().includes('required');
+
+      if (!isError) {
         setOtp('');
+        setResendTimer(300);
         setView('verifyOtp');
       } else {
-        let errorMsg = data.message || 'Signup failed';
-        if (errorMsg.toLowerCase().includes('alredy created') || errorMsg.toLowerCase().includes('already created')) {
-          errorMsg = 'Account already exists. Please log in.';
+        let displayError = errMsg || 'Signup failed. Please check your details.';
+        if (displayError.toLowerCase().includes('device alredy') || displayError.toLowerCase().includes('device already')) {
+          displayError = 'This device is already registered.';
+        } else if (displayError.toLowerCase().includes('alredy') || displayError.toLowerCase().includes('already')) {
+          displayError = 'Account already exists. Please log in.';
         }
-        setError(errorMsg);
+        setError(displayError);
       }
     } catch (err) {
       setError('Network Error. Please try again.');
@@ -214,6 +225,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
     urlEncoded.append('password', password);
+    urlEncoded.append('device_id', getOrCreateDeviceId());
 
     try {
       const res = await fetch('https://apitest.binnycash.com/api/user/login', {
@@ -223,7 +235,11 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       });
       const data = await res.json();
       
-      if (res.ok) {
+      const errCode = data?.code || data?.responseCode;
+      const errMsg = data?.message || data?.responseMessage || '';
+      const isError = !res.ok || errCode === 400 || errCode === 401 || errCode === 403 || errCode === 404 || data?.type === 'error' || errMsg.toLowerCase().includes('wrong');
+      
+      if (!isError) {
         let userToken = data.token || data.accessToken || data.data?.token;
         if (!userToken && typeof data.data === 'string') userToken = data.data;
 
@@ -246,20 +262,12 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
         setView('loginSuccess');
         
-        // 🔥 SMOOTH DASHBOARD ROUTING FIX 🔥
         setTimeout(() => {
-          router.push('/dashboard');
-          // Delaying modal close to hide homepage while dashboard loads
-          setTimeout(() => {
-            onClose();
-            setView('login');
-            setEmail('');
-            setPassword('');
-          }, 600);
-        }, 800); 
+          window.location.href = '/dashboard';
+        }, 1200); 
 
       } else {
-        setError('Wrong email or password.');
+        setError(errMsg || 'Wrong email or password.');
       }
     } catch (err) {
       setError('Network Error. Please try again.');
@@ -290,7 +298,11 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       });
       const data = await res.json();
 
-      if (res.ok) {
+      const errCode = data?.code || data?.responseCode;
+      const errMsg = data?.message || data?.responseMessage || '';
+      const isError = !res.ok || errCode === 400 || errCode === 403 || data?.type === 'error' || errMsg.toLowerCase().includes('invalid');
+
+      if (!isError) {
         let userToken = data.token || data.accessToken || data.data?.token;
         if (!userToken && typeof data.data === 'string') userToken = data.data;
 
@@ -307,19 +319,16 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           
           setView('loginSuccess');
           
-          // 🔥 SMOOTH DASHBOARD ROUTING FIX 🔥
           setTimeout(() => {
-            router.push('/dashboard');
-            setTimeout(() => {
-              onClose();
-            }, 600);
-          }, 800);
+            window.location.href = '/dashboard';
+          }, 1200);
           
         } else {
           try {
             const loginEncoded = new URLSearchParams();
             loginEncoded.append('email', email);
             loginEncoded.append('password', password); 
+            loginEncoded.append('device_id', getOrCreateDeviceId());
 
             const loginRes = await fetch('https://apitest.binnycash.com/api/user/login', {
               method: 'POST',
@@ -327,8 +336,9 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
               body: loginEncoded
             });
             const loginData = await loginRes.json();
-
-            if (loginRes.ok) {
+            
+            const loginErrCode = loginData?.code || loginData?.responseCode;
+            if (loginRes.ok && loginErrCode !== 400 && loginErrCode !== 403 && loginData?.type !== 'error') {
               let fallbackToken = loginData.token || loginData.accessToken || loginData.data?.token;
               if (!fallbackToken && typeof loginData.data === 'string') fallbackToken = loginData.data;
 
@@ -344,13 +354,9 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
               setView('loginSuccess');
               
-              // 🔥 SMOOTH DASHBOARD ROUTING FIX 🔥
               setTimeout(() => {
-                router.push('/dashboard');
-                setTimeout(() => {
-                  onClose();
-                }, 600);
-              }, 800);
+                window.location.href = '/dashboard';
+              }, 1200);
 
             } else {
               setToast('Email verified successfully! Please log in.');
@@ -361,7 +367,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           }
         }
       } else {
-        setError(data.message || 'Invalid OTP');
+        setError(errMsg || 'Invalid OTP');
       }
     } catch (err) {
       setError('Error verifying OTP');
@@ -371,43 +377,34 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   };
 
   const handleResendSignupOtp = async () => {
+    if (resendTimer > 0) return;
+
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
 
     try {
-      await fetch('https://apitest.binnycash.com/api/user/resendOtp', {
-        method: 'POST',
+      const res = await fetch('https://apitest.binnycash.com/api/user/resendOtp', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
       });
-      setToast('OTP Resent to your email!');
+      const data = await res.json();
+      
+      const errCode = data?.code || data?.responseCode;
+      const errMsg = data?.message || data?.responseMessage || '';
+      const isError = !res.ok || errCode === 400 || errCode === 403 || data?.type === 'error';
+
+      if (!isError) {
+        setToast('OTP Resent to your email!');
+        setResendTimer(300); // 300 seconds = 5 minutes
+      } else {
+        setError(errMsg || 'Failed to resend OTP');
+      }
     } catch (err) {
       setError('Failed to resend OTP');
     }
   };
 
-  const handleResendForgotOtp = async () => {
-    if (resendTimer > 0) return; // Prevent double clicks if timer is running
-    
-    const urlEncoded = new URLSearchParams();
-    urlEncoded.append('email', email);
-
-    try {
-      await fetch('https://apitest.binnycash.com/api/user/resendOtp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: urlEncoded
-      });
-      setToast('OTP Resent to your email!');
-      setResendTimer(300); // Restart the 5-minute timer
-    } catch (err) {
-      setError('Failed to resend OTP');
-    }
-  };
-
-  // =====================================================
-  // FORGOT PASSWORD FLOW (Step 1: Just hit forgetPassword)
-  // =====================================================
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -424,13 +421,17 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       });
       const data = await res.json();
       
-      if (res.ok) {
+      const errCode = data?.code || data?.responseCode;
+      const errMsg = data?.message || data?.responseMessage || '';
+      const isError = !res.ok || errCode === 400 || errCode === 403 || errCode === 404 || data?.type === 'error';
+
+      if (!isError) {
         setOtp('');
         setNewPassword('');
-        setResendTimer(300); // Start 5 minutes timer
+        setResendTimer(300); 
         setView('resetPassword'); 
       } else {
-        setError(data.message || 'Email not found');
+        setError(errMsg || 'Email not found');
       }
     } catch (err) {
       setError('Error sending request');
@@ -439,9 +440,35 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     }
   };
 
-  // =====================================================
-  // RESET PASSWORD FLOW (Step 2: Hit resetPassword directly)
-  // =====================================================
+  const handleResendForgotOtp = async () => {
+    if (resendTimer > 0) return; 
+    
+    const urlEncoded = new URLSearchParams();
+    urlEncoded.append('email', email);
+
+    try {
+      const res = await fetch('https://apitest.binnycash.com/api/user/resendOtp', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: urlEncoded
+      });
+      const data = await res.json();
+      
+      const errCode = data?.code || data?.responseCode;
+      const errMsg = data?.message || data?.responseMessage || '';
+      const isError = !res.ok || errCode === 400 || errCode === 403 || data?.type === 'error';
+
+      if (!isError) {
+        setToast('OTP Resent to your email!');
+        setResendTimer(300); 
+      } else {
+        setError(errMsg || 'Failed to resend OTP');
+      }
+    } catch (err) {
+      setError('Failed to resend OTP');
+    }
+  };
+
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -461,21 +488,25 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('email', email);
     urlEncoded.append('otp', otp);
     urlEncoded.append('newPassword', newPassword); 
-    urlEncoded.append('password', newPassword); // Fallback depending on exactly how your backend expects it
+    urlEncoded.append('password', newPassword); 
 
     try {
       const res = await fetch('https://apitest.binnycash.com/api/user/resetPassword', {
-        method: 'POST', // Most reset endpoints are POST, occasionally PUT
+        method: 'POST', 
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
       });
       const data = await res.json();
 
-      if (res.ok) {
+      const errCode = data?.code || data?.responseCode;
+      const errMsg = data?.message || data?.responseMessage || '';
+      const isError = !res.ok || errCode === 400 || errCode === 403 || data?.type === 'error';
+
+      if (!isError) {
         setView('login');
         setToast('Password reset successful! Please login.');
       } else {
-        setError(data.message || 'Invalid OTP. Please try again.');
+        setError(errMsg || 'Invalid OTP. Please try again.');
         setOtp('');
       }
     } catch (err) {
@@ -485,10 +516,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       setIsLoading(false);
     }
   };
-
-  // =====================================
-  // PREMIUM UI COMPONENTS
-  // =====================================
 
   const baseInputClass = "w-full bg-[#0B0E14] border border-[#1A1D24] text-white font-medium rounded-[12px] pl-12 pr-11 py-4 outline-none focus:border-[#8B5CF6]/60 focus:bg-[#0E1118] transition-all placeholder:text-[#4B5263] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]";
   const iconClass = "absolute left-4 w-5 h-5 text-[#4B5263] group-focus-within:text-[#8B5CF6] transition-colors pointer-events-none";
@@ -514,6 +541,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     const handleGoogleLogin = () => {
       const deviceId = getOrCreateDeviceId();
       const params = new URLSearchParams();
+      // 🔥 Match exact param name in Google Auth too
       params.append('device_id', deviceId);
       
       if (isUrlReferral && refCodeValue) {
@@ -544,7 +572,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     );
   };
 
-  // 🔥 NEW SUCCESS SCREEN 🔥
   if (view === 'loginSuccess') {
     return (
       <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#05070A] overflow-hidden font-sans transition-opacity duration-300">
@@ -906,13 +933,21 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                   </button>
                 </form>
                 
+                {/* 🔥 SIGNUP RESEND OTP TIMER 🔥 */}
                 <div className="mt-8 text-center">
-                  <button 
-                    onClick={handleResendSignupOtp} 
-                    className="text-[13px] text-[#8F95A3] hover:text-white transition-colors cursor-pointer"
-                  >
-                    Didn't receive it? <span className="font-bold underline text-[#8B5CF6]">Resend</span>
-                  </button>
+                  {resendTimer > 0 ? (
+                    <span className="text-[13px] text-[#8F95A3]">
+                      You can resend OTP in <span className="font-bold text-white tracking-widest">{formatTime(resendTimer)}</span>
+                    </span>
+                  ) : (
+                    <button 
+                      type="button"
+                      onClick={handleResendSignupOtp} 
+                      className="text-[13px] text-[#8F95A3] hover:text-white transition-colors cursor-pointer"
+                    >
+                      Didn't receive it? <span className="font-bold underline text-[#8B5CF6]">Resend</span>
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -1029,7 +1064,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                   </button>
                 </form>
 
-                {/* Resend OTP Timer Logic */}
+                {/* 🔥 FORGOT PASSWORD RESEND OTP TIMER 🔥 */}
                 <div className="mt-8 text-center">
                   {resendTimer > 0 ? (
                     <span className="text-[13px] text-[#8F95A3]">
@@ -1037,6 +1072,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                     </span>
                   ) : (
                     <button 
+                      type="button"
                       onClick={handleResendForgotOtp} 
                       className="text-[13px] text-[#8F95A3] hover:text-white transition-colors cursor-pointer"
                     >
