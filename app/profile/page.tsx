@@ -672,14 +672,21 @@ export default function ProfilePage() {
 
     try {
       // Required query param ?userId= as requested
-      const res = await fetch(`https://apitest.binnycash.com/api/user/deleteUser?userId=${userId}`, {
+      const res = await fetch(`https://apitest.binnycash.com/api/user/deleteUser`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
       const json = await res.json();
-      
-      if (res.ok || json.code === 200 || json.type === 'success') {
+
+      // 🔥 FIX: Backend returns HTTP 200 even for business-logic errors
+      // (same pattern as login/signup/verifyOtp in AuthModal.tsx), so `res.ok`
+      // alone can't be trusted as "success". Check the body's error signals too.
+      const errCode = json?.code || json?.responseCode;
+      const errMsg = json?.message || json?.responseMessage || '';
+      const isError = !res.ok || errCode === 400 || errCode === 403 || errCode === 404 || json?.type === 'error';
+
+      if (!isError) {
         // Successfully Deleted -> Logout User
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
@@ -689,7 +696,7 @@ export default function ProfilePage() {
         
         router.replace('/');
       } else {
-        setDeleteError(json.message || "Failed to delete account. Please contact support.");
+        setDeleteError(errMsg || "Failed to delete account. Please contact support.");
       }
     } catch (err) {
       setDeleteError("Network error while deleting account.");
