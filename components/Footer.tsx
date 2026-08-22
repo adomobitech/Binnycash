@@ -155,6 +155,7 @@ export default function Footer() {
                 <li><Link href="/terms" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-sky-400">›</span> Terms of Service</Link></li>
                 <li><Link href="/privacy" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-sky-400">›</span> Privacy Policy</Link></li>
                 <li><Link href="/cookie-policy" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-sky-400">›</span> Cookie Policy</Link></li>
+                 <li><Link href="/affiliate-policy" className="hover:text-white transition-colors flex items-center gap-2"><span className="text-sky-400">›</span> Affiliate & Offer Policy</Link></li>
               </ul>
             </div>
           </div>

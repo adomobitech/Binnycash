@@ -91,7 +91,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem('token');
       
       const protectedRoutes = ['/dashboard', '/myoffers', '/affiliate', '/leaderboard', '/cashout', '/rewards', '/profile'];
-      const isProtectedRoute = protectedRoutes.some(route => pathname?.startsWith(route));
+      
+      // 🔥 MAIN BUG FIX: Strict matching! Prevents '/affiliate-policy' from being caught by '/affiliate' 🔥
+      const isProtectedRoute = protectedRoutes.some(route => 
+        pathname === route || pathname?.startsWith(route + '/')
+      );
+
+      // 🔥 SAFE REDIRECT HELPER: Fixes "Router action dispatched before initialization" error 🔥
+      const safeRedirect = (path: string) => {
+        setTimeout(() => {
+          router.replace(path);
+        }, 0);
+      };
 
       // AUTO-OPEN SIGNUP IF REF PARAM IS PRESENT
       if (typeof window !== 'undefined') {
@@ -104,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!token || token === 'undefined' || token.includes('[object Object]')) {
         if (isProtectedRoute) {
-           router.replace('/'); 
+           safeRedirect('/'); // <-- Now uses safe redirect
         }
         setIsAppLoading(false);
         return;
@@ -136,11 +147,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.setItem('currency', resolvedCurrency);
             window.dispatchEvent(new CustomEvent('currencyChanged', { detail: resolvedCurrency }));
 
-            // 🔥 FIX: Google-login redirect often only carries id/token (no name/username),
-            // so the earlier userDetails saved by captureGoogleAuthFromUrl can be incomplete.
-            // Now that we've fetched the full profile from the backend, merge it into
-            // localStorage['userDetails'] as well, so Dashboard shows the real username
-            // on first paint instead of the "User" fallback (same as OTP login/signup).
             try {
               const existingRaw = localStorage.getItem('userDetails');
               const existing = existingRaw ? JSON.parse(existingRaw) : {};
@@ -164,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.removeItem('token');
             localStorage.removeItem('userId');
             localStorage.removeItem('userDetails');
-            if (isProtectedRoute) router.replace('/');
+            if (isProtectedRoute) safeRedirect('/'); // <-- Now uses safe redirect
           }
         }
       } catch (err) {
@@ -175,7 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     handleAuthCheck();
-  }, [pathname]);
+  }, [pathname, router]);
 
   const openLogin = () => {
     setInitialView('login');

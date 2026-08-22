@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import Navbar from '@/components/Navbar';
 import { AuthProvider } from '@/components/AuthContext';
 import { LanguageProvider } from '@/components/LanguageContext'; 
-import GlobalTicker from '@/components/GlobalTicker'; // 🔥 IMPORT YAHAN KARNA HAI
+import ConditionalTicker from '@/components/ConditionalTicker'; // 🔥 IMPORT YAHAN KARNA HAI
 import './globals.css';
 
 export const viewport: Viewport = {
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Navbar />
             
             {/* 🔥 YE LAG GAYA GLOBAL TICKER. AB YE HAR PAGE PAR AAYEGA */}
-            <GlobalTicker />
+            <ConditionalTicker />
             
             {children}
           </LanguageProvider>
