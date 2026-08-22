@@ -40,6 +40,12 @@ function getUserId(): string {
   return '';
 }
 
+// 🔥 URL Detection Helper 🔥
+const containsLink = (text: string): boolean => {
+  const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?)/i;
+  return urlRegex.test(text);
+};
+
 export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -118,8 +124,14 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
     e.preventDefault();
     if (!newMessage.trim() || isSending) return;
 
+    // 🔥 FRONTEND LINK DETECTION 🔥
+    if (containsLink(newMessage)) {
+      setErrorPopup("Links and URLs are strictly prohibited in the chat.");
+      setTimeout(() => setErrorPopup(null), 4000);
+      return; 
+    }
+
     const token = localStorage.getItem('token');
-    // 🔥 FIX: Fetch activeUserId dynamically HERE, so it never has stale memory 🔥
     const activeUserId = getUserId();
 
     if (!token || token.includes('[object Object]')) {
@@ -157,7 +169,6 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
         fetchMessages();
       } else {
          const errorData = await res.json();
-         // If backend throws an error (e.g. muted, banned, or backend minimum criteria), it shows here
          setErrorPopup(errorData.message || "Failed to send message. Action restricted.");
          setTimeout(() => setErrorPopup(null), 4000);
       }
@@ -192,46 +203,54 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0.5 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed top-0 right-0 h-[100dvh] w-full max-w-[420px] bg-[#0E1015] border-l border-white/5 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-[450] flex flex-col"
+            className="fixed top-0 right-0 h-[100dvh] w-full max-w-[420px] bg-[#0E1015] border-l border-white/5 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-[450] flex flex-col font-sans"
           >
+            {/* Subtle dot pattern background */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
 
-            {/* HEADER */}
-            <div className="p-4 border-b border-white/5 flex items-center justify-between bg-[#111319] relative z-10 shrink-0">
+            {/* HEADER - REDESIGNED WITH LOGO */}
+            <div className="p-4 border-b border-white/5 flex items-center justify-between bg-[#0E1015] relative z-10 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#6d28d9] flex items-center justify-center relative shadow-[0_0_15px_rgba(139,92,246,0.4)]">
-                  <MessageSquare className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 rounded-[14px] bg-[#8B5CF6] p-1.5 flex items-center justify-center relative shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+                  {/* Tries to load logo.png, falls back to icon if missing */}
+                  <img src="/logo.png" alt="BinnyCash" className="w-full h-full object-contain filter drop-shadow-md" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+                  <MessageSquare className="hidden w-6 h-6 text-white" />
+                  
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#0E1015] rounded-full flex items-center justify-center">
-                    <div className="w-2.5 h-2.5 bg-[#00E57A] rounded-full shadow-[0_0_8px_rgba(0,229,122,0.8)]"></div>
+                    <div className="w-2.5 h-2.5 bg-[#00E57A] rounded-full shadow-[0_0_8px_rgba(0,229,122,0.8)] animate-pulse"></div>
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <h2 className="text-white font-black text-[17px] leading-tight">BinnyCash Chat</h2>
-                  <p className="text-[#8F95A3] text-xs font-medium flex items-center gap-1">
-                    Members <span className="text-[#00E57A] font-bold">• Live</span>
+                  <h2 className="text-white font-black text-lg leading-tight tracking-tight">BinnyCash Chat</h2>
+                  <p className="text-[#8F95A3] text-[11px] font-bold flex items-center gap-1.5 mt-0.5 uppercase tracking-wider">
+                    Members <span className="text-[#00E57A] font-black">• Live</span>
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-colors">
+                <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#1A1C24] hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-colors cursor-pointer border border-white/5">
                   <Minus className="w-4 h-4" />
                 </button>
-                <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-colors">
+                <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#1A1C24] hover:bg-[#FF5D73]/20 flex items-center justify-center text-[#8F95A3] hover:text-[#FF5D73] transition-colors cursor-pointer border border-white/5">
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* WELCOME BANNER */}
+            {/* WELCOME BANNER - REDESIGNED WITH LOGO */}
             <div className="p-4 shrink-0 relative z-10">
-              <div className="bg-[#14171F] border border-white/5 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden shadow-lg">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-[#8B5CF6]/10 blur-2xl rounded-full pointer-events-none"></div>
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8B5CF6]/20 to-[#6d28d9]/20 flex items-center justify-center shrink-0 border border-[#8B5CF6]/30">
-                  <span className="text-2xl">🤖</span>
+              <div className="bg-[#14171F] border border-white/5 rounded-[20px] p-5 flex items-center gap-4 relative overflow-hidden shadow-lg">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#8B5CF6]/10 blur-[30px] rounded-full pointer-events-none"></div>
+                
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#2E1854] to-[#1A1035] flex items-center justify-center shrink-0 border border-[#8B5CF6]/30 shadow-[0_0_15px_rgba(139,92,246,0.2)] p-2.5">
+                  <img src="/logo.png" alt="Bot" className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(139,92,246,0.8)]" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+                  <span className="hidden text-2xl">💬</span>
                 </div>
-                <div>
-                  <h4 className="text-white font-black text-sm mb-0.5">Welcome to BinnyCash Chat! 👋</h4>
-                  <p className="text-[#8F95A3] text-xs leading-relaxed font-medium">We're here to help you earn more and cash out more.</p>
+                <div className="relative z-10">
+                  <h4 className="text-white font-black text-[15px] mb-1 leading-tight tracking-tight flex items-center gap-1.5">
+                    Welcome to BinnyCash Chat! <span className="text-lg">👋</span>
+                  </h4>
+                  <p className="text-[#8F95A3] text-[13px] leading-relaxed font-medium">We're here to help you earn more and cash out more.</p>
                 </div>
               </div>
               
@@ -250,30 +269,29 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col gap-1 items-start max-w-[80%]">
-                  <div className="bg-[#1A1C24] text-white border border-white/5 rounded-[20px] rounded-tl-sm p-4 text-sm font-medium shadow-sm">
+                  <div className="bg-[#1A1C24] text-white border border-white/5 rounded-[24px] rounded-tl-sm p-4 text-[15px] font-medium shadow-sm">
                     No messages yet. Say hi 👋👋
                   </div>
-                  <span className="text-[10px] text-[#8F95A3] ml-1">{formatTime(new Date().toISOString())}</span>
+                  <span className="text-[10px] font-bold text-[#8F95A3] ml-1 uppercase tracking-wider">{formatTime(new Date().toISOString())}</span>
                 </div>
               ) : (
                 messages.map((msg, index) => {
-                  // Re-fetching activeUserId here so the bubbles align properly
                   const currentActiveUserId = getUserId();
                   const isMe = String(msg.userId) === String(currentActiveUserId) || msg.userName === 'You';
                   
                   return (
                     <div key={msg._id || index} className={`flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'} w-full`}>
-                      {!isMe && msg.userName && <span className="text-[11px] font-bold text-[#8F95A3] ml-1">{msg.userName}</span>}
+                      {!isMe && msg.userName && <span className="text-[11px] font-bold text-[#8F95A3] ml-2 mb-0.5">{msg.userName}</span>}
                       
-                      <div className={`p-3.5 px-4 text-[14px] font-medium leading-relaxed whitespace-pre-wrap break-words max-w-[85%] ${
+                      <div className={`p-3.5 px-5 text-[15px] font-medium leading-relaxed whitespace-pre-wrap break-words max-w-[85%] ${
                         isMe 
-                          ? 'bg-gradient-to-br from-[#8B5CF6] to-[#6d28d9] text-white rounded-[20px] rounded-br-sm shadow-[0_4px_15px_rgba(139,92,246,0.3)]' 
-                          : 'bg-[#1A1C24] text-[#E2E8F0] border border-white/5 rounded-[20px] rounded-tl-sm shadow-sm'
+                          ? 'bg-[#8B5CF6] text-white rounded-[24px] rounded-br-sm shadow-[0_4px_20px_rgba(139,92,246,0.25)]' 
+                          : 'bg-[#1A1C24] text-[#E2E8F0] border border-white/5 rounded-[24px] rounded-tl-sm shadow-sm'
                       }`}>
                         {msg.message}
                       </div>
                       
-                      <div className={`flex items-center gap-1 text-[10px] text-[#8F95A3] mt-0.5 ${isMe ? 'mr-1' : 'ml-1'}`}>
+                      <div className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#5A6072] mt-1 ${isMe ? 'mr-2' : 'ml-2'}`}>
                         {formatTime(msg.timestamp || msg.createdAt)}
                         {isMe && <CheckCheck className="w-3.5 h-3.5 text-[#8B5CF6]" />}
                       </div>
@@ -291,12 +309,12 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
                   initial={{ opacity: 0, y: 20, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                  className="absolute bottom-[100px] left-4 right-4 bg-[#1E1218] border border-[#FF5D73]/30 rounded-2xl p-4 shadow-[0_10px_40px_rgba(255,93,115,0.2)] z-[500] flex items-start gap-3"
+                  className="absolute bottom-[100px] left-4 right-4 bg-[#1E1218] border border-[#FF5D73]/30 rounded-[20px] p-4 shadow-[0_10px_40px_rgba(255,93,115,0.2)] z-[500] flex items-start gap-3"
                 >
                   <AlertCircle className="w-5 h-5 text-[#FF5D73] shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <h4 className="text-[#FF5D73] font-bold text-sm">Action Denied</h4>
-                    <p className="text-[#8F95A3] text-[13px] mt-1 leading-relaxed">{errorPopup}</p>
+                    <h4 className="text-[#FF5D73] font-black text-sm uppercase tracking-wide">Action Denied</h4>
+                    <p className="text-[#8F95A3] text-[13px] font-medium mt-1 leading-relaxed">{errorPopup}</p>
                   </div>
                   <button onClick={() => setErrorPopup(null)} className="text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
                     <X className="w-4 h-4" />
@@ -306,7 +324,7 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
             </AnimatePresence>
 
             {/* Input Area with Emoji Picker */}
-            <div className="p-4 bg-[#111319] border-t border-white/5 relative z-10 pb-safe">
+            <div className="p-4 bg-[#0E1015] border-t border-white/5 relative z-10 pb-safe">
               
               <AnimatePresence>
                 {showEmojiPicker && (
@@ -329,12 +347,12 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
                 )}
               </AnimatePresence>
 
-              <form onSubmit={handleSendMessage} className="relative flex items-center bg-[#1A1C24] border border-[#8B5CF6]/50 rounded-[20px] p-1.5 focus-within:border-[#8B5CF6] focus-within:ring-1 focus-within:ring-[#8B5CF6]/50 transition-all shadow-[0_0_15px_rgba(139,92,246,0.1)]">
+              <form onSubmit={handleSendMessage} className="relative flex items-center bg-[#1A1C24] border border-white/10 rounded-[24px] p-1.5 focus-within:border-[#8B5CF6] focus-within:ring-1 focus-within:ring-[#8B5CF6]/50 transition-all shadow-inner">
                 
                 <button 
                   type="button" 
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  className={`w-10 h-10 flex items-center justify-center shrink-0 transition-colors ${showEmojiPicker ? 'text-[#8B5CF6]' : 'text-[#8F95A3] hover:text-white'}`}
+                  className={`w-10 h-10 flex items-center justify-center shrink-0 transition-colors cursor-pointer rounded-full hover:bg-white/5 ${showEmojiPicker ? 'text-[#8B5CF6] bg-[#8B5CF6]/10' : 'text-[#8F95A3] hover:text-white'}`}
                 >
                   <Smile className="w-5 h-5" />
                 </button>
@@ -344,19 +362,21 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Write a message..." 
-                  className="flex-1 bg-transparent text-white text-[14px] px-2 outline-none placeholder:text-[#8F95A3]"
+                  className="flex-1 bg-transparent text-white text-[15px] font-medium px-3 outline-none placeholder:text-[#5A6072]"
                   disabled={isSending}
+                  autoComplete="off"
                 />
                 
                 <button 
                   type="submit" 
                   disabled={!newMessage.trim() || isSending}
-                  className="px-5 py-2.5 rounded-[14px] bg-[#8B5CF6] hover:bg-[#7c3aed] flex items-center gap-2 text-white font-bold text-sm shadow-[0_4px_15px_rgba(139,92,246,0.4)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer"
+                  className="px-6 py-3 rounded-[20px] bg-[#533785] text-[#9A7DDE] font-black text-[15px] flex items-center gap-2 hover:bg-[#8B5CF6] hover:text-white disabled:opacity-50 disabled:bg-[#1A1C24] disabled:text-[#5A6072] disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer shadow-sm"
                 >
                   <Send className="w-4 h-4" /> <span className="hidden sm:block">{isSending ? '...' : 'Send'}</span>
                 </button>
               </form>
-              <div className="text-center mt-3 text-[11px] text-[#8F95A3] flex items-center justify-center gap-1.5 font-medium">
+              
+              <div className="text-center mt-3.5 text-[10px] text-[#5A6072] flex items-center justify-center gap-1.5 font-bold uppercase tracking-widest">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#00E57A]" /> Your conversations are 100% secure
               </div>
             </div>

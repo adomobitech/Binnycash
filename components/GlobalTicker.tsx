@@ -46,7 +46,7 @@ export default function GlobalTicker() {
         }
 
         if (!res.ok) {
-          return; 
+          return;
         }
 
         const text = await res.text();
@@ -76,28 +76,6 @@ export default function GlobalTicker() {
   // SOCKET CONNECTION
   // =========================
   useEffect(() => {
-    // Agar admin panel ya home par hai, toh socket connect mat karo/disconnect kar do
-    if (shouldHide) {
-      if (socket) {
-        socket.disconnect();
-        socket = null;
-      }
-      return;
-    }
-
-    // Already connected
-    if (socket?.connected) {
-      return;
-    }
-
-    socket = io("https://api.binnycash.com", {
-      transports: ["websocket", "polling"],
-      autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 5000,
-    });
-
     const handleNewInbox = (newMessage: any) => {
       if (!newMessage) return;
 
@@ -137,38 +115,65 @@ export default function GlobalTicker() {
       });
     };
 
-    socket.on("connect", () => {
-      console.log("Socket connected:", socket?.id);
-    });
-
-    socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error.message);
-    });
-
-    socket.on("disconnect", (reason) => {
-      console.log("Socket disconnected:", reason);
-    });
-
-    // Backend events
-    socket.on("new-inbox", handleNewInbox);
-    socket.on("userActivity", handleNewInbox);
-
-    // Cleanup
-    return () => {
+    // Agar admin panel ya home par hai, toh socket disconnect kar do
+    if (shouldHide) {
       if (socket) {
         socket.off("new-inbox", handleNewInbox);
         socket.off("userActivity", handleNewInbox);
-
         socket.disconnect();
         socket = null;
       }
+      return;
+    }
+
+    // 🔥 FIX: agar socket already exist karta hai (connected YA connecting),
+    // toh naya socket mat banao — warna purana socket beech mein hi
+    // disconnect ho jaata hai aur "closed before connection established" warning aati hai
+    if (!socket) {
+      socket = io("https://api.binnycash.com", {
+        transports: ["websocket", "polling"],
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 2000,
+      });
+
+      socket.on("connect", () => {
+        console.log("Socket connected:", socket?.id);
+      });
+
+      socket.on("connect_error", (error) => {
+        console.error("Socket connection error:", error.message);
+      });
+
+      socket.on("disconnect", (reason) => {
+        console.log("Socket disconnected:", reason);
+      });
+    }
+
+    // 🔥 FIX: purane listeners hata ke fresh laga do (StrictMode / re-render
+    // ki wajah se duplicate listeners na lagein, ye ab safe hai kyunki
+    // socket khud recreate nahi ho raha)
+    socket.off("new-inbox", handleNewInbox);
+    socket.off("userActivity", handleNewInbox);
+    socket.on("new-inbox", handleNewInbox);
+    socket.on("userActivity", handleNewInbox);
+
+    // Cleanup: sirf is component ke listeners hatao,
+    // socket ko disconnect/null MAT karo — wo shouldHide === true
+    // hone par upar hi handle ho raha hai. Isse route change / dev
+    // StrictMode remount par socket connection stable rehta hai
+    // aur beech ke live events miss nahi hote.
+    return () => {
+      socket?.off("new-inbox", handleNewInbox);
+      socket?.off("userActivity", handleNewInbox);
     };
   }, [shouldHide]);
 
   // =========================
   // DON'T SHOW ON HOME OR ADMIN PANEL
   // =========================
-  if (shouldHide || feeds.length === 0)  {
+  if (shouldHide || feeds.length === 0) {
     return null;
   }
 

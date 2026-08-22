@@ -676,10 +676,6 @@ export default function ProfilePage() {
     }
 
     try {
-      // 🔥 FIX: Swagger confirms this endpoint takes NO parameters — the user
-      // is identified purely from the Bearer token. The old `?userId=` query
-      // param isn't part of the API contract and was likely causing the
-      // request to be rejected or silently ignored by the backend.
       const res = await fetch(`https://api.binnycash.com/api/user/deleteUser`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -687,9 +683,6 @@ export default function ProfilePage() {
       
       const json = await res.json();
 
-      // 🔥 FIX: Backend returns HTTP 200 even for business-logic errors
-      // (same pattern as login/signup/verifyOtp in AuthModal.tsx), so `res.ok`
-      // alone can't be trusted as "success". Check the body's error signals too.
       const errCode = json?.code || json?.responseCode;
       const errMsg = json?.message || json?.responseMessage || '';
       const isError = !res.ok || errCode === 400 || errCode === 403 || errCode === 404 || json?.type === 'error';
@@ -728,8 +721,10 @@ export default function ProfilePage() {
 
   const rawProfilePic = userData?.image || userData?.profilePic;
   const displayImage = resolveImage(rawProfilePic);
-
-  const joinDate = userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently';
+  
+  // --- 🔥 DATE LOGIC FIX: Show exact string if missing 🔥 ---
+  const rawDate = userData?.createdAt || userData?.created_at || userData?.Date || userData?.date || userData?.registerDate;
+  const joinDateText = rawDate ? `Joined ${new Date(rawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : 'Joined Recently';
   
   const kycStatus = userData?.documentStatus || userData?.documents?.status || userData?.kycStatus || 'Not Submitted';
 
@@ -808,10 +803,11 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* HERO BANNER */}
-        <div className="relative w-full rounded-3xl overflow-hidden bg-gradient-to-br from-[#4c1d95] via-[#2e1065] to-[#0f061f] p-6 md:p-10 flex flex-col md:flex-row items-center justify-between shadow-2xl mb-8 border border-white/10">
+        {/* HERO BANNER - REDESIGNED */}
+        <div className="relative w-full rounded-[24px] overflow-hidden bg-gradient-to-r from-[#4A1D96] to-[#200B4D] p-6 md:p-10 flex flex-col md:flex-row items-center justify-between shadow-xl mb-8 border border-[#5a2eab]">
           
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/3 w-[600px] h-[600px] pointer-events-none opacity-20 flex items-center justify-center">
+          {/* Decorative concentric circles */}
+          <div className="absolute right-0 md:right-[15%] top-1/2 -translate-y-1/2 translate-x-1/2 w-[800px] h-[800px] pointer-events-none flex items-center justify-center opacity-10 z-0">
              <div className="w-[300px] h-[300px] rounded-full border border-white absolute"></div>
              <div className="w-[450px] h-[450px] rounded-full border border-white absolute"></div>
              <div className="w-[600px] h-[600px] rounded-full border border-white absolute"></div>
@@ -819,7 +815,7 @@ export default function ProfilePage() {
 
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 z-10 w-full">
              <div className="relative shrink-0">
-               <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#8b5cf6] shadow-xl border-4 border-[#4c1d95] overflow-hidden flex items-center justify-center">
+               <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#9061F9] shadow-inner overflow-hidden flex items-center justify-center">
                  {displayImage && !imgError ? (
                     <img 
                       src={displayImage} 
@@ -828,27 +824,50 @@ export default function ProfilePage() {
                       className="w-full h-full object-cover" 
                     />
                   ) : (
-                    <span className="text-white text-5xl font-bold uppercase">{name.charAt(0)}</span>
+                    <span className="text-white text-[40px] font-bold uppercase">{name.charAt(0)}</span>
                   )}
                </div>
                <button 
                   onClick={() => setIsAvatarModalOpen(true)}
-                  className="absolute bottom-1 right-1 w-9 h-9 bg-black/40 backdrop-blur-md hover:bg-black/60 rounded-full border border-white/20 flex items-center justify-center transition-colors cursor-pointer"
+                  className="absolute bottom-0 right-0 w-8 h-8 bg-[#341173] hover:bg-[#4A1D96] rounded-full border border-white/10 flex items-center justify-center transition-colors cursor-pointer shadow-md"
                >
-                 <Camera className="w-4 h-4 text-white" />
+                 <Camera className="w-3.5 h-3.5 text-white/80" />
                </button>
              </div>
              
-             <div className="flex flex-col text-center sm:text-left mt-4 sm:mt-6">
-                <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">{name}</h1>
-                <p className="text-white/70 text-sm font-medium">Joined {joinDate}</p>
+             <div className="flex flex-col text-center sm:text-left mt-4 sm:mt-3">
+                <h1 className="text-3xl sm:text-[32px] font-bold text-white tracking-wide mb-3">{name}</h1>
+                
+                {/* 🔥 NEW: Unique BinnyCash ID Design 🔥 */}
+                <div className="flex justify-center sm:justify-start mb-4">
+                    <div className="inline-flex items-stretch bg-[#050409]/60 backdrop-blur-md border border-[#A66CFF]/30 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(166,108,255,0.15)] group hover:border-[#A66CFF]/60 transition-colors">
+                        <div className="bg-[#A66CFF]/10 px-3 py-2 flex items-center gap-1.5 border-r border-[#A66CFF]/20">
+                            <Hash className="w-3.5 h-3.5 text-[#A66CFF]" />
+                            <span className="text-[#A66CFF] text-[10px] font-black uppercase tracking-widest mt-0.5">BINNYCASH ID</span>
+                        </div>
+                        <div className="px-4 py-2 flex items-center bg-white/[0.02]">
+                            <span className="f-mono text-white text-[15px] font-black tracking-wider">
+                                {getUserId() || userData?.id || userData?._id || 'N/A'}
+                            </span>
+                        </div>
+                        <button 
+                            onClick={() => copyToClipboard(getUserId() || userData?.id || userData?._id || '')} 
+                            className="px-3 flex items-center justify-center bg-white/[0.02] hover:bg-[#A66CFF] hover:text-white text-[#8D89A8] transition-colors border-l border-white/5 cursor-pointer"
+                            title="Copy ID"
+                        >
+                            <Copy className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+
+                <p className="text-white/70 text-sm font-medium mb-1">{joinDateText}</p>
                 <p className="text-white/50 text-xs mt-1.5">Your earnings. Your milestones. Your future.</p>
              </div>
           </div>
 
-          <div className="bg-[#120F1A]/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 min-w-[280px] z-10 mt-8 md:mt-0 shadow-xl shrink-0">
-              <p className="text-white/60 text-xs font-medium mb-2">Available Balance</p>
-              <h2 className="text-3xl font-black text-white f-mono mb-1">
+          <div className="bg-[#11052C]/80 backdrop-blur-md border border-white/5 rounded-[20px] p-6 min-w-[260px] z-10 mt-8 md:mt-0 shadow-2xl shrink-0">
+              <p className="text-white/50 text-[11px] font-medium mb-1">Available Balance</p>
+              <h2 className="text-[28px] font-bold text-white f-mono tracking-tight flex items-center gap-1">
                 {formatPrice(Number(dashboardSummary?.availableBalance || 0), currency)}
               </h2>
           </div>
@@ -1262,7 +1281,7 @@ export default function ProfilePage() {
 
                     <div className="flex flex-col pb-1">
                       <h2 className="text-2xl font-bold text-white tracking-tight">{name}</h2>
-                      <span className="text-sm text-[#8D89A8] font-medium mt-0.5">Joined {joinDate}</span>
+                      <span className="text-sm text-[#8D89A8] font-medium mt-0.5">{joinDateText}</span>
                     </div>
                   </div>
 
