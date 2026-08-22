@@ -168,7 +168,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     setIsLoading(true);
     setError('');
 
-    const endpoint = 'https://apitest.binnycash.com/api/user/signup';
+    const endpoint = 'https://api.binnycash.com/api/user/signup';
 
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
@@ -228,7 +228,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('device_id', getOrCreateDeviceId());
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/login', {
+      const res = await fetch('https://api.binnycash.com/api/user/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
@@ -291,7 +291,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('otp', otp);
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/verifyOtp', {
+      const res = await fetch('https://api.binnycash.com/api/user/verifyOtp', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
@@ -330,7 +330,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
             loginEncoded.append('password', password); 
             loginEncoded.append('device_id', getOrCreateDeviceId());
 
-            const loginRes = await fetch('https://apitest.binnycash.com/api/user/login', {
+            const loginRes = await fetch('https://api.binnycash.com/api/user/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
               body: loginEncoded
@@ -383,7 +383,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('email', email);
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/resendOtp', {
+      const res = await fetch('https://api.binnycash.com/api/user/resendOtp', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
@@ -414,7 +414,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('email', email);
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/forgetPassword', {
+      const res = await fetch('https://api.binnycash.com/api/user/forgetPassword', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
@@ -447,7 +447,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('email', email);
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/resendOtp', {
+      const res = await fetch('https://api.binnycash.com/api/user/resendOtp', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
@@ -491,7 +491,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     urlEncoded.append('password', newPassword); 
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/resetPassword', {
+      const res = await fetch('https://api.binnycash.com/api/user/resetPassword', {
         method: 'POST', 
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
@@ -552,7 +552,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
         params.append('promoCode', promoCode.trim());
       }
 
-      window.location.href = `https://apitest.binnycash.com/auth/google?${params.toString()}`;
+      window.location.href = `https://api.binnycash.com/auth/google?${params.toString()}`;
     };
 
     return (

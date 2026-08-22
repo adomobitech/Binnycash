@@ -33,7 +33,7 @@ function getUserId(): string {
 const resolveImage = (imgSrc: string | null | undefined) => {
   if (!imgSrc || imgSrc.trim() === '') return null;
   if (imgSrc.startsWith('http')) return imgSrc;
-  return imgSrc.startsWith('/') ? `https://apitest.binnycash.com${imgSrc}` : `https://apitest.binnycash.com/${imgSrc}`;
+  return imgSrc.startsWith('/') ? `https://api.binnycash.com${imgSrc}` : `https://api.binnycash.com/${imgSrc}`;
 };
 
 // Helper for initial letter fallback
@@ -626,7 +626,7 @@ export default function LeaderboardPage() {
       const userId = getUserId();
 
       try {
-        const url = `https://apitest.binnycash.com/api/user/userViewLeaderboard?leaderboardType=${contestType}&page=1&limit=50${userId ? `&userId=${userId}` : ''}`;
+        const url = `https://api.binnycash.com/api/user/userViewLeaderboard?leaderboardType=${contestType}&page=1&limit=50${userId ? `&userId=${userId}` : ''}`;
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
         const json = await res.json();
 

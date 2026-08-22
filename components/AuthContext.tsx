@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const res = await fetch('https://apitest.binnycash.com/api/user/userDetails', {
+        const res = await fetch('https://api.binnycash.com/api/user/userDetails', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });

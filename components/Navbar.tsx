@@ -214,7 +214,7 @@ export default function Navbar() {
       isFetching = true;
 
       try {
-        const res = await fetch(`https://apitest.binnycash.com/api/user/balance/total-amount?t=${Date.now()}`, {
+        const res = await fetch(`https://api.binnycash.com/api/user/balance/total-amount?t=${Date.now()}`, {
           method: 'GET',
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -278,7 +278,7 @@ export default function Navbar() {
   const resolveImage = (imgSrc: string) => {
     if (!imgSrc || imgSrc === 'null' || imgSrc === 'undefined') return null;
     if (imgSrc.startsWith('http')) return imgSrc;
-    return `https://apitest.binnycash.com${imgSrc}`;
+    return `https://api.binnycash.com${imgSrc}`;
   };
 
   const fetchUserData = async (forceFetch = false) => {
@@ -328,7 +328,7 @@ export default function Navbar() {
     lastProfileFetchRef.current = now;
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/userDetails', {
+      const res = await fetch('https://api.binnycash.com/api/user/userDetails', {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -373,7 +373,7 @@ export default function Navbar() {
     if (!token || token.includes('[object Object]')) return;
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/userAlertList?limit=1', {
+      const res = await fetch('https://api.binnycash.com/api/user/userAlertList?limit=1', {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -399,7 +399,7 @@ export default function Navbar() {
       const token = localStorage.getItem('token');
       if (!token || token.includes('[object Object]')) return;
 
-      const res = await fetch('https://apitest.binnycash.com/api/user/userAlertList', {
+      const res = await fetch('https://api.binnycash.com/api/user/userAlertList', {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -444,7 +444,7 @@ export default function Navbar() {
       const token = localStorage.getItem('token');
       const userId = trueUserId || getUserId();
       
-      const res = await fetch(`https://apitest.binnycash.com/api/user/markAllRead?userId=${userId}`, {
+      const res = await fetch(`https://api.binnycash.com/api/user/markAllRead?userId=${userId}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -478,7 +478,7 @@ export default function Navbar() {
     setIsTransitioning(true);
     try {
       const token = localStorage.getItem('token');
-      await fetch('https://apitest.binnycash.com/api/user/logout', {
+      await fetch('https://api.binnycash.com/api/user/logout', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/x-www-form-urlencoded',

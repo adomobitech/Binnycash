@@ -9,7 +9,7 @@ export default function OfferwallCard({ offerwall, onClick }: { offerwall: any, 
   
   let imageUrl = offerwall.image || `https://ui-avatars.com/api/?name=${name.replace(/\s+/g, '+')}&background=5A2E87&color=fff`;
   if (imageUrl && !imageUrl.startsWith('http')) {
-    imageUrl = `https://apitest.binnycash.com${imageUrl}`;
+    imageUrl = `https://api.binnycash.com${imageUrl}`;
   }
 
   const ratingCount = offerwall.rating ? Math.min(5, Math.max(1, offerwall.rating)) : 5;

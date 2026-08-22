@@ -20,7 +20,7 @@ function TickerAvatar({ userImage, userName, avatarBg, initialChar }: { userImag
 
   let finalImageSrc = userImage;
   if (userImage.startsWith('/uploads')) {
-    finalImageSrc = `https://apitest.binnycash.com${userImage}`;
+    finalImageSrc = `https://api.binnycash.com${userImage}`;
   }
 
   return (

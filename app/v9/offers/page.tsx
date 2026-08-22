@@ -23,7 +23,7 @@ export default function AdminOffersPage() {
     }
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/admin/offerwallList', {
+      const res = await fetch('https://api.binnycash.com/api/admin/offerwallList', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -46,7 +46,7 @@ export default function AdminOffersPage() {
     if (!token || !name) return;
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/admin/createOfferwall', {
+      const res = await fetch('https://api.binnycash.com/api/admin/createOfferwall', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ export default function AdminOffersPage() {
     if (!token) return;
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/deleteOfferwall`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/deleteOfferwall`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

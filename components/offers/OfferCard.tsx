@@ -123,7 +123,7 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       const offerId = offer._id || offer.id || offer.offer_id;
 
       try {
-        const res = await fetch(`https://apitest.binnycash.com/api/user/viewOffer`, {
+        const res = await fetch(`https://api.binnycash.com/api/user/viewOffer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ offer_id: offerId })
@@ -199,7 +199,7 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
         targetForQR = isOfferIos ? 'ios' : 'android';
     }
 
-    const trackingUrl = `https://apitest.binnycash.com/api/click?customer_id=${encodeURIComponent(userId)}&offer_id=${encodeURIComponent(targetId)}`;
+    const trackingUrl = `https://api.binnycash.com/api/click?customer_id=${encodeURIComponent(userId)}&offer_id=${encodeURIComponent(targetId)}`;
 
     if (isMismatch && targetForQR) {
       setTargetDeviceName(targetForQR === 'ios' ? 'iOS' : 'Android');
@@ -287,10 +287,10 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
 
   const currentData = details || offer;
   let rawImage = currentData?.image_url || currentData?.preview || currentData?.image || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop';
-  if (rawImage && !rawImage.startsWith('http')) rawImage = `https://apitest.binnycash.com${rawImage}`;
+  if (rawImage && !rawImage.startsWith('http')) rawImage = `https://api.binnycash.com${rawImage}`;
 
   let rawNetworkLogo = currentData?.networkImage || currentData?.network_image;
-  if (rawNetworkLogo && !rawNetworkLogo.startsWith('http')) rawNetworkLogo = `https://apitest.binnycash.com${rawNetworkLogo}`;
+  if (rawNetworkLogo && !rawNetworkLogo.startsWith('http')) rawNetworkLogo = `https://api.binnycash.com${rawNetworkLogo}`;
 
   const title = currentData?.offerName || currentData?.title || 'Offer Details';
   const offerIdForSupport = currentData?.id || currentData?._id || currentData?.offer_id || '';
@@ -609,7 +609,7 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
   
   let rawImage = offer.image_url || offer.preview || offer.image || offer.img || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop';
   if (rawImage && !rawImage.startsWith('http')) {
-    rawImage = `https://apitest.binnycash.com${rawImage.startsWith('/') ? '' : '/'}${rawImage}`;
+    rawImage = `https://api.binnycash.com${rawImage.startsWith('/') ? '' : '/'}${rawImage}`;
   }
 
   const handleCardClick = () => {

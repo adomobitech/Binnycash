@@ -26,7 +26,7 @@ export default function LowerHero() {
   useEffect(() => {
     const fetchPayAmount = async () => {
       try {
-        const res = await fetch('https://apitest.binnycash.com/api/payAmount');
+        const res = await fetch('https://api.binnycash.com/api/payAmount');
         const resData = await safeJsonParse(res);
         const amount = resData?.data ?? resData?.amount ?? resData?.total ?? resData ?? 0;
         setTotalPaid(amount);

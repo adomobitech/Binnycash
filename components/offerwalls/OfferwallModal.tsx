@@ -32,7 +32,7 @@ export default function OfferwallModal({ isOpen, onClose, offerwall }: any) {
 
       try {
         // 🔥 NEW API INTEGRATION: track_offerwall 🔥
-        const res = await fetch(`https://apitest.binnycash.com/api/user/track_offerwall`, {
+        const res = await fetch(`https://api.binnycash.com/api/user/track_offerwall`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json', 

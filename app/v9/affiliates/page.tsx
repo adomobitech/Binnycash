@@ -61,7 +61,7 @@ export default function AdminAffiliatesPage() {
 
   const resolveImage = (imgSrc: string | null) => {
     if (!imgSrc || imgSrc.trim() === '') return null;
-    return !imgSrc.startsWith('http') ? `https://apitest.binnycash.com${imgSrc}` : imgSrc;
+    return !imgSrc.startsWith('http') ? `https://api.binnycash.com${imgSrc}` : imgSrc;
   };
 
   // 1. Fetch All Users List
@@ -77,7 +77,7 @@ export default function AdminAffiliatesPage() {
     }
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/userList?adminId=${encodeURIComponent(adminId)}&page=${pageToFetch}&limit=50`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/userList?adminId=${encodeURIComponent(adminId)}&page=${pageToFetch}&limit=50`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
@@ -123,7 +123,7 @@ export default function AdminAffiliatesPage() {
     const token = localStorage.getItem('admin_token');
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/affiliates/${encodeURIComponent(userId)}`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/affiliates/${encodeURIComponent(userId)}`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
@@ -155,7 +155,7 @@ export default function AdminAffiliatesPage() {
     formData.append('isLocked', newLockState.toString()); 
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/affiliates/${userId}/level-lock`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/affiliates/${userId}/level-lock`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -178,7 +178,7 @@ export default function AdminAffiliatesPage() {
     setIsReferralsLoading(true);
     const token = localStorage.getItem('admin_token');
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/affiliates/${affiliateDetail.userInformation.userId}/referrals?page=${page}&limit=10`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/affiliates/${affiliateDetail.userInformation.userId}/referrals?page=${page}&limit=10`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const json = await res.json();
@@ -201,7 +201,7 @@ export default function AdminAffiliatesPage() {
     setIsCommissionsLoading(true);
     const token = localStorage.getItem('admin_token');
     
-    let url = `https://apitest.binnycash.com/api/admin/affiliates/${affiliateDetail.userInformation.userId}/commissions?page=${page}&limit=10`;
+    let url = `https://api.binnycash.com/api/admin/affiliates/${affiliateDetail.userInformation.userId}/commissions?page=${page}&limit=10`;
     if (status && status !== '') url += `&status=${status}`;
 
     try {
@@ -239,7 +239,7 @@ export default function AdminAffiliatesPage() {
     setIsTierLoading(true);
     const token = localStorage.getItem('admin_token');
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/levels`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/levels`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
@@ -282,7 +282,7 @@ export default function AdminAffiliatesPage() {
     };
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/levels`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/levels`, {
         method: 'PUT',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -320,7 +320,7 @@ export default function AdminAffiliatesPage() {
     };
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/levels`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/levels`, {
         method: 'PUT',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -350,7 +350,7 @@ export default function AdminAffiliatesPage() {
     const token = localStorage.getItem('admin_token');
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/levels/${id}`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/levels/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });

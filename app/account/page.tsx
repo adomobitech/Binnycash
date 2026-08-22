@@ -39,7 +39,7 @@ export default function AccountStatusPage() {
       }
 
       try {
-        const res = await fetch('https://apitest.binnycash.com/api/user/viewData', {
+        const res = await fetch('https://api.binnycash.com/api/user/viewData', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();

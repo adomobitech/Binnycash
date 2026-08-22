@@ -24,7 +24,7 @@ export default function SurveyModal({ isOpen, onClose, survey }: any) {
     const targetId = survey._id || survey.id || survey.offer_id;
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/user/tracking/user_click`, {
+      const res = await fetch(`https://api.binnycash.com/api/user/tracking/user_click`, {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ offerId: targetId }) 

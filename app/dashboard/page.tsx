@@ -50,7 +50,7 @@ export default function DashboardPage() {
     const fetchAllOffers = async () => {
       const token = localStorage.getItem('token') || '';
       try {
-        const res = await fetch(`https://apitest.binnycash.com/api/user/offerlist?page=1`, {
+        const res = await fetch(`https://api.binnycash.com/api/user/offerlist?page=1`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -66,7 +66,7 @@ export default function DashboardPage() {
     const fetchAllSurveys = async () => {
       const token = localStorage.getItem('token') || '';
       try {
-        const res = await fetch(`https://apitest.binnycash.com/api/user/surveyList`, {
+        const res = await fetch(`https://api.binnycash.com/api/user/surveyList`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -82,7 +82,7 @@ export default function DashboardPage() {
     const fetchOfferwalls = async () => {
       const token = localStorage.getItem('token') || '';
       try {
-        const res = await fetch(`https://apitest.binnycash.com/api/user/user_offerwall_list`, {
+        const res = await fetch(`https://api.binnycash.com/api/user/user_offerwall_list`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
         });
@@ -106,7 +106,7 @@ export default function DashboardPage() {
     const fetchSurveywalls = async () => {
       const token = localStorage.getItem('token') || '';
       try {
-        const res = await fetch(`https://apitest.binnycash.com/api/user/user_surveywall_list`, {
+        const res = await fetch(`https://api.binnycash.com/api/user/user_surveywall_list`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
         });

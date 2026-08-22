@@ -173,7 +173,7 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
       data.append('documentType', finalDocType);
       data.append('documentFrontImage', frontImage);
 
-      const json = await safeFetchJson('https://apitest.binnycash.com/api/user/kyc/submit', {
+      const json = await safeFetchJson('https://api.binnycash.com/api/user/kyc/submit', {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
         body: data
@@ -441,7 +441,7 @@ export default function ProfilePage() {
     const userId = getUserId();
 
     try {
-      const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/userDetails?userId=${userId}&t=${Date.now()}`, {
+      const json = await safeFetchJson(`https://api.binnycash.com/api/user/userDetails?userId=${userId}&t=${Date.now()}`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` },
         cache: 'no-store'
@@ -463,7 +463,7 @@ export default function ProfilePage() {
         }));
       }
 
-      const summaryJson = await safeFetchJson(`https://apitest.binnycash.com/api/user/dashboardsummary?t=${Date.now()}`, {
+      const summaryJson = await safeFetchJson(`https://api.binnycash.com/api/user/dashboardsummary?t=${Date.now()}`, {
         headers: { 'Authorization': `Bearer ${token}` },
         cache: 'no-store'
       });
@@ -498,7 +498,7 @@ export default function ProfilePage() {
           if (activeTableTab === 'surveys') typeParam = 'survey';
           if (activeTableTab === 'reversals') typeParam = 'reversal';
 
-          const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/conversionData?type=${typeParam}&page=${tablePage}&limit=10`, {
+          const json = await safeFetchJson(`https://api.binnycash.com/api/user/conversionData?type=${typeParam}&page=${tablePage}&limit=10`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
 
@@ -525,7 +525,7 @@ export default function ProfilePage() {
           }
         }
         else if (activeTableTab === 'rewards') {
-          const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/user_earn_reward?userId=${userId}&page=${tablePage}&limit=10`, {
+          const json = await safeFetchJson(`https://api.binnycash.com/api/user/user_earn_reward?userId=${userId}&page=${tablePage}&limit=10`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (json && json.code === 200 && json.type === 'success') {
@@ -570,7 +570,7 @@ export default function ProfilePage() {
       payload.append('mobileNumber', formData.mobileNumber);
       payload.append('zipCode', formData.zipCode);
 
-      const json = await safeFetchJson(`https://apitest.binnycash.com/api/user/editProfile?userId=${userId}`, {
+      const json = await safeFetchJson(`https://api.binnycash.com/api/user/editProfile?userId=${userId}`, {
         method: 'PUT',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -620,7 +620,7 @@ export default function ProfilePage() {
         data.append('image', file);
       }
 
-      const res = await fetch(`https://apitest.binnycash.com/api/user/uploadImage?userId=${userId}`, {
+      const res = await fetch(`https://api.binnycash.com/api/user/uploadImage?userId=${userId}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
         body: data
@@ -668,11 +668,19 @@ export default function ProfilePage() {
     setDeleteError(null);
     
     const token = localStorage.getItem('token') || '';
-    const userId = getUserId();
+
+    if (!token) {
+      setDeleteError("You're not logged in. Please log in again and retry.");
+      setIsDeleting(false);
+      return;
+    }
 
     try {
-      // Required query param ?userId= as requested
-      const res = await fetch(`https://apitest.binnycash.com/api/user/deleteUser`, {
+      // 🔥 FIX: Swagger confirms this endpoint takes NO parameters — the user
+      // is identified purely from the Bearer token. The old `?userId=` query
+      // param isn't part of the API contract and was likely causing the
+      // request to be rejected or silently ignored by the backend.
+      const res = await fetch(`https://api.binnycash.com/api/user/deleteUser`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -713,7 +721,7 @@ export default function ProfilePage() {
   const resolveImage = (imgSrc: string | null | undefined) => {
     if (!imgSrc || imgSrc.trim() === '') return null;
     if (imgSrc.startsWith('http')) return imgSrc;
-    return imgSrc.startsWith('/') ? `https://apitest.binnycash.com${imgSrc}` : `https://apitest.binnycash.com/${imgSrc}`;
+    return imgSrc.startsWith('/') ? `https://api.binnycash.com${imgSrc}` : `https://api.binnycash.com/${imgSrc}`;
   };
 
   const name = userData?.name || userData?.fullName || [userData?.firstName, userData?.lastName].filter(Boolean).join(' ').trim() || userData?.userName || 'User';

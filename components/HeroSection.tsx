@@ -31,8 +31,8 @@ export default function HeroSection() {
     const fetchData = async () => {
       try {
         const [resUser, resOffer] = await Promise.all([
-          fetch('https://apitest.binnycash.com/api/activeUser'),
-          fetch('https://apitest.binnycash.com/api/avilableOffer')
+          fetch('https://api.binnycash.com/api/activeUser'),
+          fetch('https://api.binnycash.com/api/avilableOffer')
         ]);
 
         const [jsonUser, jsonOffer] = await Promise.all([

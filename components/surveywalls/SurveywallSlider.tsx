@@ -92,7 +92,7 @@ export default function SurveywallSlider({ surveywalls = [], isLoading = false }
               const fixedItem = {
                 ...item,
                 image: item.image && !item.image.startsWith('http') 
-                  ? `https://apitest.binnycash.com${item.image}` 
+                  ? `https://api.binnycash.com${item.image}` 
                   : item.image
               };
               return (

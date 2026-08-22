@@ -110,7 +110,7 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       const offerId = offer._id || offer.id || offer.offer_id;
 
       try {
-        const res = await fetch(`https://apitest.binnycash.com/api/user/viewOffer`, {
+        const res = await fetch(`https://api.binnycash.com/api/user/viewOffer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ offer_id: offerId })
@@ -202,7 +202,7 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     }
 
     if (showQR) {
-      const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
+      const trackingUrl = `https://api.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
       setTargetDeviceName(generateQRFor);
       setQrCodeUrl(trackingUrl);
       setIsProcessingClick(false);
@@ -215,7 +215,7 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       const token = localStorage.getItem('token') || '';
 
       const res = await fetch(
-        `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`,
+        `https://api.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`,
         {
           method: 'GET',
           headers: { 'Accept': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
@@ -252,7 +252,7 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
         if (newTab) newTab.close();
         
         if (isDeviceError || isDesktop || isMobile) {
-          const trackingUrl = `https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
+          const trackingUrl = `https://api.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`;
           setTargetDeviceName(generateQRFor || 'Mobile Device');
           setQrCodeUrl(trackingUrl);
         } else {
@@ -289,10 +289,10 @@ export default function OfferDetailsModal({ offer, isOpen, onClose }: any) {
 
   const currentData = details || offer;
   let rawImage = currentData?.image_url || currentData?.preview || currentData?.image || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop';
-  if (rawImage && !rawImage.startsWith('http')) rawImage = `https://apitest.binnycash.com${rawImage}`;
+  if (rawImage && !rawImage.startsWith('http')) rawImage = `https://api.binnycash.com${rawImage}`;
 
   let rawNetworkLogo = currentData?.networkImage || currentData?.network_image;
-  if (rawNetworkLogo && !rawNetworkLogo.startsWith('http')) rawNetworkLogo = `https://apitest.binnycash.com${rawNetworkLogo}`;
+  if (rawNetworkLogo && !rawNetworkLogo.startsWith('http')) rawNetworkLogo = `https://api.binnycash.com${rawNetworkLogo}`;
 
   const title = currentData?.offerName || currentData?.title || 'Offer Details';
   const offerIdForSupport = currentData?.id || currentData?._id || currentData?.offer_id || '';

@@ -58,7 +58,7 @@ export default function DashboardHero() {
 
       try {
         // 🔥 ONLY Fetching Dashboard Summary, Removed Deprecated viewData Call 🔥
-        const summaryRes = await fetch('https://apitest.binnycash.com/api/user/dashboardSummary', { headers });
+        const summaryRes = await fetch('https://api.binnycash.com/api/user/dashboardSummary', { headers });
         const summaryJson = await summaryRes.json();
 
         if (summaryJson.code === 200 && summaryJson.data) {

@@ -39,7 +39,7 @@ export default function AdminPromosPage() {
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [editingPromoId, setEditingPromoId] = useState<string | null>(null);
 
-  // Form State corresponding to Swagger API
+  // Form State
   const initialFormState = {
     code: '',
     name: '',
@@ -59,7 +59,7 @@ export default function AdminPromosPage() {
     deviceLimit: '1',
     checkReferralAbuse: true,
     blockVpnProxy: true,
-    status: 'ACTIVE' // Only used during UPDATE
+    status: 'ACTIVE'
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -75,19 +75,38 @@ export default function AdminPromosPage() {
     }
   };
 
-  // 🔥 1. Fetch Dashboard Stats 🔥
+  // 🔥 1 & 8. Fetch Dashboard AND Analytics Stats Together 🔥
   const fetchDashboardStats = async () => {
     setIsDashboardLoading(true);
     const token = localStorage.getItem('admin_token');
+    
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/bonusDashboard`, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
-      const json = await res.json().catch(() => null);
-      if (res.ok && json?.code === 200 && json?.data) {
-        setDashboardStats(json.data);
+      // Parallel fetch for both APIs to ensure we get all data instantly
+      const [dashRes, analyticsRes] = await Promise.all([
+        fetch(`https://api.binnycash.com/api/admin/bonusDashboard`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+        }),
+        fetch(`https://api.binnycash.com/api/admin/bonusAnalytics`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+        })
+      ]);
+
+      const dashJson = await dashRes.json().catch(() => null);
+      const analyticsJson = await analyticsRes.json().catch(() => null);
+
+      let mergedStats = {};
+      
+      if (dashRes.ok && dashJson?.code === 200 && dashJson?.data) {
+        mergedStats = { ...mergedStats, ...dashJson.data };
       }
+      
+      if (analyticsRes.ok && analyticsJson?.code === 200 && analyticsJson?.data) {
+        mergedStats = { ...mergedStats, ...analyticsJson.data };
+      }
+
+      setDashboardStats(mergedStats);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     } finally {
@@ -107,7 +126,7 @@ export default function AdminPromosPage() {
     }
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/bonuscodeList`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/bonuscodeList`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
@@ -133,7 +152,7 @@ export default function AdminPromosPage() {
     setIsLogsLoading(true);
     const token = localStorage.getItem('admin_token');
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/redemptionLogs?page=${page}&limit=50`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/redemptionLogs?page=${page}&limit=50`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
@@ -178,7 +197,7 @@ export default function AdminPromosPage() {
     const token = localStorage.getItem('admin_token');
     
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/deleteBonusCode/${id}`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/deleteBonusCode/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
@@ -186,7 +205,7 @@ export default function AdminPromosPage() {
       
       if (res.ok && (json.code === 200 || json.type === 'success')) {
         setPromos(prev => prev.filter(p => (p._id || p.id) !== id));
-        fetchDashboardStats(); // Refresh stats after delete
+        fetchDashboardStats(); 
       } else {
         alert(json.message || "Failed to delete promo code.");
       }
@@ -204,7 +223,7 @@ export default function AdminPromosPage() {
     setIsModalOpen(true);
   };
 
-  // Open Update Modal & Fetch Details
+  // 🔥 5. Fetch Details for Update Modal 🔥
   const openEditModal = async (promoId: string) => {
     setEditingPromoId(promoId);
     setFormData(initialFormState);
@@ -214,7 +233,7 @@ export default function AdminPromosPage() {
     const token = localStorage.getItem('admin_token');
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/bonusCodeDetails/${promoId}`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/bonusCodeDetails/${promoId}`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
@@ -255,7 +274,7 @@ export default function AdminPromosPage() {
     }
   };
 
-  // Submit Form (POST for Create, PUT for Update)
+  // 🔥 6 & 7. Submit Form (POST for Create, PUT for Update) 🔥
   const handleSavePromo = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -301,8 +320,8 @@ export default function AdminPromosPage() {
     }
 
     const url = editingPromoId 
-      ? `https://apitest.binnycash.com/api/admin/updateBonusCode/${editingPromoId}`
-      : `https://apitest.binnycash.com/api/admin/createBonuscode`;
+      ? `https://api.binnycash.com/api/admin/updateBonusCode/${editingPromoId}`
+      : `https://api.binnycash.com/api/admin/createBonuscode`;
       
     const method = editingPromoId ? 'PUT' : 'POST';
 

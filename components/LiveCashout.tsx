@@ -37,7 +37,7 @@ export default function CashoutSection() {
   useEffect(() => {
     const fetchPayouts = async () => {
       try {
-        const res = await fetch('https://apitest.binnycash.com/api/latestWithdraw');
+        const res = await fetch('https://api.binnycash.com/api/latestWithdraw');
         const resData = await safeJsonParse(res);
         const list = resData?.data?.list || resData?.data || [];
         setPayouts(Array.isArray(list) ? list : []);
@@ -158,7 +158,7 @@ export default function CashoutSection() {
                         <div className="relative">
                           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4c1d95] to-[#2e1065] flex items-center justify-center text-white font-black text-base uppercase overflow-hidden shadow-[inset_0_2px_8px_rgba(255,255,255,0.2)]">
                             {user.image ? (
-                              <img src={user.image.startsWith('http') ? user.image : `https://apitest.binnycash.com${user.image}`} alt={name} className="w-full h-full object-cover" />
+                              <img src={user.image.startsWith('http') ? user.image : `https://api.binnycash.com${user.image}`} alt={name} className="w-full h-full object-cover" />
                             ) : (
                               name.charAt(0)
                             )}

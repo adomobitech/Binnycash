@@ -100,14 +100,14 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
       const targetId = offer.offerId || offer._id || offer.id;
 
       try {
-        let res = await fetch(`https://apitest.binnycash.com/api/user/tracking/getSingleClickOffer`, {
+        let res = await fetch(`https://api.binnycash.com/api/user/tracking/getSingleClickOffer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ offerId: targetId }) 
         });
 
         if (res.status === 404 || res.status === 405) {
-          res = await fetch(`https://apitest.binnycash.com/api/user/tracking/getSingleClickOffer?offerId=${targetId}`, {
+          res = await fetch(`https://api.binnycash.com/api/user/tracking/getSingleClickOffer?offerId=${targetId}`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -179,7 +179,7 @@ export default function MyOfferModal({ isOpen, onClose, offer }: any) {
     }
 
     // 🔥 FIXED ENDPOINT TO MATCH CURL REQUEST
-    const trackingUrl = `https://apitest.binnycash.com/api/click?customer_id=${encodeURIComponent(userId)}&offer_id=${encodeURIComponent(targetId)}`;
+    const trackingUrl = `https://api.binnycash.com/api/click?customer_id=${encodeURIComponent(userId)}&offer_id=${encodeURIComponent(targetId)}`;
 
     if (showQR) {
       setTargetDeviceName(generateQRFor);

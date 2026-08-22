@@ -149,7 +149,7 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
       data.append('documentFrontImage', frontImage);
       if (backImage) data.append('documentBackImage', backImage);
 
-      const res = await fetch('https://apitest.binnycash.com/api/user/kyc/submit', {
+      const res = await fetch('https://api.binnycash.com/api/user/kyc/submit', {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
         body: data,
@@ -499,8 +499,8 @@ export default function CashoutPage() {
 
       // 🔥 FIX: total-amount removed, only fetching from balance/view and userDetails 🔥
       const [resBalanceView, resUserData] = await Promise.all([
-        fetch('https://apitest.binnycash.com/api/user/balance/view', { method: 'GET', headers }),
-        fetch(`https://apitest.binnycash.com/api/user/userDetails?userId=${userId}`, { method: 'GET', headers })
+        fetch('https://api.binnycash.com/api/user/balance/view', { method: 'GET', headers }),
+        fetch(`https://api.binnycash.com/api/user/userDetails?userId=${userId}`, { method: 'GET', headers })
       ]);
 
       const [jsonBalanceView, jsonUserData] = await Promise.all([
@@ -547,7 +547,7 @@ export default function CashoutPage() {
     setWithdrawalsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`https://apitest.binnycash.com/api/user/withdrawHistory?page=1`, {
+      const res = await fetch(`https://api.binnycash.com/api/user/withdrawHistory?page=1`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
       });
@@ -636,7 +636,7 @@ export default function CashoutPage() {
     }
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/withdraw/request', {
+      const res = await fetch('https://api.binnycash.com/api/user/withdraw/request', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/x-www-form-urlencoded',

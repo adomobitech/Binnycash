@@ -79,7 +79,7 @@ export default function TransactionsPage() {
       const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 
       // 🔥 FIX: Sirf ek API se saara data fetch ho raha hai ab 🔥
-      const resView = await fetch('https://apitest.binnycash.com/api/user/balance/view', { method: 'GET', headers });
+      const resView = await fetch('https://api.binnycash.com/api/user/balance/view', { method: 'GET', headers });
       const jsonView = await safeJsonParse(resView);
 
       if (jsonView.code === 200 && jsonView.data) {
@@ -99,7 +99,7 @@ export default function TransactionsPage() {
     setWithdrawalsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`https://apitest.binnycash.com/api/user/withdrawHistory?page=${page}`, {
+      const res = await fetch(`https://api.binnycash.com/api/user/withdrawHistory?page=${page}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
       });

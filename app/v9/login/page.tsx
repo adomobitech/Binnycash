@@ -17,7 +17,7 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/admin/login', {
+      const res = await fetch('https://api.binnycash.com/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

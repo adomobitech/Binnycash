@@ -65,7 +65,7 @@ function getCurrentDevice(): 'android' | 'ios' | 'windows' | 'mac' | 'unknown' {
 function resolveImageUrl(imgPath: string) {
   if (!imgPath || imgPath === 'null') return '';
   if (imgPath.startsWith('http')) return imgPath;
-  return `https://apitest.binnycash.com${imgPath}`;
+  return `https://api.binnycash.com${imgPath}`;
 }
 
 export default function MyOffersPage() {
@@ -107,7 +107,7 @@ export default function MyOffersPage() {
       if (!token) return;
       setIsLoadingPending(true);
       try {
-        const res = await fetch(`https://apitest.binnycash.com/api/user/tracking/userPendingClick?page=${pendingPage}&limit=12`, {
+        const res = await fetch(`https://api.binnycash.com/api/user/tracking/userPendingClick?page=${pendingPage}&limit=12`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -136,7 +136,7 @@ export default function MyOffersPage() {
       if (!token) return;
       setIsLoadingCompleted(true);
       try {
-        const res = await fetch(`https://apitest.binnycash.com/api/user/tracking/completeUserData?page=${completedPage}&limit=12`, {
+        const res = await fetch(`https://api.binnycash.com/api/user/tracking/completeUserData?page=${completedPage}&limit=12`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -202,7 +202,7 @@ export default function MyOffersPage() {
     const offerId = offer.offerId || offer._id;
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/user/tracking/userSinglePending?offerId=${offerId}`, {
+      const res = await fetch(`https://api.binnycash.com/api/user/tracking/userSinglePending?offerId=${offerId}`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -228,7 +228,7 @@ export default function MyOffersPage() {
     const token = localStorage.getItem('token') || '';
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`, {
+      const res = await fetch(`https://api.binnycash.com/api/user/tracking/user_click?sid=${encodeURIComponent(userId)}&o=${encodeURIComponent(targetId)}`, {
         method: 'GET',
         headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
       });

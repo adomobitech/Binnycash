@@ -44,7 +44,7 @@ export default function AdminUsersPage() {
     }
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/userList?adminId=${encodeURIComponent(adminId)}&page=1&limit=50`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/userList?adminId=${encodeURIComponent(adminId)}&page=1&limit=50`, {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -83,7 +83,7 @@ export default function AdminUsersPage() {
     const token = localStorage.getItem('admin_token');
     
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/detail/${encodeURIComponent(numericId)}`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/detail/${encodeURIComponent(numericId)}`, {
         method: 'GET',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -144,7 +144,7 @@ export default function AdminUsersPage() {
   // Image resolution fallback
   const resolveImage = (imgSrc: string) => {
     if (!imgSrc || imgSrc.trim() === '') return null;
-    return !imgSrc.startsWith('http') ? `https://apitest.binnycash.com${imgSrc}` : imgSrc;
+    return !imgSrc.startsWith('http') ? `https://api.binnycash.com${imgSrc}` : imgSrc;
   };
 
   return (

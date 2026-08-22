@@ -48,7 +48,7 @@ export default function KycDashboardPage() {
     }
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/kyc/dashboard-stats`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/kyc/dashboard-stats`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
@@ -78,7 +78,7 @@ export default function KycDashboardPage() {
     if (!token || !adminId) return;
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/userList?adminId=${encodeURIComponent(adminId)}&page=1&limit=100`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/userList?adminId=${encodeURIComponent(adminId)}&page=1&limit=100`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
       
@@ -121,7 +121,7 @@ export default function KycDashboardPage() {
     const token = localStorage.getItem('admin_token');
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/kyc/view?userId=${encodeURIComponent(userId)}`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/kyc/view?userId=${encodeURIComponent(userId)}`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
@@ -154,7 +154,7 @@ export default function KycDashboardPage() {
     };
 
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/admin/kyc/approve`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/kyc/approve`, {
         method: 'PUT',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -192,7 +192,7 @@ export default function KycDashboardPage() {
 
   const resolveImage = (imgSrc: string) => {
     if (!imgSrc || imgSrc.trim() === '') return null;
-    return !imgSrc.startsWith('http') ? `https://apitest.binnycash.com${imgSrc}` : imgSrc;
+    return !imgSrc.startsWith('http') ? `https://api.binnycash.com${imgSrc}` : imgSrc;
   };
 
   const statCards = [

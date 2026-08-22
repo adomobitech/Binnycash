@@ -33,7 +33,7 @@ export default function AllSurveysPage() {
 
       try {
         while (hasMoreData && pageNum <= 20) {
-          const res = await fetch(`https://apitest.binnycash.com/api/user/surveyList?page=${pageNum}`, {
+          const res = await fetch(`https://api.binnycash.com/api/user/surveyList?page=${pageNum}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',

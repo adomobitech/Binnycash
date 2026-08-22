@@ -75,7 +75,7 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
         return;
       }
       
-      const res = await fetch('https://apitest.binnycash.com/api/user/chat/messages', {
+      const res = await fetch('https://api.binnycash.com/api/user/chat/messages', {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -143,7 +143,7 @@ export default function ChatDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
     urlEncoded.append('message', msgText);
 
     try {
-      const res = await fetch('https://apitest.binnycash.com/api/user/chat/messages', {
+      const res = await fetch('https://api.binnycash.com/api/user/chat/messages', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/x-www-form-urlencoded',

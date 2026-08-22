@@ -38,7 +38,7 @@ export default function AdminDashboardPage() {
       'Accept': 'application/json'
     };
 
-    const baseUrl = 'https://apitest.binnycash.com/api/admin';
+    const baseUrl = 'https://api.binnycash.com/api/admin';
 
     try {
       const responses = await Promise.allSettled([

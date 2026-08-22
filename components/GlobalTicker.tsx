@@ -12,20 +12,24 @@ let isActivityFetchedGlobal = false;
 export default function GlobalTicker() {
   const pathname = usePathname();
 
+  // 🔥 Naya logic: Check if path is Home OR starts with /v9 (Admin Panel)
+  const shouldHide = pathname === "/" || pathname?.startsWith("/v9");
+
   const [feeds, setFeeds] = useState<any[]>(globalFeedsCache);
 
   // =========================
   // FETCH INITIAL ACTIVITY
   // =========================
   useEffect(() => {
-    if (pathname === "/" || isActivityFetchedGlobal) return;
+    // Agar hide karna hai ya data pehle se aa chuka hai, toh return kar do
+    if (shouldHide || isActivityFetchedGlobal) return;
 
     const fetchLiveActivity = async () => {
       try {
         const token = localStorage.getItem("token");
 
         const res = await fetch(
-          "https://apitest.binnycash.com/api/user/inbox/userActivity",
+          "https://api.binnycash.com/api/user/inbox/userActivity",
           {
             method: "GET",
             headers: {
@@ -36,15 +40,18 @@ export default function GlobalTicker() {
           }
         );
 
+        // 🔥 FIX: Handle 404 silently (No Activity Found) 🔥
+        if (res.status === 404) {
+          return; // Chup-chaap return ho jao, koi error print nahi karna
+        }
+
         if (!res.ok) {
-          console.error("Activity API Error:", res.status);
-          return;
+          return; 
         }
 
         const text = await res.text();
 
         if (!text || text.trim().startsWith("<")) {
-          console.error("Invalid API response");
           return;
         }
 
@@ -54,29 +61,27 @@ export default function GlobalTicker() {
           const reversedData = [...json.data].reverse();
 
           globalFeedsCache = reversedData;
-
           setFeeds(reversedData);
-
           isActivityFetchedGlobal = true;
         }
       } catch (error) {
-        console.error("Activity Fetch Error:", error);
+        // Network failures ko ignore karo taaki console ganda na ho
       }
     };
 
     fetchLiveActivity();
-  }, [pathname]);
+  }, [shouldHide]);
 
   // =========================
   // SOCKET CONNECTION
   // =========================
   useEffect(() => {
-    if (pathname === "/") {
+    // Agar admin panel ya home par hai, toh socket connect mat karo/disconnect kar do
+    if (shouldHide) {
       if (socket) {
         socket.disconnect();
         socket = null;
       }
-
       return;
     }
 
@@ -85,7 +90,7 @@ export default function GlobalTicker() {
       return;
     }
 
-    socket = io("https://apitest.binnycash.com", {
+    socket = io("https://api.binnycash.com", {
       transports: ["websocket", "polling"],
       autoConnect: true,
       reconnection: true,
@@ -126,7 +131,6 @@ export default function GlobalTicker() {
         }
 
         const updatedFeeds = [newFeed, ...prev];
-
         globalFeedsCache = updatedFeeds;
 
         return updatedFeeds;
@@ -159,12 +163,12 @@ export default function GlobalTicker() {
         socket = null;
       }
     };
-  }, [pathname]);
+  }, [shouldHide]);
 
   // =========================
-  // DON'T SHOW ON HOME
+  // DON'T SHOW ON HOME OR ADMIN PANEL
   // =========================
-  if (pathname === "/" || feeds.length === 0) {
+  if (shouldHide || feeds.length === 0)  {
     return null;
   }
 

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Users, ShieldCheck, Share2, Ticket, 
   RefreshCcw, Layers, Gift, LogOut, Menu, X, 
-  Moon, Sun, Bell, ListOrdered, Settings
+  Moon, Sun, Bell, ListOrdered, Settings,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -29,6 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Postbacks', href: '/v9/postbacks', icon: RefreshCcw },
     { name: 'Offerwall', href: '/v9/offerwall', icon: Layers },
     { name: 'Daily Rewards', href: '/v9/daily-rewards', icon: Gift },
+    {name: 'Transactions', href: '/v9/transactions' , icon: Layers}
   ];
 
   const handleLogout = () => {

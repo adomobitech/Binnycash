@@ -73,9 +73,9 @@ export default function RewardsPage() {
       const cacheBust = `?t=${Date.now()}`;
 
       const [resToday, resStreak, resStreakWallet] = await Promise.all([
-        fetch(`https://apitest.binnycash.com/api/user/balance/today-earning${cacheBust}`, { method: 'GET', headers, cache: 'no-store' }),
-        fetch(`https://apitest.binnycash.com/api/user/userDailyRewardStatus${cacheBust}`, { method: 'GET', headers, cache: 'no-store' }),
-        fetch(`https://apitest.binnycash.com/api/user/daily-rewards/wallet${cacheBust}`, { method: 'GET', headers, cache: 'no-store' })
+        fetch(`https://api.binnycash.com/api/user/balance/today-earning${cacheBust}`, { method: 'GET', headers, cache: 'no-store' }),
+        fetch(`https://api.binnycash.com/api/user/userDailyRewardStatus${cacheBust}`, { method: 'GET', headers, cache: 'no-store' }),
+        fetch(`https://api.binnycash.com/api/user/daily-rewards/wallet${cacheBust}`, { method: 'GET', headers, cache: 'no-store' })
       ]);
 
       const [jsonToday, jsonStreak, jsonStreakWallet] = await Promise.all([
@@ -125,7 +125,7 @@ export default function RewardsPage() {
         const payload = new URLSearchParams();
         payload.append('day', String(d.day));
 
-        const res = await fetch('https://apitest.binnycash.com/api/user/claimDailyReward', {
+        const res = await fetch('https://api.binnycash.com/api/user/claimDailyReward', {
           method: 'PUT', 
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/x-www-form-urlencoded' },
           body: payload
@@ -166,7 +166,7 @@ export default function RewardsPage() {
       formData.append('code', promoCode.trim());
       formData.append('deviceId', deviceId);
 
-      const res = await fetch('https://apitest.binnycash.com/api/user/bonusCode/bonus/apply', {
+      const res = await fetch('https://api.binnycash.com/api/user/bonusCode/bonus/apply', {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`, 

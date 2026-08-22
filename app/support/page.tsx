@@ -100,7 +100,7 @@ function SupportPageContent() {
     const token = localStorage.getItem('token') || '';
     setIsTicketsLoading(true);
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/user/ticketList?page=1&limit=20`, {
+      const res = await fetch(`https://api.binnycash.com/api/user/ticketList?page=1&limit=20`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const text = await res.text();
@@ -144,7 +144,7 @@ function SupportPageContent() {
         data.append('image', imageFile);
       }
 
-      const res = await fetch(`https://apitest.binnycash.com/api/user/createTicket`, {
+      const res = await fetch(`https://api.binnycash.com/api/user/createTicket`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: data
@@ -191,7 +191,7 @@ function SupportPageContent() {
 
     const token = localStorage.getItem('token') || '';
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/user/userViewTicket?ticketId=${ticketId}`, {
+      const res = await fetch(`https://api.binnycash.com/api/user/userViewTicket?ticketId=${ticketId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const text = await res.text();
@@ -216,7 +216,7 @@ function SupportPageContent() {
     setIsDeleting(true);
     const token = localStorage.getItem('token') || '';
     try {
-      const res = await fetch(`https://apitest.binnycash.com/api/user/deleteTicket?ticketId=${ticketToDelete}`, {
+      const res = await fetch(`https://api.binnycash.com/api/user/deleteTicket?ticketId=${ticketToDelete}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -246,7 +246,7 @@ function SupportPageContent() {
         data.append('image', replyImage);
       }
 
-      const res = await fetch('https://apitest.binnycash.com/api/user/userReplyTicket', {
+      const res = await fetch('https://api.binnycash.com/api/user/userReplyTicket', {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
         body: data
