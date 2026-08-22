@@ -23,7 +23,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-[#08080C] text-white font-sans">
         <AuthProvider>
           <LanguageProvider>
-            <Navbar />
+            
+            {/* 🔥 NAVBAR KO WRAPPER MEIN DAAL DIYA 🔥 */}
+            <div id="main-navbar-wrapper">
+              <Navbar />
+            </div>
             
             {/* 🔥 YE LAG GAYA GLOBAL TICKER. AB YE HAR PAGE PAR AAYEGA */}
             <ConditionalTicker />
