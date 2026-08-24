@@ -2,12 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, UserCheck, UserX, FileText, FileClock, 
   Search, Eye, ChevronLeft, ChevronRight, X, Loader2, Mail, MapPin, Phone, ShieldCheck,
-  Gift, Share2, History, MonitorSmartphone, Wallet, AlertCircle, Clock, Info, ShieldAlert, Layers, Star
-} from 'lucide-react';
+  Gift, Share2, History, MonitorSmartphone, Wallet, AlertCircle, Clock, Info, ShieldAlert, Layers, Star, SlidersHorizontal, PlusCircle, MinusCircle, DollarSign, CheckCircle2
+, XCircle} from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
+
+// --- UTILITY: Get Admin ID ---
+function getAdminId(): string {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem('adminId') || localStorage.getItem('admin_id') || localStorage.getItem('userId') || '';
+}
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -26,11 +33,19 @@ export default function AdminUsersPage() {
 
   const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
 
+  // --- BALANCE ADJUST MODAL STATES ---
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+  const [selectedUserForAdjust, setSelectedUserForAdjust] = useState<any>(null);
+  const [amountInput, setAmountInput] = useState('');
+  const [actionStatus, setActionStatus] = useState<'1' | '0'>('1'); // 1 = Add, 0 = Deduct
+  const [isSubmittingAdjust, setIsSubmittingAdjust] = useState(false);
+  const [adjustMessage, setAdjustMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
   const fetchUsers = async () => {
     setIsLoading(true);
     setErrorMsg(null);
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
-    const adminId = typeof window !== 'undefined' ? localStorage.getItem('admin_id') : '';
+    const adminId = getAdminId();
     
     if (!token) {
       router.push('/v9/login');
@@ -105,6 +120,61 @@ export default function AdminUsersPage() {
     }
   };
 
+  // 🔥 HANDLE BALANCE ADJUST SUBMIT (PATCH)
+  const handleAdjustSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!amountInput || Number(amountInput) <= 0) { 
+      setAdjustMessage({ text: "Please enter a valid amount.", type: 'error' });
+      return; 
+    }
+
+    setIsSubmittingAdjust(true);
+    setAdjustMessage(null);
+    const token = localStorage.getItem('admin_token');
+    const adminId = getAdminId();
+
+    try {
+      const fd = new URLSearchParams();
+      fd.append('userId', selectedUserForAdjust?.id || selectedUserForAdjust?._id);
+      fd.append('amount', amountInput);
+      fd.append('status', actionStatus); // 1 = Add, 0 = Deduct
+      fd.append('adminId', adminId); 
+
+      const res = await fetch(`https://api.binnycash.com/api/admin/balance/adjust`, {
+        method: 'PATCH', 
+        headers: { 
+          'Authorization': `Bearer ${token}`, 
+          'Content-Type': 'application/x-www-form-urlencoded' 
+        },
+        body: fd
+      });
+
+      const json = await res.json();
+      if (res.ok || json?.code === 200) {
+        setAdjustMessage({ text: json.message || "Balance updated successfully!", type: 'success' });
+        fetchUsers(); // Refresh list background
+        setTimeout(() => {
+          setIsAdjustModalOpen(false);
+          setAdjustMessage(null);
+        }, 1500);
+      } else {
+        setAdjustMessage({ text: json.message || "Failed to update balance.", type: 'error' });
+      }
+    } catch (error) {
+      setAdjustMessage({ text: "Network error while updating balance.", type: 'error' });
+    } finally {
+      setIsSubmittingAdjust(false);
+    }
+  };
+
+  const openAdjustModal = (user: any) => {
+    setSelectedUserForAdjust(user);
+    setAmountInput('');
+    setActionStatus('1');
+    setAdjustMessage(null);
+    setIsAdjustModalOpen(true);
+  };
+
   const safeUsers = Array.isArray(users) ? users : [];
   const filteredUsers = safeUsers.filter(u => {
     const name = u?.userName || u?.name || '';
@@ -141,7 +211,6 @@ export default function AdminUsersPage() {
     return 'text-gray-400';
   };
 
-  // Image resolution fallback
   const resolveImage = (imgSrc: string) => {
     if (!imgSrc || imgSrc.trim() === '') return null;
     return !imgSrc.startsWith('http') ? `https://api.binnycash.com${imgSrc}` : imgSrc;
@@ -230,19 +299,21 @@ export default function AdminUsersPage() {
               ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((u: any, idx: number) => {
                   const avatarUrl = resolveImage(u?.image);
-                  const userName = u?.userName || 'Unnamed User';
+                  const userName = u?.userName || u?.name || 'Unnamed User';
                   const firstLetter = userName.charAt(0).toUpperCase();
                   const displayId = u?.id || idx + 1;
                   const joinedDate = u?.createdAt ? new Date(u.createdAt) : null;
                   const docStatus = u?.documents?.status || 'not_submited';
                   const hasImageError = imageErrors[u?._id];
 
+                  // 🔥 FIX: Country Code Logic Only (No Earth Icon, max 2 chars if possible)
+                  const countryDisplay = (u?.countryCode || u?.country || 'IN').substring(0, 2).toUpperCase();
+
                   return (
                     <tr key={u?._id || idx} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="py-3 px-5 text-gray-400 font-mono">{displayId}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          {/* Image rendering with error fallback */}
                           {avatarUrl && !hasImageError ? (
                             <img 
                               src={avatarUrl} 
@@ -261,15 +332,12 @@ export default function AdminUsersPage() {
                           </div>
                         </div>
                       </td>
+                      
+                      {/* 🔥 FIX: Only 2 letters for country */}
                       <td className="py-3 px-4">
-                         <div className="flex items-center gap-2">
-                            <span className="text-lg leading-none">🌍</span>
-                            <div className="flex flex-col">
-                               <span className="text-sm text-white">{u?.country || 'India'}</span>
-                               <span className="text-xs text-gray-500">{u?.countryCode || 'IN'}</span>
-                            </div>
-                         </div>
+                         <span className="text-sm font-bold text-white">{countryDisplay}</span>
                       </td>
+
                       <td className="py-3 px-4 text-center">
                         <span className={`inline-block px-2.5 py-1 rounded text-[10px] font-bold border uppercase tracking-wider ${getStatusColor(u?.status)}`}>
                           {u?.status || 'ACTIVE'}
@@ -289,16 +357,26 @@ export default function AdminUsersPage() {
                            <span className="text-xs text-gray-500">{joinedDate && !isNaN(joinedDate.getTime()) ? joinedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                          </div>
                       </td>
+                      
+                      {/* 🔥 ACTIONS COLUMN */}
                       <td className="py-3 px-4">
                          <div className="flex items-center justify-center gap-2">
                             <button 
                               onClick={() => handleViewProfile(u?.id)}
-                              className="bg-[#7C3AED]/10 hover:bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/20 px-4 py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-2 text-xs font-bold"
+                              className="w-8 h-8 rounded-lg bg-[#7C3AED]/10 hover:bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/20 flex items-center justify-center transition-colors cursor-pointer"
                               title="View Full Profile Details"
                             >
-                              <Eye className="w-4 h-4" /> View Details
+                              <Eye className="w-4 h-4" /> 
                             </button>
-                            {/* 🔥 MANAGE BUTTON REMOVED COMPLETELY */}
+                            
+                            {/* 🔥 NEW: Adjust Balance Button */}
+                            <button 
+                              onClick={() => openAdjustModal(u)}
+                              className="w-8 h-8 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 flex items-center justify-center transition-colors cursor-pointer"
+                              title="Adjust Wallet Balance"
+                            >
+                              <SlidersHorizontal className="w-4 h-4" /> 
+                            </button>
                          </div>
                       </td>
                     </tr>
@@ -324,7 +402,7 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* --- MODAL: DETAILED USER PROFILE (DYNAMIC JSON) --- */}
+      {/* --- MODAL: DETAILED USER PROFILE --- */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
           <div className="bg-[#12141C] border border-white/10 w-full max-w-4xl p-6 rounded-[24px] shadow-2xl relative my-auto max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -363,7 +441,7 @@ export default function AdminUsersPage() {
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${getStatusColor(profileData?.status)}`}>
                             {profileData?.status || 'N/A'}
                           </span>
-                          <span className="text-xs text-gray-400 flex items-center gap-1"><MapPin className="w-3 h-3"/> {profileData?.country || 'Unknown'}</span>
+                          <span className="text-xs text-gray-400 flex items-center gap-1"><MapPin className="w-3 h-3"/> {(profileData?.countryCode || profileData?.country || 'IN').substring(0, 2).toUpperCase()}</span>
                           <span className="text-xs text-gray-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">ID: {profileData?.id || profileData?._id}</span>
                        </div>
                      </div>
@@ -511,6 +589,98 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
+
+      {/* --- MODAL: BALANCE ADJUSTER (WITH EXACT SWAGGER PARAMETERS) --- */}
+      <AnimatePresence>
+        {isAdjustModalOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#050409]/90 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-[#12141C] border border-white/10 w-full max-w-sm rounded-[32px] shadow-2xl relative flex flex-col overflow-hidden"
+            >
+              <div className="bg-[#1A1C24] border-b border-white/5 px-8 py-6 flex items-center justify-between">
+                <h3 className="text-xl font-black flex items-center gap-3 tracking-tight text-white">
+                  <SlidersHorizontal className="w-6 h-6 text-[#A66CFF]" /> Adjust Balance
+                </h3>
+                <button onClick={() => setIsAdjustModalOpen(false)} className="text-[#8F95A3] hover:text-white transition-colors cursor-pointer w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleAdjustSubmit} className="p-8 flex flex-col gap-6">
+                
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex flex-col shadow-inner">
+                  <span className="text-[11px] text-[#8F95A3] font-bold uppercase tracking-widest mb-1.5">Target User</span>
+                  <span className="text-white font-black text-base tracking-wide">{selectedUserForAdjust?.name || selectedUserForAdjust?.userName || selectedUserForAdjust?.email || 'N/A'}</span>
+                  <span className="text-[#8F95A3] font-mono text-[12px] mt-1 font-medium">ID: {selectedUserForAdjust?.id || selectedUserForAdjust?._id || 'N/A'}</span>
+                  
+                  <div className="mt-3 pt-3 border-t border-white/5 flex justify-between items-center">
+                    <span className="text-xs font-bold text-[#8F95A3]">Current Balance:</span>
+                    <span className="text-sm font-black text-[#A66CFF]">
+                       {formatPrice(Number(selectedUserForAdjust?.balance || selectedUserForAdjust?.walletBalance || selectedUserForAdjust?.availableBalance || 0), currency)}
+                    </span>
+                  </div>
+                </div>
+
+                {adjustMessage && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`p-4 rounded-xl text-xs font-bold flex items-center gap-2 ${adjustMessage.type === 'success' ? 'bg-[#00E57A]/10 text-[#00E57A] border border-[#00E57A]/20' : 'bg-[#FF5D73]/10 text-[#FF5D73] border border-[#FF5D73]/20'}`}>
+                    {adjustMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+                    {adjustMessage.text}
+                  </motion.div>
+                )}
+
+                <div className="flex flex-col gap-2.5">
+                  <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest">Amount</label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8F95A3]" />
+                    <input 
+                      type="number" 
+                      step="any"
+                      required 
+                      min="0.01"
+                      placeholder="e.g. 10.00" 
+                      value={amountInput}
+                      onChange={(e) => setAmountInput(e.target.value)}
+                      className="w-full bg-[#0B0D14] rounded-2xl pl-12 pr-5 py-4 text-white font-black text-lg focus:outline-none transition-all shadow-inner border border-transparent focus:border-[#A66CFF]/50" 
+                    />
+                  </div>
+                </div>
+
+                {/* 🔥 DROPDOWN FOR ADD(1) / DEDUCT(0) 🔥 */}
+                <div className="flex flex-col gap-2.5">
+                  <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest">Action</label>
+                  <div className="relative">
+                    <select 
+                      value={actionStatus}
+                      onChange={(e) => setActionStatus(e.target.value as '1' | '0')}
+                      className="w-full bg-[#0B0D14] rounded-2xl px-5 py-4 text-white font-bold text-sm focus:outline-none transition-all shadow-inner border border-transparent focus:border-[#A66CFF]/50 appearance-none cursor-pointer"
+                    >
+                      <option value="1">➕ Add Balance</option>
+                      <option value="0">➖ Deduct Balance</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#8F95A3]">▼</div>
+                  </div>
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={isSubmittingAdjust}
+                  className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all cursor-pointer disabled:opacity-50 ${
+                    actionStatus === '1' 
+                      ? 'bg-gradient-to-r from-[#A66CFF] to-[#7C3AED] text-white shadow-[0_0_25px_rgba(166,108,255,0.4)] hover:shadow-[0_0_35px_rgba(166,108,255,0.6)]' 
+                      : 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-[0_0_25px_rgba(245,158,11,0.4)] hover:shadow-[0_0_35px_rgba(245,158,11,0.6)]'
+                  }`}
+                >
+                  {isSubmittingAdjust ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Adjustment'}
+                </button>
+
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

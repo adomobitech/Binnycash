@@ -19,7 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <div className="min-h-screen bg-[#0B0D14] text-white">{children}</div>;
   }
 
-  // 🚀 TERE BATAYE HUE EXACT OPTIONS
+  // 🔥 Settings aur Logs ko ab main scrollable list me add kar diya hai
   const navItems = [
     { name: 'Dashboard', href: '/v9/dashboard', icon: LayoutDashboard },
     { name: 'User Management', href: '/v9/users', icon: Users },
@@ -29,7 +29,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Postbacks', href: '/v9/postbacks', icon: RefreshCcw },
     { name: 'Offerwall', href: '/v9/offerwall', icon: Layers },
     { name: 'Daily Rewards', href: '/v9/daily-rewards', icon: Gift },
-    {name: 'Transactions', href: '/v9/transactions' , icon: Layers}
+    { name: 'Transactions', href: '/v9/transactions' , icon: Layers },
+    { name: 'Settings', href: '/v9/settings', icon: Settings },
+    { name: 'Logs', href: '/v9/logs', icon: ListOrdered },
   ];
 
   const handleLogout = () => {
@@ -59,7 +61,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
 
-        {/* NAVIGATION LINKS */}
+        {/* NAVIGATION LINKS (SCROLLABLE AREA) */}
         <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 custom-scrollbar">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -68,6 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false} // 🔥 FIX: Ye ab background me automatic API requests nahi bhejega
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                   isActive 
                     ? 'bg-[#7C3AED] text-white shadow-lg shadow-purple-500/20' 
@@ -83,37 +86,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </div>
 
-        {/* SETTINGS, LOGS & LOGOUT AREA */}
+        {/* LOGOUT AREA (PINNED AT BOTTOM) */}
         <div className={`p-4 flex flex-col gap-3 border-t ${isDarkMode ? 'border-white/5 bg-[#12141C]' : 'border-gray-200 bg-white'}`}>
-          <div className="flex flex-col gap-1">
-            <Link 
-              href="/v9/settings" 
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                pathname === '/v9/settings' 
-                  ? 'bg-[#7C3AED] text-white' 
-                  : isDarkMode 
-                    ? 'text-gray-400 hover:bg-white/5 hover:text-white' 
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              }`}
-            >
-               <Settings className="w-4 h-4" />
-               Settings
-            </Link>
-            <Link 
-              href="/v9/logs" 
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                pathname === '/v9/logs' 
-                  ? 'bg-[#7C3AED] text-white' 
-                  : isDarkMode 
-                    ? 'text-gray-400 hover:bg-white/5 hover:text-white' 
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              }`}
-            >
-               <ListOrdered className="w-4 h-4" />
-               Logs
-            </Link>
-          </div>
-
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 transition-all cursor-pointer shadow-sm"
@@ -134,7 +108,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
              <button onClick={() => setIsSidebarOpen(true)} className={`lg:hidden p-1 ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
                <Menu className="w-5 h-5" />
              </button>
-             {/* Left side khali chhod diya clean look ke liye */}
           </div>
 
           <div className="flex items-center gap-5">
