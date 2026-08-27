@@ -1,11 +1,17 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Link2, Save, Loader2, Plus, X, UploadCloud, 
   AlertCircle, Image as ImageIcon, ShieldCheck, 
-  Activity, Tag, Settings, Percent, RefreshCcw 
+  Activity, Tag, Settings, Percent, RefreshCcw, User
 } from 'lucide-react';
+
+// --- UTILITY: Get Admin ID ---
+function getAdminId(): string {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem('adminId') || localStorage.getItem('admin_id') || localStorage.getItem('userId') || '';
+}
 
 export default function AdminPostbackPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,6 +38,11 @@ export default function AdminPostbackPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // 1. Set Admin ID automatically on mount
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, adminId: getAdminId() }));
+  }, []);
 
   // --- HANDLE INPUT CHANGE ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -79,7 +90,7 @@ export default function AdminPostbackPage() {
     setSuccessMsg(null);
 
     // 1. Validations
-    if (!formData.adminId) return setErrorMsg("Admin ID is required.");
+    if (!formData.adminId) return setErrorMsg("Admin ID is missing. Please log in again.");
     if (!formData.name) return setErrorMsg("Name is required.");
     if (!formData.category) return setErrorMsg("Category is required.");
     if (!formData.percent) return setErrorMsg("Percent is required.");
@@ -126,9 +137,9 @@ export default function AdminPostbackPage() {
 
       if (res.ok && (json?.code === 200 || json?.type === 'success')) {
         setSuccessMsg("Postback created successfully!");
-        // Reset form
+        // Reset form (keep adminId)
         setFormData({
-          adminId: '', name: '', category: 'Offer', event_name: '', reverse: '',
+          adminId: getAdminId(), name: '', category: 'Offer', event_name: '', reverse: '',
           payout: 'Cash', percent: '', sucess: '', fail: ''
         });
         setIpList([]);
@@ -180,9 +191,21 @@ export default function AdminPostbackPage() {
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              
+              {/* ADMIN ID (AUTO-FILLED & DISABLED) */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Admin ID <span className="text-rose-500">*</span></label>
-                <input required type="text" name="adminId" value={formData.adminId} onChange={handleChange} placeholder="e.g. 1" className="bg-[#0B0D14] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#3B82F6]" />
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                  Admin ID <span className="text-emerald-500 normal-case">(Auto-Filled)</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input 
+                    type="text" 
+                    value={formData.adminId || 'Fetching...'} 
+                    disabled 
+                    className="w-full bg-[#1A1C24] border border-white/5 rounded-xl pl-9 px-4 py-3 text-sm text-gray-500 font-mono cursor-not-allowed shadow-inner" 
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
