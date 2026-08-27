@@ -8,7 +8,7 @@ export default function ConditionalTicker() {
   const pathname = usePathname();
   
   // 👉 In sab legal pages par Global Ticker HIDE ho jayega
-  const hiddenRoutes = ['/terms', '/privacy', '/cookie-policy', '/affiliate-policy' , '/delete-account'];
+  const hiddenRoutes = ['/terms', '/privacy', '/cookie-policy', '/affiliate-policy' , '/delete-account', '/verify-email', 'reset-password'];
   
   if (hiddenRoutes.includes(pathname || '')) {
     return null; // Ticker gayab!
