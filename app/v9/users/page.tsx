@@ -6,8 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, UserCheck, UserX, FileText, FileClock, 
   Search, Eye, ChevronLeft, ChevronRight, X, Loader2, Mail, MapPin, Phone, ShieldCheck,
-  Gift, Share2, History, MonitorSmartphone, Wallet, AlertCircle, Clock, Info, ShieldAlert, Layers, Star, SlidersHorizontal, PlusCircle, MinusCircle, DollarSign, CheckCircle2
-, XCircle} from 'lucide-react';
+  Gift, Share2, History, MonitorSmartphone, Wallet, AlertCircle, Clock, Info, ShieldAlert, Layers, Star, SlidersHorizontal, PlusCircle, MinusCircle, DollarSign, CheckCircle2, XCircle
+} from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
 // --- UTILITY: Get Admin ID ---
@@ -183,32 +183,51 @@ export default function AdminUsersPage() {
     return name.toLowerCase().includes(query) || email.toLowerCase().includes(query);
   });
 
+  // 🔥 FIXED KYC COUNTERS LOGIC 🔥
   const totalUsersCount = safeUsers.length;
   const activeUsersCount = safeUsers.filter(u => u?.status === 'ACTIVE').length;
   const deletedUsersCount = safeUsers.filter(u => u?.status === 'DELETE').length;
-  const kycSubmittedCount = safeUsers.filter(u => u?.documents?.status === 'approved' || u?.documents?.status === 'submitted').length;
-  const kycPendingCount = safeUsers.filter(u => u?.documents?.status === 'not_submited' || !u?.documents?.status).length;
+  
+  // Submitted means they uploaded at least once (Approved, Pending, Under Review, Rejected, etc.)
+  const kycSubmittedCount = safeUsers.filter(u => {
+    const s = String(u?.documents?.status || '').toLowerCase();
+    return ['approved', 'submitted', 'pending', 'under_review', 'rejected', 'reupload_required'].includes(s);
+  }).length;
+  
+  // Pending means they are waiting for Admin action
+  const kycPendingCount = safeUsers.filter(u => {
+    const s = String(u?.documents?.status || '').toLowerCase();
+    return ['submitted', 'pending', 'under_review'].includes(s);
+  }).length;
 
   const overviewStats = [
     { title: "Total Users", value: totalUsersCount, trend: "Live Count", trendColor: "text-emerald-400", icon: Users, bgColor: "bg-[#7C3AED]/20", iconColor: "text-[#7C3AED]" },
     { title: "Active Users", value: activeUsersCount, trend: "Operational", trendColor: "text-emerald-400", icon: UserCheck, bgColor: "bg-emerald-500/20", iconColor: "text-emerald-400" },
     { title: "Deleted Users", value: deletedUsersCount, trend: "Marked Delete", trendColor: "text-red-400", icon: UserX, bgColor: "bg-red-500/20", iconColor: "text-red-400" },
-    { title: "KYC Submitted", value: kycSubmittedCount, trend: "Verified/Sub", trendColor: "text-blue-400", icon: FileText, bgColor: "bg-blue-500/20", iconColor: "text-blue-400" },
-    { title: "KYC Pending", value: kycPendingCount, trend: "Awaiting", trendColor: "text-amber-400", icon: FileClock, bgColor: "bg-amber-500/20", iconColor: "text-amber-400" },
+    { title: "KYC Documents", value: kycSubmittedCount, trend: "Total Submissions", trendColor: "text-blue-400", icon: FileText, bgColor: "bg-blue-500/20", iconColor: "text-blue-400" },
+    { title: "KYC Pending Review", value: kycPendingCount, trend: "Awaiting Action", trendColor: "text-amber-400", icon: FileClock, bgColor: "bg-amber-500/20", iconColor: "text-amber-400" },
   ];
 
   const getStatusColor = (status: string) => status === 'ACTIVE' ? 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10' : 'text-red-400 border-red-400/20 bg-red-400/10';
   
+  // 🔥 FIXED KYC STATUS TEXT MAPPING 🔥
   const getKycStatusText = (docStatus: string) => {
-    if (docStatus === 'approved') return 'Approved';
-    if (docStatus === 'submitted') return 'Pending';
+    const s = String(docStatus || '').toLowerCase();
+    if (s === 'approved') return 'Approved';
+    if (s === 'submitted' || s === 'pending' || s === 'under_review') return 'Pending';
+    if (s === 'rejected' || s === 'failed') return 'Rejected';
+    if (s === 'reupload_required') return 'Re-Upload';
     return 'Not Submitted';
   };
 
+  // 🔥 FIXED KYC COLOR MAPPING 🔥
   const getKycColor = (docStatus: string) => {
-    if (docStatus === 'approved') return 'text-emerald-400';
-    if (docStatus === 'submitted') return 'text-amber-400';
-    return 'text-gray-400';
+    const s = String(docStatus || '').toLowerCase();
+    if (s === 'approved') return 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10';
+    if (s === 'submitted' || s === 'pending' || s === 'under_review') return 'text-amber-400 border-amber-400/20 bg-amber-400/10';
+    if (s === 'rejected' || s === 'failed') return 'text-rose-400 border-rose-400/20 bg-rose-400/10';
+    if (s === 'reupload_required') return 'text-blue-400 border-blue-400/20 bg-blue-400/10';
+    return 'text-gray-400 border-white/10 bg-white/5';
   };
 
   const resolveImage = (imgSrc: string) => {
@@ -303,10 +322,12 @@ export default function AdminUsersPage() {
                   const firstLetter = userName.charAt(0).toUpperCase();
                   const displayId = u?.id || idx + 1;
                   const joinedDate = u?.createdAt ? new Date(u.createdAt) : null;
+                  
+                  // Safe extraction of document status
                   const docStatus = u?.documents?.status || 'not_submited';
                   const hasImageError = imageErrors[u?._id];
 
-                  // 🔥 FIX: Country Code Logic Only (No Earth Icon, max 2 chars if possible)
+                  // Country Code Logic Only (No Earth Icon, max 2 chars if possible)
                   const countryDisplay = (u?.countryCode || u?.country || 'IN').substring(0, 2).toUpperCase();
 
                   return (
@@ -333,7 +354,6 @@ export default function AdminUsersPage() {
                         </div>
                       </td>
                       
-                      {/* 🔥 FIX: Only 2 letters for country */}
                       <td className="py-3 px-4">
                          <span className="text-sm font-bold text-white">{countryDisplay}</span>
                       </td>
@@ -343,11 +363,14 @@ export default function AdminUsersPage() {
                           {u?.status || 'ACTIVE'}
                         </span>
                       </td>
+                      
                       <td className="py-3 px-4 text-center">
-                        <span className={`text-xs font-medium border px-2 py-0.5 rounded border-white/10 bg-white/5 ${getKycColor(docStatus)}`}>
+                        {/* 🔥 FIXED KYC STATUS BADGE 🔥 */}
+                        <span className={`inline-block text-[10px] font-bold uppercase tracking-wider border px-2.5 py-1 rounded ${getKycColor(docStatus)}`}>
                           {getKycStatusText(docStatus)}
                         </span>
                       </td>
+                      
                       <td className="py-3 px-4 text-right font-bold text-emerald-400">
                          {formatPrice(Number(u?.availableBalance || 0), currency)}
                       </td>
@@ -358,7 +381,7 @@ export default function AdminUsersPage() {
                          </div>
                       </td>
                       
-                      {/* 🔥 ACTIONS COLUMN */}
+                      {/* ACTIONS COLUMN */}
                       <td className="py-3 px-4">
                          <div className="flex items-center justify-center gap-2">
                             <button 
@@ -369,7 +392,6 @@ export default function AdminUsersPage() {
                               <Eye className="w-4 h-4" /> 
                             </button>
                             
-                            {/* 🔥 NEW: Adjust Balance Button */}
                             <button 
                               onClick={() => openAdjustModal(u)}
                               className="w-8 h-8 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 flex items-center justify-center transition-colors cursor-pointer"

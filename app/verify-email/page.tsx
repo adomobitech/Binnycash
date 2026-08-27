@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, XCircle, Loader2, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, ShieldCheck, AlertTriangle, Rocket } from 'lucide-react';
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -34,9 +34,39 @@ function VerifyEmailContent() {
         const data = await res.json();
         
         if (res.ok || data.code === 200 || data.code === 409 || data.type === 'success') {
+          
+          // 🔥 AUTO LOGIN LOGIC START 🔥
+          let userToken = data.token || data.accessToken || data.data?.token;
+          if (!userToken && typeof data.data === 'string') userToken = data.data;
+
+          if (userToken && typeof userToken === 'string' && !userToken.includes('[object Object]')) {
+            localStorage.setItem('token', userToken);
+          }
+
+          const userDetails = data.data?.userDetails || data.userDetails || data.data?.user || data.user;
+          if (userDetails && typeof userDetails === 'object') {
+            localStorage.setItem('userDetails', JSON.stringify(userDetails));
+          }
+          
+          const userId = userDetails?.id ?? userDetails?._id ?? data.userId ?? data.user?._id ?? data.data?.userId ?? data.data?._id ?? data.id;
+          if (userId) {
+            localStorage.setItem('userId', String(userId));
+          }
+
+          window.dispatchEvent(new Event('storage'));
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('profileUpdated'));
+          }
+          // 🔥 AUTO LOGIN LOGIC END 🔥
+
           setStatus('success');
-          // Cleaned up backend typo text here
-          setMessage('Your email address has been verified successfully.');
+          setMessage('Identity verified! Taking you to your dashboard...');
+
+          // Redirect to Dashboard after 1.5 seconds
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 1500);
+
         } else {
           setStatus('error');
           setMessage(data.message || 'Verification link is invalid or has expired.');
@@ -74,14 +104,18 @@ function VerifyEmailContent() {
             </div>
           </div>
         )}
+        
+        {/* SUCCESS STATE WITH ROCKET ANIMATION */}
         {status === 'success' && (
           <div className="relative w-24 h-24 flex items-center justify-center">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="absolute -inset-2 rounded-full border border-dashed border-[#00E57A]/50" />
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="absolute inset-0 bg-[#00E57A]/10 rounded-full blur-xl" />
             <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, type: "spring" }} className="w-20 h-20 bg-gradient-to-br from-[#00E57A]/20 to-[#00E57A]/5 border border-[#00E57A]/30 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(0,229,122,0.4)] relative z-10">
-              <CheckCircle2 className="w-10 h-10 text-[#00E57A]" strokeWidth={2.5} />
+              <Rocket className="w-10 h-10 text-[#00E57A]" strokeWidth={2.5} />
             </motion.div>
           </div>
         )}
+
         {status === 'error' && (
           <div className="relative w-24 h-24 flex items-center justify-center">
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="absolute inset-0 bg-rose-500/10 rounded-full blur-xl" />
@@ -96,40 +130,20 @@ function VerifyEmailContent() {
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
         className="text-2xl font-black text-white tracking-tight mb-2"
       >
-        {status === 'loading' ? 'Verifying Identity' : status === 'success' ? 'Verification Complete!' : 'Link Expired'}
+        {status === 'loading' ? 'Verifying Identity' : status === 'success' ? 'Logging You In...' : 'Link Expired'}
       </motion.h1>
       
       <motion.p 
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-        className={`text-[13px] font-medium leading-relaxed mb-8 ${status === 'error' ? 'text-rose-400' : 'text-[#8F95A3]'}`}
+        className={`text-[13px] font-medium leading-relaxed mb-4 ${status === 'error' ? 'text-rose-400' : 'text-[#8F95A3]'}`}
       >
         {message}
       </motion.p>
 
       {/* Action Messages / Buttons */}
       <AnimatePresence>
-        {status === 'success' && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ delay: 0.5 }}
-            className="w-full relative group"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-[#00E57A]/10 to-transparent opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-500" />
-            <div className="bg-[#12141C] border border-white/5 group-hover:border-[#00E57A]/30 rounded-2xl p-5 w-full flex items-start gap-4 transition-colors duration-300 relative z-10">
-              <div className="w-10 h-10 rounded-full bg-[#00E57A]/10 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-5 h-5 text-[#00E57A]" />
-              </div>
-              <div className="text-left">
-                <p className="text-[15px] font-black text-white mb-0.5">You're all set!</p>
-                <p className="text-[11px] text-[#8F95A3] leading-relaxed">
-                  Your identity is confirmed. You can securely <strong className="text-white">close this tab</strong> and return to your original screen.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
         {status === 'error' && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="w-full">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="w-full mt-4">
             <button 
               onClick={() => router.push('/')}
               className="w-full py-4 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-black text-[13px] uppercase tracking-widest cursor-pointer shadow-[0_4px_25px_rgba(244,63,94,0.4)] hover:shadow-[0_6px_35px_rgba(244,63,94,0.6)] hover:-translate-y-0.5 transition-all"
@@ -146,8 +160,8 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#07070B] text-white flex items-center justify-center">
-
+    <main className="fixed inset-0 w-full min-h-screen flex items-center justify-center bg-[#05070A] font-sans overflow-hidden z-[2147483647]">
+      
       {/* 🔥 EXACT IDs FROM YOUR LAYOUT TO HIDE NAVBAR & TICKER + Chat Widget 🔥 */}
       <style
         dangerouslySetInnerHTML={{
@@ -161,14 +175,14 @@ export default function VerifyEmailPage() {
             }
 
             /* Hiding chat widget forcefully */
-            #crisp-chatbox, iframe[name*="chat"] {
+            #crisp-chatbox, iframe[name*="chat"], iframe[src*="chat"] {
               display: none !important;
             }
           `,
         }}
       />
 
-      {/* Premium Cyber Background (Same as your Not Found) */}
+      {/* Premium Cyber Background */}
       <div 
         className="pointer-events-none absolute inset-0 opacity-[0.025]"
         style={{

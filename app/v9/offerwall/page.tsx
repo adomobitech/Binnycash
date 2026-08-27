@@ -9,6 +9,27 @@ import {
   List, PlusCircle, Eye, Trash2, Search, ArrowRightLeft, X, ShieldAlert, AlertCircle
 } from 'lucide-react';
 
+// 🔥 STANDALONE INPUT FIELD (Prevents re-render focus bug) 🔥
+const InputField = ({ label, icon: Icon, name, required, placeholder, type = "text", value, onChange }: any) => (
+  <div className="flex flex-col gap-2">
+    <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest flex items-center gap-2">
+      {label} {required && <span className="text-rose-500">*</span>}
+    </label>
+    <div className="relative group">
+      <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8F95A3] group-focus-within:text-[#A66CFF] transition-colors" />
+      <input 
+        type={type} 
+        name={name} 
+        required={required} 
+        value={value} 
+        onChange={onChange} 
+        placeholder={placeholder}
+        className="w-full bg-[#0B0D14] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white font-medium focus:outline-none focus:border-[#A66CFF] transition-all shadow-inner"
+      />
+    </div>
+  </div>
+);
+
 export default function OfferwallManagementPage() {
   // --- GLOBAL STATES ---
   const [activeTab, setActiveTab] = useState<'list' | 'create'>('list');
@@ -126,7 +147,6 @@ export default function OfferwallManagementPage() {
       });
       const json = await res.json();
       if (res.ok && json?.code === 200) {
-        // Refresh list
         fetchOfferwallsList();
       } else {
         alert(json?.message || "Failed to delete offerwall.");
@@ -186,7 +206,6 @@ export default function OfferwallManagementPage() {
       if (res.ok || json?.code === 200 || json?.code === 201) {
         setSubmitMessage({ text: json.message || "Offerwall created successfully!", type: 'success' });
         
-        // Reset Form
         setFormData({
           title: '', rating: '', category: '', excludeCountryCode: '',
           offerwallUrl: '', postbackName: '', type: '',
@@ -194,7 +213,6 @@ export default function OfferwallManagementPage() {
         });
         setImageFile(null);
 
-        // Switch to list and refresh
         setTimeout(() => {
           setSubmitMessage(null);
           setActiveTab('list');
@@ -211,27 +229,10 @@ export default function OfferwallManagementPage() {
     }
   };
 
-  // Reusable Image Resolver
   const resolveImage = (imgSrc: string) => {
     if (!imgSrc || imgSrc.trim() === '') return null;
     return !imgSrc.startsWith('http') ? `https://api.binnycash.com${imgSrc}` : imgSrc;
   };
-
-  // Reusable Form Components
-  const InputField = ({ label, icon: Icon, name, required, placeholder, type = "text" }: any) => (
-    <div className="flex flex-col gap-2">
-      <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest flex items-center gap-2">
-        {label} {required && <span className="text-rose-500">*</span>}
-      </label>
-      <div className="relative group">
-        <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8F95A3] group-focus-within:text-[#A66CFF] transition-colors" />
-        <input 
-          type={type} name={name} required={required} value={formData[name as keyof typeof formData]} onChange={handleInputChange} placeholder={placeholder}
-          className="w-full bg-[#0B0D14] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white font-medium focus:outline-none focus:border-[#A66CFF] transition-all shadow-inner"
-        />
-      </div>
-    </div>
-  );
 
   const BooleanSelect = ({ label, icon: Icon, name, color }: any) => {
     const value = formData[name as keyof typeof formData];
@@ -357,7 +358,6 @@ export default function OfferwallManagementPage() {
                             exit={{ opacity: 0 }}
                             className="hover:bg-white/[0.02] transition-colors group"
                           >
-                            {/* TITLE & IMAGE */}
                             <td className="py-5 px-6">
                               <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 rounded-xl bg-[#0B0D14] border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
@@ -372,7 +372,6 @@ export default function OfferwallManagementPage() {
                               </div>
                             </td>
 
-                            {/* TYPE & CATEGORY */}
                             <td className="py-5 px-6">
                               <div className="flex flex-col gap-1.5 items-start">
                                 <span className="bg-[#A66CFF]/10 text-[#A66CFF] border border-[#A66CFF]/20 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
@@ -382,14 +381,12 @@ export default function OfferwallManagementPage() {
                               </div>
                             </td>
 
-                            {/* STATUS */}
                             <td className="py-5 px-6 text-center">
                               <span className={`inline-flex items-center justify-center text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border ${isEnabled ? 'border-emerald-500/40 text-emerald-500 bg-emerald-500/10' : 'border-rose-500/40 text-rose-500 bg-rose-500/10'}`}>
                                 {isEnabled ? 'ENABLED' : 'DISABLED'}
                               </span>
                             </td>
 
-                            {/* ACTIONS */}
                             <td className="py-5 px-6 text-right">
                               <div className="flex items-center justify-end gap-2.5">
                                 <button 
@@ -450,12 +447,12 @@ export default function OfferwallManagementPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
               
-              <InputField label="Offerwall Title" name="title" icon={Type} required={true} placeholder="e.g. AdGate Media" />
-              <InputField label="Offerwall URL" name="offerwallUrl" icon={LinkIcon} required={true} placeholder="https://..." />
-              <InputField label="Rating (Number)" name="rating" icon={Star} type="number" placeholder="e.g. 5" />
-              <InputField label="Offerwall Type" name="type" icon={Layers} placeholder="e.g. surveys, apps" />
-              <InputField label="Category" name="category" icon={Tag} placeholder="Comma separated (e.g. games, quizzes)" />
-              <InputField label="Exclude Country Codes" name="excludeCountryCode" icon={Globe} placeholder="e.g. IN, US, UK" />
+              <InputField label="Offerwall Title" name="title" icon={Type} required={true} placeholder="e.g. AdGate Media" value={formData.title} onChange={handleInputChange} />
+              <InputField label="Offerwall URL" name="offerwallUrl" icon={LinkIcon} required={true} placeholder="https://..." value={formData.offerwallUrl} onChange={handleInputChange} />
+              <InputField label="Rating (Number)" name="rating" icon={Star} type="number" placeholder="e.g. 5" value={formData.rating} onChange={handleInputChange} />
+              <InputField label="Offerwall Type" name="type" icon={Layers} placeholder="e.g. surveys, apps" value={formData.type} onChange={handleInputChange} />
+              <InputField label="Category" name="category" icon={Tag} placeholder="Comma separated (e.g. games, quizzes)" value={formData.category} onChange={handleInputChange} />
+              <InputField label="Exclude Country Codes" name="excludeCountryCode" icon={Globe} placeholder="e.g. IN, US, UK" value={formData.excludeCountryCode} onChange={handleInputChange} />
 
               <div className="md:col-span-2 flex flex-col gap-2">
                 <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest flex items-center gap-2">
@@ -556,7 +553,6 @@ export default function OfferwallManagementPage() {
                 ) : (
                   <div className="flex flex-col gap-8">
                     
-                    {/* Header Banner */}
                     <div className="flex items-center gap-5 bg-white/[0.02] p-6 rounded-2xl border border-white/5">
                       <div className="w-20 h-20 bg-[#0B0D14] border border-white/10 rounded-2xl flex items-center justify-center overflow-hidden shrink-0">
                         {resolveImage(viewData?.image) ? <img src={resolveImage(viewData.image)!} alt="logo" className="w-full h-full object-cover" /> : <ImageIcon className="w-8 h-8 text-gray-500" />}
@@ -571,7 +567,6 @@ export default function OfferwallManagementPage() {
                       </div>
                     </div>
 
-                    {/* Data Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       
                       <div className="bg-[#0B0D14] p-4 rounded-xl border border-white/5 flex flex-col gap-1">
@@ -601,7 +596,6 @@ export default function OfferwallManagementPage() {
 
                     </div>
 
-                    {/* Platform Status */}
                     <div className="bg-[#0B0D14] p-5 rounded-2xl border border-white/5">
                        <span className="text-[11px] text-[#8F95A3] font-bold uppercase tracking-widest block mb-4">Platform Config</span>
                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

@@ -403,12 +403,13 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
 }
 
 // --- VERIFICATION ALERT MODAL ---
-function VerificationAlertModal({ isOpen, onClose, onVerifyNow, kycStatus }: { isOpen: boolean; onClose: () => void; onVerifyNow: () => void; kycStatus: string }) {
+function VerificationAlertModal({ isOpen, onClose, onVerifyNow, kycStatus, kycMessage }: { isOpen: boolean; onClose: () => void; onVerifyNow: () => void; kycStatus: string; kycMessage?: string | null }) {
   if (!isOpen) return null;
 
   const statusLower = String(kycStatus).toLowerCase();
   const isPending = statusLower === 'pending' || statusLower === 'under_review' || statusLower === 'processing' || statusLower === 'submitted';
-  const isRejected = statusLower === 'rejected' || statusLower === 'failed' || statusLower === 'reupload';
+  const isRejected = statusLower === 'rejected' || statusLower === 'failed';
+  const isReupload = statusLower === 'reupload' || statusLower === 'reupload_required' || statusLower === 'reuploaded';
 
   let title = "Identity Verification";
   let desc = "To comply with financial regulations and secure your withdrawals, we need to verify your identity.";
@@ -427,13 +428,21 @@ function VerificationAlertModal({ isOpen, onClose, onVerifyNow, kycStatus }: { i
     iconColor = "text-blue-400";
     IconComponent = Clock;
   } else if (isRejected) {
-    title = "Verification Failed";
-    desc = "We couldn't verify your previous submission. Please check the requirements and upload clear documents.";
+    title = "Verification Rejected";
+    desc = "Your submission was rejected. Please review the reason below and submit a new document.";
     showVerifyBtn = true;
-    badgeText = "Action Needed";
+    badgeText = "Rejected";
     badgeColor = "text-rose-400 bg-rose-400/10";
     iconColor = "text-rose-400";
     IconComponent = AlertCircle;
+  } else if (isReupload) {
+    title = "Re-upload Required";
+    desc = "Your document couldn't be read clearly. Please re-upload a clearer copy of the same document.";
+    showVerifyBtn = true;
+    badgeText = "Re-upload Needed";
+    badgeColor = "text-orange-400 bg-orange-400/10";
+    iconColor = "text-orange-400";
+    IconComponent = RefreshCw;
   }
 
   return (
@@ -444,7 +453,7 @@ function VerificationAlertModal({ isOpen, onClose, onVerifyNow, kycStatus }: { i
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         className="relative w-full max-w-[400px] bg-[#0F111A] border border-white/10 rounded-2xl p-6 shadow-2xl overflow-hidden"
       >
-        <div className={`absolute top-0 left-0 w-full h-1 ${isPending ? 'bg-blue-500' : isRejected ? 'bg-rose-500' : 'bg-amber-500'}`} />
+        <div className={`absolute top-0 left-0 w-full h-1 ${isPending ? 'bg-blue-500' : isRejected ? 'bg-rose-500' : isReupload ? 'bg-orange-500' : 'bg-amber-500'}`} />
 
         <div className="flex items-start gap-4 mb-4">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${badgeColor}`}>
@@ -461,9 +470,20 @@ function VerificationAlertModal({ isOpen, onClose, onVerifyNow, kycStatus }: { i
         </div>
 
         <div className="bg-white/5 rounded-xl p-4 mb-6">
-          <p className="text-[#8F95A3] text-sm leading-relaxed">
-            {desc}
-          </p>
+          {kycMessage && (isPending || isRejected || isReupload) ? (
+            <>
+              <span className="text-[9px] font-bold uppercase tracking-wider opacity-70 block mb-1">
+                {isRejected ? 'Reason from admin' : 'Note from admin'}
+              </span>
+              <p className="text-[#8F95A3] text-sm leading-relaxed">
+                {kycMessage}
+              </p>
+            </>
+          ) : (
+            <p className="text-[#8F95A3] text-sm leading-relaxed">
+              {desc}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-2.5">
@@ -563,10 +583,6 @@ export default function CashoutPage() {
   // Country Logic State
   const [isIndianUser, setIsIndianUser] = useState<boolean>(true);
 
-  // Withdrawals State (KEPT ONLY FOR CALCULATING TOP STAT BLOCKS)
-  const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  const [withdrawalsLoading, setWithdrawalsLoading] = useState(true);
-
   // Modals visibility
   const [isKycOpen, setIsKycOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -629,28 +645,6 @@ export default function CashoutPage() {
   };
 
   useEffect(() => { fetchUserData(); }, []);
-
-  // FETCH WITHDRAW HISTORY (Needed to show Total Withdrawn & Total Withdrawals on Top Blocks)
-  const fetchWithdrawals = async () => {
-    setWithdrawalsLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`https://api.binnycash.com/api/user/withdrawHistory?page=1`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
-      });
-      const json = await safeJsonParse(res);
-      if (json.code === 200 && json.data) {
-        setWithdrawals(json.data.data || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch withdrawal history:', err);
-    } finally {
-      setWithdrawalsLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchWithdrawals(); }, []);
 
   const availableMethods = isIndianUser ? [
     { id: 'upi', name: 'UPI', desc: 'Transfer to UPI', time: 'Instant', icon: <UPIIcon />, speed: 'fast' },
@@ -743,7 +737,6 @@ export default function CashoutPage() {
         }
         
         fetchUserData(); 
-        fetchWithdrawals();
         setTimeout(() => { setSelectedMethod(null); }, 2000);
       } else {
         setMsg({ text: data.message || 'Failed to process withdrawal.', type: 'error' });
@@ -777,6 +770,8 @@ export default function CashoutPage() {
   };
 
   const kycStatusLower = String(kycStatus).toLowerCase();
+  const isKycRejected = kycStatusLower === 'rejected' || kycStatusLower === 'failed';
+  const isKycReupload = kycStatusLower === 'reupload' || kycStatusLower === 'reupload_required' || kycStatusLower === 'reuploaded';
   
   let kycDisplayStatus = 'Not Submitted';
   let badgeColorClass = 'bg-white/5 text-[#8F95A3] border-white/10';
@@ -787,9 +782,12 @@ export default function CashoutPage() {
   } else if (kycStatusLower === 'pending' || kycStatusLower === 'processing' || kycStatusLower === 'submitted' || kycStatusLower === 'under_review') {
     kycDisplayStatus = 'Under Review';
     badgeColorClass = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
-  } else if (kycStatusLower === 'rejected' || kycStatusLower === 'failed' || kycStatusLower === 'reupload') {
-    kycDisplayStatus = 'Rejected / Re-upload';
+  } else if (isKycRejected) {
+    kycDisplayStatus = 'Rejected';
     badgeColorClass = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+  } else if (isKycReupload) {
+    kycDisplayStatus = 'Re-upload Required';
+    badgeColorClass = 'bg-orange-500/10 text-orange-400 border-orange-500/30';
   }
 
   const getKycButtonProps = () => {
@@ -799,19 +797,16 @@ export default function CashoutPage() {
     if (kycStatusLower === 'pending' || kycStatusLower === 'processing' || kycStatusLower === 'submitted' || kycStatusLower === 'under_review') {
       return { text: 'Verification Pending', disabled: true, className: 'w-full py-3 rounded-xl bg-amber-500/20 text-amber-400 font-bold text-sm cursor-not-allowed border border-amber-500/40 shadow-inner' };
     }
-    if (kycStatusLower === 'rejected' || kycStatusLower === 'failed' || kycStatusLower === 'reupload') {
+    if (isKycRejected) {
       return { text: 'Verify KYC Again', disabled: false, className: 'w-full py-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 font-bold text-sm cursor-pointer border border-rose-500/40 flex items-center justify-center gap-2' };
+    }
+    if (isKycReupload) {
+      return { text: 'Re-upload Document', disabled: false, className: 'w-full py-3 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 font-bold text-sm cursor-pointer border border-orange-500/40 flex items-center justify-center gap-2' };
     }
     return { text: 'Verify Now', disabled: false, className: 'w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold text-sm cursor-pointer hover:shadow-[0_4px_20px_rgba(139,92,246,0.5)] transition-all' };
   };
 
   const btnProps = getKycButtonProps();
-
-  const totalWithdrawnAmount = withdrawals.reduce((sum, w) => {
-    const s = String(w.status || '').toUpperCase();
-    return (s === 'COMPLETED' || s === 'APPROVED' || s === 'SUCCESS') ? sum + Number(w.amount || 0) : sum;
-  }, 0);
-  const totalWithdrawalsCount = withdrawals.length;
 
   const kycSteps = ['Not Submitted', 'Under Review', 'Approved / Re-upload'];
   type StepState = 'done' | 'active' | 'error' | 'pending';
@@ -821,7 +816,7 @@ export default function CashoutPage() {
     kycStepStates = ['done', 'active', 'pending'];
   } else if (kycStatusLower === 'verified' || kycStatusLower === 'approved') {
     kycStepStates = ['done', 'done', 'done']; 
-  } else if (kycStatusLower === 'rejected' || kycStatusLower === 'failed' || kycStatusLower === 'reupload') {
+  } else if (isKycRejected || isKycReupload) {
     kycStepStates = ['done', 'done', 'error']; 
   }
 
@@ -838,7 +833,7 @@ export default function CashoutPage() {
         </div>
 
         {/* Stats Cards Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-10">
           <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
             <div className="w-11 h-11 rounded-xl bg-[#8B5CF6]/10 flex items-center justify-center mb-4 border border-[#8B5CF6]/20">
               <Wallet className="w-5 h-5 text-[#A78BFA]" />
@@ -855,24 +850,6 @@ export default function CashoutPage() {
             <h3 className="text-[#8F95A3] font-bold text-xs uppercase tracking-wide mb-1.5">Pending Amount</h3>
             <span className="text-2xl font-black text-amber-400 block">{loading ? '...' : formatPrice(Number(pendingAmount), currency)}</span>
             <p className="text-[#8F95A3] text-[11px] mt-1.5">In process</p>
-          </div>
-
-          <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
-            <div className="w-11 h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4 border border-emerald-500/20">
-              <CircleDollarSign className="w-5 h-5 text-emerald-400" />
-            </div>
-            <h3 className="text-[#8F95A3] font-bold text-xs uppercase tracking-wide mb-1.5">Total Withdrawn</h3>
-            <span className="text-2xl font-black text-white block">{withdrawalsLoading ? '...' : formatPrice(totalWithdrawnAmount, currency)}</span>
-            <p className="text-[#8F95A3] text-[11px] mt-1.5">All time</p>
-          </div>
-
-          <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
-            <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4 border border-blue-500/20">
-              <ShieldCheck className="w-5 h-5 text-blue-400" />
-            </div>
-            <h3 className="text-[#8F95A3] font-bold text-xs uppercase tracking-wide mb-1.5">Total Withdrawals</h3>
-            <span className="text-2xl font-black text-white block">{withdrawalsLoading ? '...' : totalWithdrawalsCount}</span>
-            <p className="text-[#8F95A3] text-[11px] mt-1.5">All time</p>
           </div>
         </div>
 
@@ -925,11 +902,15 @@ export default function CashoutPage() {
 
                 {kycMessage && (
                   <div className={`mb-4 p-2.5 rounded-lg border text-[11px] font-medium leading-relaxed ${
-                    (kycStatusLower === 'rejected' || kycStatusLower === 'reupload' || kycStatusLower === 'failed')
+                    isKycRejected
                       ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                      : isKycReupload
+                      ? 'bg-orange-500/10 border-orange-500/20 text-orange-400'
                       : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
                   }`}>
-                    <span className="font-bold uppercase tracking-wider block mb-0.5 text-[9px] opacity-80">Admin Note</span>
+                    <span className="font-bold uppercase tracking-wider block mb-0.5 text-[9px] opacity-80">
+                      {isKycRejected ? 'Rejection Reason' : isKycReupload ? 'Re-upload Note' : 'Admin Note'}
+                    </span>
                     {kycMessage}
                   </div>
                 )}
@@ -939,10 +920,10 @@ export default function CashoutPage() {
                   disabled={btnProps.disabled} 
                   className={btnProps.className}
                 >
-                  {kycStatusLower === 'rejected' || kycStatusLower === 'reupload' || kycStatusLower === 'failed' ? (
+                  {isKycRejected || isKycReupload ? (
                     <>
                       <RefreshCw className="w-4 h-4" />
-                      <span>Verify KYC Again</span>
+                      <span>{btnProps.text}</span>
                     </>
                   ) : (
                     btnProps.text
@@ -1116,7 +1097,7 @@ export default function CashoutPage() {
       </main>
 
       <KycModal isOpen={isKycOpen} onClose={() => setIsKycOpen(false)} onSuccess={() => { setKycStatus('pending'); fetchUserData(); }} />
-      <VerificationAlertModal isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} onVerifyNow={() => { setIsAlertOpen(false); setIsKycOpen(true); }} kycStatus={kycStatus} />
+      <VerificationAlertModal isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} onVerifyNow={() => { setIsAlertOpen(false); setIsKycOpen(true); }} kycStatus={kycStatus} kycMessage={kycMessage} />
       
       {/* INSUFFICIENT BALANCE MODAL */}
       <InsufficientBalanceModal 

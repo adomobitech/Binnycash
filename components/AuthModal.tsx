@@ -15,8 +15,8 @@ import {
   Zap, 
   Loader2,
   Rocket,
-  RefreshCcw,
-  MailOpen
+  MailOpen,
+  ExternalLink
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -50,7 +50,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   
   // UI States
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -118,6 +117,14 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   useEffect(() => {
     setError('');
   }, [view]);
+
+  // Dynamic Mail Provider Logic
+  const getMailProvider = () => {
+    const e = email.toLowerCase();
+    if (e.includes('@yahoo.')) return { name: 'Yahoo Mail', url: 'https://mail.yahoo.com' };
+    if (e.includes('@outlook.') || e.includes('@hotmail.')) return { name: 'Outlook', url: 'https://outlook.live.com' };
+    return { name: 'Gmail', url: 'https://mail.google.com' }; // Default fallback to Gmail
+  };
 
   if (!isOpen) return null;
 
@@ -237,38 +244,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       setError('Network Error. Please try again.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // 🔥 CHANGED: Now only runs when the user manually clicks "Refresh Status"
-  const checkVerificationStatus = async () => {
-    setIsCheckingStatus(true);
-    
-    const urlEncoded = new URLSearchParams();
-    urlEncoded.append('email', email);
-    urlEncoded.append('password', password);
-    urlEncoded.append('device_id', getOrCreateDeviceId());
-
-    try {
-      const res = await fetch('https://api.binnycash.com/api/user/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: urlEncoded
-      });
-      const data = await res.json();
-      
-      const errCode = data?.code || data?.responseCode;
-      const isError = !res.ok || errCode === 400 || errCode === 401 || errCode === 403 || errCode === 404 || data?.type === 'error';
-      
-      if (!isError) {
-        processSuccessfulLogin(data);
-      } else {
-        setToast('Not verified yet. Please check your email and click the link.');
-      }
-    } catch (err) {
-      setToast('Network Error. Could not check status.');
-    } finally {
-      setIsCheckingStatus(false);
     }
   };
 
@@ -454,6 +429,8 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
         <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#3B82F6]" />
 
         <div className="p-8 sm:p-10 relative z-10">
+          
+          {/* Global Close Button */}
           <button onClick={onClose} className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center text-[#4B5263] hover:text-white transition-colors cursor-pointer z-50">
             ✕
           </button>
@@ -584,7 +561,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
               </motion.div>
             )}
 
-            {/* ======================= VERIFY EMAIL SENT (MANUAL REFRESH ONLY) ======================= */}
+            {/* ======================= VERIFY EMAIL SENT (GMAIL REDIRECT ONLY) ======================= */}
             {view === 'verifyEmailSent' && (
               <motion.div key="verify-email" {...animConfig} className="relative z-10 flex flex-col items-center">
                 
@@ -594,25 +571,24 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                 </div>
 
                 <div className="text-center mb-6">
-                  <h2 className="text-white text-[26px] font-black tracking-tight mb-3">Check Your Email</h2>
+                  <h2 className="text-white text-[26px] font-black tracking-tight mb-3">Check Your Inbox</h2>
                   <p className="text-[#8F95A3] text-sm leading-relaxed">
-                    We've sent a magic link to <br/>
+                    We've sent a secure verification link to <br/>
                     <span className="text-white font-bold">{email}</span>
                   </p>
                 </div>
 
                 <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 mb-6 text-center">
-                  <p className="text-xs text-[#8F95A3] mb-4">
-                    Click the link in the email to verify your account. Once verified in the new tab, click below to access your account.
+                  <p className="text-xs text-[#8F95A3] mb-5 leading-relaxed">
+                    Click the link in the email to activate your account. Once verified, you will be automatically logged in.
                   </p>
-                  {/* 🔥 MANUAL REFRESH BUTTON ONLY 🔥 */}
+                  
+                  {/* 🔥 DYNAMIC MAIL OPEN BUTTON 🔥 */}
                   <button 
-                    onClick={checkVerificationStatus}
-                    disabled={isCheckingStatus}
-                    className="w-full bg-[#1A1D24] hover:bg-[#232736] border border-white/10 text-white font-bold text-sm py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-sm"
+                    onClick={() => window.open(getMailProvider().url, '_blank')}
+                    className="w-full bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] hover:opacity-90 shadow-[0_4px_15px_rgba(139,92,246,0.3)] text-white font-black text-sm py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <RefreshCcw className={`w-4 h-4 ${isCheckingStatus ? 'animate-spin' : ''}`} /> 
-                    {isCheckingStatus ? 'Checking Status...' : 'Refresh Status'}
+                    Open {getMailProvider().name} <ExternalLink className="w-4 h-4" />
                   </button>
                 </div>
                 
@@ -631,16 +607,13 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                   )}
                 </div>
 
-                <button onClick={() => setView('login')} className="mt-6 text-[12px] font-bold text-[#4B5263] hover:text-white transition-colors cursor-pointer">
-                  ← Back to Login
-                </button>
               </motion.div>
             )}
 
             {/* ======================= FORGOT PASSWORD STEP 1 ======================= */}
             {view === 'forgotPassword' && (
               <motion.div key="forgot" {...animConfig} className="relative z-10">
-                <BrandHeader title="Reset Identity" subtitle="Enter your email to receive a recovery link." />
+                <BrandHeader title="Reset Password" subtitle="Enter your email to receive a secure link." />
                 
                 {error && (
                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-3 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs font-bold text-center">
@@ -674,7 +647,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                 </div>
 
                 <div className="text-center mb-6">
-                  <h2 className="text-white text-[26px] font-black tracking-tight mb-3">Check Your Email</h2>
+                  <h2 className="text-white text-[26px] font-black tracking-tight mb-3">Check Your Inbox</h2>
                   <p className="text-[#8F95A3] text-sm leading-relaxed">
                     We've sent password reset instructions to <br/>
                     <span className="text-white font-bold">{email}</span>
@@ -682,12 +655,20 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                 </div>
 
                 <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 mb-6 text-center">
-                  <p className="text-xs text-[#8F95A3]">
-                    Please open the link in the email to securely create a new password. You can close this tab if you've opened the link on a different device.
+                  <p className="text-xs text-[#8F95A3] mb-5">
+                    Click the link in the email to securely create a new password.
                   </p>
+                  
+                  {/* 🔥 DYNAMIC MAIL OPEN BUTTON 🔥 */}
+                  <button 
+                    onClick={() => window.open(getMailProvider().url, '_blank')}
+                    className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:opacity-90 shadow-[0_4px_15px_rgba(245,158,11,0.3)] text-white font-black text-sm py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    Open {getMailProvider().name} <ExternalLink className="w-4 h-4" />
+                  </button>
                 </div>
                 
-                <div className="text-center w-full mb-6">
+                <div className="text-center w-full">
                   {resendTimer > 0 ? (
                     <span className="text-[12px] text-[#8F95A3]">
                       Resend available in <span className="font-bold text-white tracking-widest">{formatTime(resendTimer)}</span>
@@ -702,9 +683,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                   )}
                 </div>
 
-                <button onClick={() => setView('login')} className="w-full py-3.5 bg-white hover:bg-gray-200 text-black font-black text-sm uppercase tracking-widest rounded-xl transition-all cursor-pointer">
-                  Return to Login
-                </button>
               </motion.div>
             )}
 

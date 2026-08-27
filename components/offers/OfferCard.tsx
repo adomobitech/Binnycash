@@ -30,18 +30,35 @@ function getUserId(): string {
   if (typeof window === 'undefined') return '';
   const isNumeric = (v: any) => v !== null && v !== undefined && /^\d+$/.test(String(v));
   try {
-    const keys = ['loginResponse', 'authResponse', 'loginData', 'userDetails', 'user', 'userData', 'profile', 'authUser', 'userId', 'user_id', 'uid', 'sid'];
-    for (const key of keys) {
+    const wrapperKeys = ['loginResponse', 'authResponse', 'loginData'];
+    for (const key of wrapperKeys) {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
-      if (isNumeric(raw)) return String(raw);
       try {
         const parsed = JSON.parse(raw);
-        const id = parsed?.data?.userDetails?.id ?? parsed?.userDetails?.id ?? parsed?.id ?? parsed?._id ?? parsed?.userId ?? parsed?.user_id;
+        const id = parsed?.data?.userDetails?.id ?? parsed?.userDetails?.id;
         if (isNumeric(id)) return String(id);
       } catch {}
     }
-  } catch (err) {}
+    const objectKeys = ['userDetails', 'user', 'userData', 'profile', 'authUser'];
+    for (const key of objectKeys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        const candidates = [parsed?.id, parsed?.userDetails?.id, parsed?._id, parsed?.userId, parsed?.user_id];
+        const numericMatch = candidates.find(isNumeric);
+        if (numericMatch !== undefined) return String(numericMatch);
+      } catch {}
+    }
+    const directKeys = ['userId', 'user_id', 'uid', 'sid'];
+    for (const key of directKeys) {
+      const val = localStorage.getItem(key);
+      if (isNumeric(val)) return String(val);
+    }
+  } catch (err) {
+    console.error('Could not resolve user id:', err);
+  }
   return '';
 }
 
@@ -159,7 +176,8 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     else setActiveInnerTab('details');
   }, [details, offer]);
 
-  const handlePlayClick = async () => {
+  // 🔥 CLEAN AND PERFECT LOGIC: EITHER QR CODE OR DIRECT NEW TAB 🔥
+  const handlePlayClick = () => {
     setIsProcessingClick(true);
     setApiError(null);
 
@@ -172,6 +190,12 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
       return;
     }
 
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(ua);
+    const isMobile = isIOS || isAndroid || /Mobi|Tablet/i.test(ua);
+    const isDesktop = !isMobile;
+
     const currentData = details || offer;
     const targetPlatforms = String(currentData?.device || currentData?.devices || currentData?.browsers || currentData?.platform || currentData?.os || currentData?.device_type || '').toLowerCase();
     
@@ -181,105 +205,58 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
     const isOfferWindows = targetPlatforms.includes('windows') || targetPlatforms.includes('desktop') || targetPlatforms.includes('pc') || targetPlatforms.includes('win');
     const isOfferMac = targetPlatforms.includes('mac') || targetPlatforms.includes('osx');
 
-    let isMismatch = false;
-    let targetForQR: 'ios' | 'android' | null = null;
+    const isStrictlyMobileOffer = (isOfferAndroid || isOfferIos) && !(isOfferWindows || isOfferMac || isUniversal);
+    const isStrictlyDesktopOffer = (isOfferWindows || isOfferMac) && !(isOfferAndroid || isOfferIos || isUniversal);
 
-    if (!isUniversal) {
-       if (isOfferIos && !isOfferAndroid && userCurrentDevice !== 'ios') {
-          isMismatch = true;
-          targetForQR = 'ios';
-       } else if (isOfferAndroid && !isOfferIos && userCurrentDevice !== 'android') {
-          isMismatch = true;
-          targetForQR = 'android';
-       }
+    let showQR = false;
+    let generateQRFor = 'Mobile Device';
+
+    // 1. Check for QR Code Mismatch
+    if (isDesktop && isStrictlyMobileOffer) {
+      showQR = true;
+      if (isOfferAndroid && !isOfferIos) generateQRFor = 'Android';
+      else if (isOfferIos && !isOfferAndroid) generateQRFor = 'iOS';
+      else generateQRFor = 'Android or iOS';
+    } 
+    else if (isMobile && isStrictlyDesktopOffer) {
+      showQR = true;
+      generateQRFor = isOfferWindows ? 'Windows' : 'Desktop PC';
+    }
+    else if (isAndroid && isOfferIos && !isOfferAndroid && !isUniversal) {
+      showQR = true;
+      generateQRFor = 'iOS';
+    }
+    else if (isIOS && isOfferAndroid && !isOfferIos && !isUniversal) {
+      showQR = true;
+      generateQRFor = 'Android';
     }
 
-    if ((isOfferIos || isOfferAndroid) && (userCurrentDevice === 'windows' || userCurrentDevice === 'mac')) {
-        isMismatch = true;
-        targetForQR = isOfferIos ? 'ios' : 'android';
-    }
-
+    // 🔥 This is the main tracking link returned by your backend 
     const trackingUrl = `https://api.binnycash.com/api/click?customer_id=${encodeURIComponent(userId)}&offer_id=${encodeURIComponent(targetId)}`;
 
-    if (isMismatch && targetForQR) {
-      setTargetDeviceName(targetForQR === 'ios' ? 'iOS' : 'Android');
+    // 2. Execute Action based on Mismatch
+    if (showQR) {
+      // Setup QR Code State
+      setTargetDeviceName(generateQRFor);
       setQrCodeUrl(trackingUrl);
       setIsProcessingClick(false);
-      return;
-    }
-
-    const newTab: Window | null = (userCurrentDevice === 'windows' || userCurrentDevice === 'mac') ? window.open('about:blank', '_blank') : null;
-
-    try {
-      const token = localStorage.getItem('token') || '';
-
-      const res = await fetch(trackingUrl, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json, text/html', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-      });
-
-      const contentType = res.headers.get("content-type");
-      const responseText = await res.text();
-      let finalRedirectUrl = '';
-      let errorMessage = '';
-
-      if (contentType && contentType.includes("application/json")) {
-        try {
-          const jsonRes = JSON.parse(responseText);
-          if (jsonRes.type === 'error' || jsonRes.status === 'error' || jsonRes.code !== 200) {
-             errorMessage = jsonRes.message || 'Offer unavailable or not allowed right now.';
-          }
-          finalRedirectUrl = jsonRes?.url || jsonRes?.link || jsonRes?.click_url || jsonRes?.data?.url || jsonRes?.data?.link || jsonRes?.data?.click_url || '';
-        } catch(e) {}
-      } else {
-        const scriptMatch = responseText.match(/location\.replace\(['"]([^'"]+)['"]\)/i);
-        if (scriptMatch && scriptMatch[1]) {
-          finalRedirectUrl = scriptMatch[1];
-        } else {
-          const metaMatch = responseText.match(/content=["']\d+;url=([^"']+)["']/i) || responseText.match(/url=([^"'>\s]+)/i);
-          if (metaMatch && metaMatch[1]) {
-            finalRedirectUrl = metaMatch[1];
-          }
-        }
-      }
-
-      if (errorMessage && !finalRedirectUrl) {
-        if (newTab) newTab.close();
-        setApiError(errorMessage);
-        setIsProcessingClick(false);
-        return;
-      }
-
-      if (!finalRedirectUrl || finalRedirectUrl === '#' || String(finalRedirectUrl) === 'undefined') {
-        finalRedirectUrl = offer?.click_url || offer?.link || offer?.url || currentData?.click_url || currentData?.link || currentData?.url;
-      }
-
-      if (!finalRedirectUrl || String(finalRedirectUrl) === 'undefined') {
-         if (newTab) newTab.close();
-         setApiError("Click URL not found for this offer. Please try another one.");
-         setIsProcessingClick(false);
-         return;
-      }
-
-      if (newTab) {
-        newTab.location.href = finalRedirectUrl;
-      } else {
-        window.location.href = finalRedirectUrl;
-      }
-      onClose();
-
-    } catch (err) {
-      console.error("Error connecting to API:", err);
-      let fallbackUrl = offer?.click_url || offer?.link || offer?.url || currentData?.click_url || currentData?.link || currentData?.url;
+    } else {
+      // 🔥 MAGIC FIX: NO MORE BACKGROUND FETCH! Direct open in new tab!
+      const newTab = window.open(trackingUrl, '_blank');
       
-      if (fallbackUrl && String(fallbackUrl) !== 'undefined') {
-        if (newTab) newTab.location.href = fallbackUrl;
-        else window.location.href = fallbackUrl;
-      } else {
-        if (newTab) newTab.close();
-        setApiError("Network error. Could not connect to the offer link.");
+      // Popup blocker fallback
+      if (!newTab) {
+         const anchor = document.createElement('a');
+         anchor.href = trackingUrl;
+         anchor.target = '_blank';
+         anchor.rel = 'noopener noreferrer';
+         document.body.appendChild(anchor);
+         anchor.click();
+         document.body.removeChild(anchor);
       }
+      
       setIsProcessingClick(false);
+      onClose(); // Close modal after opening tab
     }
   };
 
@@ -368,7 +345,6 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
                     </span>
                   </div>
                 </div>
-                {/* 🔥 FIX: Changed currentOS to userCurrentDevice here 🔥 */}
                 <div className="bg-white/5 p-2.5 rounded-xl border border-white/5 flex items-center justify-center w-10 h-10 text-[#00E57A]">
                   {userCurrentDevice === 'windows' ? <WindowsIcon className="w-4 h-4" /> : userCurrentDevice === 'mac' ? <AppleIcon className="w-4 h-4" /> : userCurrentDevice === 'ios' ? <AppleIcon className="w-4 h-4" /> : <AndroidIcon className="w-4 h-4" />}
                 </div>
@@ -559,7 +535,7 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
           </motion.div>
         )}
 
-        {/* 🔥 PAYOUT MODAL POPUP 🔥 */}
+        {/* 櫨 PAYOUT MODAL POPUP 櫨 */}
         {isPayoutModalOpen && (
           <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
             <motion.div

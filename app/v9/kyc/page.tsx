@@ -4,9 +4,71 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ShieldCheck, Clock, CheckCircle2, XCircle, 
-  RefreshCcw, AlertCircle, Loader2, Search, Filter, Eye, FileText,
-  UserCheck, X, Check, FileImage, CreditCard, Smartphone, AlertTriangle, History, CheckCircle
+  RefreshCcw, AlertCircle, Loader2, Search, Eye, 
+  UserCheck, X, Check, FileImage, CreditCard, Smartphone, AlertTriangle, History, CheckCircle, FileText
 } from 'lucide-react';
+
+// --- HELPER COMPONENT FOR AUTHENTICATED IMAGES ---
+function AuthImage({ src, alt }: { src: string, alt: string }) {
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!src) {
+      setIsLoading(false);
+      return;
+    }
+
+    const token = localStorage.getItem('admin_token');
+
+    fetch(src, {
+      method: 'GET',
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load image');
+        return res.blob();
+      })
+      .then(blob => {
+        const objectUrl = URL.createObjectURL(blob);
+        setImgSrc(objectUrl);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("AuthImage fetch error, falling back to direct src:", err);
+        setImgSrc(src); // Fallback to direct URL if fetch fails
+        setIsLoading(false);
+      });
+
+    return () => {
+      if (imgSrc && imgSrc.startsWith('blob:')) {
+        URL.revokeObjectURL(imgSrc);
+      }
+    };
+  }, [src]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-10 text-gray-500 text-xs gap-2">
+        <Loader2 className="w-4 h-4 animate-spin text-[#7C3AED]" /> Loading secure document...
+      </div>
+    );
+  }
+
+  if (!imgSrc) {
+    return <span className="text-gray-600 text-xs font-medium">No Document Image</span>;
+  }
+
+  return (
+    <img 
+      src={imgSrc} 
+      alt={alt} 
+      className="w-full h-full max-h-[400px] object-contain bg-black/50 p-2 rounded-xl" 
+    />
+  );
+}
 
 export default function KycDashboardPage() {
   const router = useRouter();
@@ -20,11 +82,10 @@ export default function KycDashboardPage() {
   });
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   
-  // --- TABLE USERS STATES (From userList API) ---
+  // --- TABLE USERS STATES (From verification/users API) ---
   const [users, setUsers] = useState<any[]>([]);
   const [isUsersLoading, setIsUsersLoading] = useState(true);
   
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   // --- KYC VIEW MODAL STATES ---
@@ -69,22 +130,22 @@ export default function KycDashboardPage() {
     }
   };
 
-  // 2. Fetch Users List for Table (Dynamic Data from userList API)
+  // 2. Fetch Users List for KYC Table
   const fetchKycUsersList = async () => {
     setIsUsersLoading(true);
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
-    const adminId = typeof window !== 'undefined' ? localStorage.getItem('admin_id') : '';
 
-    if (!token || !adminId) return;
+    if (!token) return;
 
     try {
-      const res = await fetch(`https://api.binnycash.com/api/admin/userList?adminId=${encodeURIComponent(adminId)}&page=1&limit=100`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/verification/users?page=1&limit=100`, {
+        method: 'GET',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
       
       const json = await res.json().catch(() => null);
-      if (json?.code === 200 && Array.isArray(json?.data)) {
-        setUsers(json.data);
+      if (json?.code === 200 && Array.isArray(json?.data?.list)) {
+        setUsers(json.data.list);
       } else {
         setUsers([]);
       }
@@ -96,27 +157,23 @@ export default function KycDashboardPage() {
     }
   };
 
-  // Run initial fetches
   useEffect(() => {
     fetchKycStats();
     fetchKycUsersList();
   }, [router]);
 
-  // Combined Refresh Handler
   const handleRefreshAll = () => {
     fetchKycStats();
     fetchKycUsersList();
   };
 
   // 3. Fetch Detailed KYC Information for Modal
-  const handleViewKyc = async (userId: string | number, showLoading = true) => {
+  const handleViewKyc = async (userId: string | number) => {
     setCurrentKycUserId(Number(userId));
-    if (showLoading) {
-      setIsKycModalOpen(true);
-      setIsKycLoading(true);
-      setKycData(null);
-      setActionReason('');
-    }
+    setIsKycModalOpen(true);
+    setIsKycLoading(true);
+    setKycData(null);
+    setActionReason('');
     
     const token = localStorage.getItem('admin_token');
 
@@ -136,14 +193,19 @@ export default function KycDashboardPage() {
       console.error("KYC Details fetch error:", err);
       setKycData({ error: 'Network error while fetching KYC documents.' });
     } finally {
-      if (showLoading) setIsKycLoading(false);
+      setIsKycLoading(false);
     }
   };
 
-  // 4. ACTION: Approve / Reject / Under Review / Reupload (DYNAMIC UPDATE)
+  // 4. ACTION: Approve / Reject / Under Review / Reupload
   const handleKycAction = async (status: 'approved' | 'rejected' | 'under_review' | 'reupload_required') => {
     if (!currentKycUserId) return;
     
+    if ((status === 'rejected' || status === 'reupload_required') && actionReason.trim() === '') {
+      alert(`Please provide a reason to ${status === 'rejected' ? 'Reject' : 'request Re-Upload'}.`);
+      return;
+    }
+
     setIsActionLoading(true);
     const token = localStorage.getItem('admin_token');
     
@@ -165,9 +227,8 @@ export default function KycDashboardPage() {
       const json = await res.json();
       
       if (res.ok && (json?.code === 200 || json?.type === 'success')) {
-        // Do not close modal. Clear reason, fetch new data, refresh table!
         setActionReason(''); 
-        await handleViewKyc(currentKycUserId, false);
+        await handleViewKyc(currentKycUserId); 
         handleRefreshAll(); 
       } else {
         alert(json?.message || `Failed to update KYC status.`);
@@ -180,19 +241,20 @@ export default function KycDashboardPage() {
     }
   };
 
-  // Search Filter logic for Table
   const safeUsers = Array.isArray(users) ? users : [];
   const filteredUsers = safeUsers.filter(u => {
-    const name = u?.userName || '';
+    const name = u?.name || '';
     const email = u?.email || '';
-    const id = u?.id?.toString() || '';
+    const id = u?.userId?.toString() || '';
     const query = searchQuery.toLowerCase();
     return name.toLowerCase().includes(query) || email.toLowerCase().includes(query) || id.includes(query);
   });
 
   const resolveImage = (imgSrc: string) => {
     if (!imgSrc || imgSrc.trim() === '') return null;
-    return !imgSrc.startsWith('http') ? `https://api.binnycash.com${imgSrc}` : imgSrc;
+    if (imgSrc.startsWith('http')) return imgSrc;
+    const prefix = imgSrc.startsWith('/') ? '' : '/';
+    return `https://api.binnycash.com${prefix}${imgSrc}`;
   };
 
   const statCards = [
@@ -203,31 +265,25 @@ export default function KycDashboardPage() {
   ];
 
   const getKycColor = (status: string) => {
-    if (status === 'approved') return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-    if (status === 'rejected') return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
-    if (status === 'under_review') return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
-    if (status === 'reupload_required') return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
-    if (status === 'pending' || status === 'submitted') return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-    return 'text-gray-400 bg-gray-800 border-gray-700'; // not_submited
+    const s = String(status || '').toLowerCase();
+    if (s === 'approved') return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+    if (s === 'rejected' || s === 'failed') return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+    if (s === 'under_review') return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+    if (s === 'reupload_required') return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
+    if (s === 'pending' || s === 'submitted') return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+    return 'text-gray-400 bg-gray-800 border-gray-700';
   };
 
-  const getStatusIcon = (status: string) => {
-    if (status === 'approved') return <CheckCircle className="w-5 h-5" />;
-    if (status === 'rejected') return <XCircle className="w-5 h-5" />;
-    if (status === 'reupload_required') return <RefreshCcw className="w-5 h-5" />;
-    return <Clock className="w-5 h-5" />;
-  };
-
-  // Safe data extraction for modal
   const doc = kycData?.kycDetails || {};
   const docStatus = (doc?.status || 'pending').toLowerCase();
-  // Action bar is ONLY visible if it's pending, submitted, or under_review
   const canTakeAction = ['pending', 'submitted', 'under_review'].includes(docStatus);
+
+  const rawDocumentUrl = resolveImage(kycData?.kycDetails?.documentFrontImage);
 
   return (
     <div className="flex flex-col gap-6 text-white w-full max-w-[1600px] mx-auto pb-10 font-sans">
       
-      {/* --- DASHBOARD HEADER --- */}
+      {/* HEADER */}
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -244,7 +300,7 @@ export default function KycDashboardPage() {
         </button>
       </div>
 
-      {/* --- STATS GRID --- */}
+      {/* STATS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, idx) => {
           const Icon = stat.icon;
@@ -265,7 +321,7 @@ export default function KycDashboardPage() {
         })}
       </div>
 
-      {/* --- FILTERS & SEARCH --- */}
+      {/* SEARCH BAR */}
       <div className="flex flex-wrap items-center gap-4 bg-[#12141C] p-4 rounded-xl border border-white/5 mt-2">
         <div className="relative flex-1 min-w-[200px] max-w-md">
            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
@@ -273,13 +329,13 @@ export default function KycDashboardPage() {
              type="text" 
              value={searchQuery}
              onChange={(e) => setSearchQuery(e.target.value)}
-             placeholder="Search by ID, Username, or Email..." 
+             placeholder="Search by ID, Name, or Email..." 
              className="w-full bg-[#0B0D14] border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7C3AED] transition-colors"
            />
         </div>
       </div>
 
-      {/* --- KYC USERS DYNAMIC TABLE (From userList) --- */}
+      {/* KYC TABLE */}
       <div className="bg-[#12141C] border border-white/5 rounded-xl overflow-hidden shadow-sm">
         <div className="p-5 border-b border-white/5 flex items-center justify-between">
            <h3 className="text-lg font-bold text-white">KYC Applications</h3>
@@ -305,20 +361,20 @@ export default function KycDashboardPage() {
                 </tr>
               ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((u: any, idx: number) => {
-                  const uDocStatus = u?.documents?.status || 'not_submited';
-                  const docType = u?.documents?.documentType || 'Not Provided';
-                  const firstLetter = (u?.userName || 'U').charAt(0).toUpperCase();
+                  const uDocStatus = u?.kycStatus || 'not_submited';
+                  const docType = u?.documentType || 'Not Provided';
+                  const firstLetter = (u?.name || 'U').charAt(0).toUpperCase();
 
                   return (
-                    <tr key={u?.id || idx} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-3 px-5 text-gray-400 font-mono">#{u?.id}</td>
+                    <tr key={u?.userId || idx} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3 px-5 text-gray-400 font-mono">#{u?.userId}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-[#7C3AED]/20 border border-[#7C3AED]/40 flex items-center justify-center text-[#7C3AED] font-bold text-sm shrink-0">
                             {firstLetter}
                           </div>
                           <div className="flex flex-col">
-                            <span className="font-medium text-white">{u?.userName || 'Unknown'}</span>
+                            <span className="font-medium text-white">{u?.name || 'Unknown'}</span>
                             <span className="text-xs text-gray-500">{u?.email || 'N/A'}</span>
                           </div>
                         </div>
@@ -333,7 +389,7 @@ export default function KycDashboardPage() {
                       </td>
                       <td className="py-3 px-4 text-center">
                         <button 
-                          onClick={() => handleViewKyc(u?.id)}
+                          onClick={() => handleViewKyc(u?.userId)}
                           className="bg-[#7C3AED]/10 hover:bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/20 px-4 py-2 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 text-xs font-bold mx-auto"
                         >
                           <Eye className="w-4 h-4" /> Review
@@ -354,14 +410,14 @@ export default function KycDashboardPage() {
 
       {/* --- KYC REVIEW MODAL --- */}
       {isKycModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
           <div className="bg-[#12141C] border border-white/10 w-full max-w-5xl p-6 rounded-[24px] shadow-2xl relative my-auto max-h-[95vh] overflow-y-auto custom-scrollbar flex flex-col">
             
             <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4 sticky top-0 bg-[#12141C] z-10 shrink-0">
               <h3 className="text-xl font-black text-white flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-[#7C3AED]" /> KYC Application Review
+                <FileText className="w-5 h-5 text-[#7C3AED]" /> KYC Application Review
               </h3>
-              <button onClick={() => setIsKycModalOpen(false)} className="text-gray-400 hover:text-white bg-white/5 p-1.5 rounded-lg">
+              <button onClick={() => setIsKycModalOpen(false)} className="text-gray-400 hover:text-white bg-white/5 p-1.5 rounded-lg cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -379,7 +435,6 @@ export default function KycDashboardPage() {
             ) : (
               <div className="flex flex-col gap-6 flex-1">
                 
-                {/* --- FRAUD ALERT --- */}
                 {kycData?.similarAccounts?.length > 0 && (
                   <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 flex flex-col gap-2">
                     <div className="flex items-center gap-2 text-rose-500 font-bold">
@@ -388,13 +443,12 @@ export default function KycDashboardPage() {
                     </div>
                     <ul className="text-sm text-rose-400/90 list-disc list-inside ml-6 space-y-1">
                       {kycData.similarAccounts.map((acc: any, i: number) => (
-                        <li key={i}>Matched by <strong className="text-white">{acc.matchType}</strong>: {acc.user} ({acc.email})</li>
+                        <li key={i}>Matched by <strong className="text-white">{acc.matchType}</strong>: {acc.user || 'User'} ({acc.email})</li>
                       ))}
                     </ul>
                   </div>
                 )}
 
-                {/* --- INFO GRID --- */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="bg-[#0B0D14] border border-white/5 rounded-xl p-5 shadow-inner flex flex-col gap-3">
                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2">
@@ -410,20 +464,33 @@ export default function KycDashboardPage() {
                   </div>
 
                   <div className="flex flex-col gap-4">
-                    <div className="bg-[#0B0D14] border border-white/5 rounded-xl p-4 shadow-inner flex gap-4 items-center">
-                      <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
-                        <CreditCard className="w-6 h-6" />
+                    <div className="bg-[#0B0D14] border border-white/5 rounded-xl p-4 shadow-inner flex flex-col gap-4">
+                      
+                      <div className="flex gap-4 items-center">
+                        <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+                          <CreditCard className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Document Applied</p>
+                          <p className="text-sm font-bold text-white">{kycData?.kycDetails?.documentType || 'Not Provided'}</p>
+                          <p className="text-xs font-mono text-emerald-400 mt-0.5">{kycData?.kycDetails?.documentNumber || 'N/A'}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded border ${getKycColor(docStatus)}`}>
+                            {docStatus.replace('_', ' ')}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Document Applied</p>
-                        <p className="text-sm font-bold text-white">{kycData?.kycDetails?.documentType || 'Not Provided'}</p>
-                        <p className="text-xs font-mono text-emerald-400 mt-0.5">{kycData?.kycDetails?.documentNumber || 'N/A'}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded border ${getKycColor(docStatus)}`}>
-                          {docStatus.replace('_', ' ')}
-                        </span>
-                      </div>
+
+                      {kycData?.kycDetails?.reason && (
+                        <div className={`p-3 rounded-xl border text-sm font-medium ${
+                          docStatus === 'rejected' || docStatus === 'failed' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' :
+                          'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                        }`}>
+                          <span className="block text-[10px] font-bold uppercase tracking-wider mb-1 opacity-70">Admin Reason / Note</span>
+                          {kycData.kycDetails.reason}
+                        </div>
+                      )}
                     </div>
 
                     <div className="bg-[#0B0D14] border border-white/5 rounded-xl p-4 flex flex-col gap-2">
@@ -438,31 +505,31 @@ export default function KycDashboardPage() {
                   </div>
                 </div>
 
-                {/* --- IMAGES & TIMELINE --- */}
+                {/* --- DOCUMENT IMAGE & TIMELINE (USING AUTH IMAGE HELPER) --- */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   
-                  <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-2">
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2"><FileImage className="w-4 h-4" /> Front Side</span>
-                      <div className="bg-[#0B0D14] border border-white/10 rounded-xl overflow-hidden aspect-video flex items-center justify-center relative group">
-                        {resolveImage(kycData?.kycDetails?.documentFrontImage) ? (
-                          <img src={resolveImage(kycData.kycDetails.documentFrontImage)!} alt="Front" className="w-full h-full object-contain bg-black/50" />
-                        ) : <span className="text-gray-600 text-xs font-medium">No Front Image</span>}
-                        {resolveImage(kycData?.kycDetails?.documentFrontImage) && (
-                          <a href={resolveImage(kycData.kycDetails.documentFrontImage)!} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-sm font-bold cursor-pointer">Open Full Screen</a>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2"><FileImage className="w-4 h-4" /> Back Side</span>
-                      <div className="bg-[#0B0D14] border border-white/10 rounded-xl overflow-hidden aspect-video flex items-center justify-center relative group">
-                        {resolveImage(kycData?.kycDetails?.documentBackImage) ? (
-                          <img src={resolveImage(kycData.kycDetails.documentBackImage)!} alt="Back" className="w-full h-full object-contain bg-black/50" />
-                        ) : <span className="text-gray-600 text-xs font-medium">No Back Image</span>}
-                        {resolveImage(kycData?.kycDetails?.documentBackImage) && (
-                          <a href={resolveImage(kycData.kycDetails.documentBackImage)!} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-sm font-bold cursor-pointer">Open Full Screen</a>
-                        )}
-                      </div>
+                  <div className="lg:col-span-2 flex flex-col gap-2">
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                      <FileImage className="w-4 h-4" /> Document Image
+                    </span>
+                    <div className="bg-[#0B0D14] border border-white/10 rounded-xl overflow-hidden min-h-[280px] max-h-[420px] flex items-center justify-center relative group">
+                      
+                      {/* 🔥 AUTHENTICATED BLOB IMAGE LOADER 🔥 */}
+                      <AuthImage 
+                        src={rawDocumentUrl || ''} 
+                        alt="KYC Document" 
+                      />
+
+                      {rawDocumentUrl && (
+                        <a 
+                          href={rawDocumentUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-sm font-bold cursor-pointer rounded-xl"
+                        >
+                          Open Full Screen
+                        </a>
+                      )}
                     </div>
                   </div>
 
@@ -470,7 +537,7 @@ export default function KycDashboardPage() {
                     <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-3 mb-4">
                       <History className="w-4 h-4" /> Activity Timeline
                     </h4>
-                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-[250px]">
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-[280px]">
                       {kycData?.activityTimeline?.length > 0 ? (
                         <div className="border-l border-white/10 ml-2 space-y-4 pb-2">
                           {kycData.activityTimeline.map((event: any, i: number) => (
@@ -488,7 +555,7 @@ export default function KycDashboardPage() {
 
                 </div>
 
-                {/* 🔥 DYNAMIC ACTION BAR OR TERMINAL STATUS BANNER */}
+                {/* DYNAMIC ACTION BAR */}
                 {canTakeAction ? (
                   <div className="mt-2 pt-6 border-t border-white/10 flex flex-col xl:flex-row justify-between items-center gap-4 sticky bottom-0 bg-[#12141C] py-2 shrink-0">
                      <div className="w-full xl:w-2/5 flex items-center gap-2">
@@ -496,8 +563,8 @@ export default function KycDashboardPage() {
                          type="text" 
                          value={actionReason}
                          onChange={(e) => setActionReason(e.target.value)}
-                         placeholder="Add reason for rejection or re-upload..."
-                         className="w-full bg-[#0B0D14] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#7C3AED] transition-colors"
+                         placeholder="Required for Rejection or Re-upload..."
+                         className="w-full bg-[#0B0D14] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#7C3AED] transition-colors placeholder:text-rose-500/50"
                        />
                        {isActionLoading && <Loader2 className="w-5 h-5 animate-spin text-[#7C3AED] shrink-0" />}
                      </div>
@@ -519,7 +586,7 @@ export default function KycDashboardPage() {
                 ) : (
                   <div className="mt-2 pt-6 border-t border-white/10 sticky bottom-0 bg-[#12141C] py-2 shrink-0 flex justify-center">
                     <div className={`px-8 py-4 rounded-xl border flex items-center justify-center gap-3 font-black text-sm uppercase tracking-wider w-full md:w-auto ${getKycColor(docStatus)}`}>
-                       {getStatusIcon(docStatus)}
+                       {docStatus === 'approved' ? <CheckCircle className="w-5 h-5" /> : docStatus === 'rejected' ? <XCircle className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
                        KYC is marked as {docStatus.replace('_', ' ')}
                     </div>
                   </div>
@@ -533,11 +600,5 @@ export default function KycDashboardPage() {
       )}
 
     </div>
-  );
-}
-
-function FileCheck(props: any) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/></svg>
   );
 }
