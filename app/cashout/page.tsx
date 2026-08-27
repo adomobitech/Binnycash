@@ -99,18 +99,74 @@ const indianCities = [
   'ambattur', 'tirunelveli', 'malegaon', 'gaya', 'jalgaon', 'udaipur', 'maheshtala', 'davanagere', 'kozhikode', 'alwar'
 ];
 
+// --- AUTO COMPRESS FUNCTION ---
+const compressImage = (file: File): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        // Max dimensions (keeps document readable but drastically reduces file size)
+        const MAX_WIDTH = 1200; 
+        const MAX_HEIGHT = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        // Compress to JPEG with 70% quality
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error('Canvas is empty'));
+            return;
+          }
+          const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          resolve(compressedFile);
+        }, 'image/jpeg', 0.7);
+      };
+      img.onerror = (error) => reject(error);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 // --- KYC SUBMISSION MODAL ---
 function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
   const [formData, setFormData] = useState({
     name: '', dob: '', documentNumber: '', documentType: '', customDocumentType: '',
   });
   const [frontImage, setFrontImage] = useState<File | null>(null);
-  const [backImage, setBackImage] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [message, setMessage] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(false); 
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Maximum file size in MB limit check
+  const MAX_FILE_SIZE_MB = 1;
+  const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
   useEffect(() => {
     if (typeof window !== 'undefined') setIsMobileDevice(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
@@ -127,6 +183,39 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
   }, []);
 
   if (!isOpen) return null;
+
+  // 🔥 NEW: Image Handler with Auto-Compression 🔥
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files ? e.target.files[0] : null;
+    setMessage('');
+    
+    if (file) {
+      // If already under 1MB, accept directly
+      if (file.size <= MAX_FILE_SIZE_BYTES) {
+        setFrontImage(file);
+        return;
+      }
+
+      // If larger, run compression
+      try {
+        setIsCompressing(true);
+        const compressed = await compressImage(file);
+        
+        // Final sanity check after compression
+        if (compressed.size > MAX_FILE_SIZE_BYTES) {
+          setMessage(`Even after compression, image exceeds ${MAX_FILE_SIZE_MB}MB. Please use a simpler photo.`);
+          setFrontImage(null);
+        } else {
+          setFrontImage(compressed);
+        }
+      } catch (err) {
+        setMessage('Failed to process image. Please try another one.');
+      } finally {
+        setIsCompressing(false);
+        e.target.value = ''; // Reset input to allow re-uploading same file if needed
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,7 +236,6 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
       data.append('documentNumber', formData.documentNumber);
       data.append('documentType', formData.documentType === 'Others' ? formData.customDocumentType : formData.documentType);
       data.append('documentFrontImage', frontImage);
-      if (backImage) data.append('documentBackImage', backImage);
 
       const res = await fetch('https://api.binnycash.com/api/user/kyc/submit', {
         method: 'PUT',
@@ -261,21 +349,21 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
                 </div>
                 <div>
                   <p className="text-sm font-bold text-white mb-0.5">{frontImage ? 'Upload Successful' : 'Upload Image'}</p>
-                  <p className="text-[10px] text-[#8F95A3]">{frontImage ? frontImage.name : 'Clear, readable photo (.jpg, .png)'}</p>
+                  <p className="text-[10px] text-[#8F95A3]">{frontImage ? `${(frontImage.size / 1024).toFixed(1)} KB` : 'Auto-compressed to save data'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
                 {isMobileDevice && (
-                  <label className="flex-1 sm:flex-none py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-colors cursor-pointer text-center flex items-center justify-center gap-2">
-                    <input type="file" accept=".png,.jpg,.jpeg,.webp" capture="environment" className="hidden" onChange={(e) => setFrontImage(e.target.files ? e.target.files[0] : null)} />
-                    <Camera className="w-4 h-4 text-[#8B5CF6]" />
-                    <span>Camera</span>
+                  <label className={`flex-1 sm:flex-none py-2.5 px-4 rounded-xl border text-xs font-bold transition-colors cursor-pointer text-center flex items-center justify-center gap-2 ${isCompressing ? 'bg-white/5 border-white/10 text-white/50 pointer-events-none' : 'bg-white/5 hover:bg-white/10 border-white/10 text-white'}`}>
+                    <input type="file" accept="image/*" capture="environment" className="hidden" disabled={isCompressing} onChange={handleImageChange} />
+                    {isCompressing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4 text-[#8B5CF6]" />}
+                    <span>{isCompressing ? '...' : 'Camera'}</span>
                   </label>
                 )}
-                <label className="flex-1 sm:flex-none py-2.5 px-4 rounded-xl bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-xs font-bold text-[#A78BFA] transition-colors cursor-pointer text-center flex items-center justify-center gap-2">
-                  <input type="file" accept=".png,.jpg,.jpeg,.webp" className="hidden" onChange={(e) => setFrontImage(e.target.files ? e.target.files[0] : null)} />
-                  <UploadCloud className="w-4 h-4" />
-                  <span>{frontImage ? 'Change' : 'Browse'}</span>
+                <label className={`flex-1 sm:flex-none py-2.5 px-4 rounded-xl border text-xs font-bold transition-colors cursor-pointer text-center flex items-center justify-center gap-2 ${isCompressing ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/30 text-[#A78BFA]/50 pointer-events-none' : 'bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 border-[#8B5CF6]/30 text-[#A78BFA]'}`}>
+                  <input type="file" accept="image/*" className="hidden" disabled={isCompressing} onChange={handleImageChange} />
+                  {isCompressing ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                  <span>{isCompressing ? 'Compressing...' : frontImage ? 'Change' : 'Browse'}</span>
                 </label>
               </div>
             </div>
@@ -296,7 +384,7 @@ function KycModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: ()
             <button type="button" onClick={onClose} className="py-3.5 rounded-2xl bg-[#15192C] hover:bg-[#1A1E35] border border-white/5 hover:border-white/10 text-white font-bold text-sm transition-all cursor-pointer">
               Cancel
             </button>
-            <button type="submit" disabled={submitting} className="group py-3.5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#EC4899] hover:opacity-90 text-white font-bold text-sm transition-all shadow-[0_4px_25px_rgba(139,92,246,0.3)] cursor-pointer flex items-center justify-center gap-2">
+            <button type="submit" disabled={submitting || isCompressing} className="group py-3.5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#EC4899] hover:opacity-90 text-white font-bold text-sm transition-all shadow-[0_4px_25px_rgba(139,92,246,0.3)] cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2">
               {submitting ? (
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}>
                   <ShieldCheck className="w-5 h-5" />

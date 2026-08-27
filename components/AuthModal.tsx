@@ -15,8 +15,8 @@ import {
   Zap, 
   Loader2,
   Rocket,
-  AlertCircle,
-  X
+  RefreshCcw,
+  MailOpen
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -25,7 +25,7 @@ interface AuthModalProps {
   initialView?: 'login' | 'register';
 }
 
-type ViewState = 'login' | 'register' | 'verifyOtp' | 'forgotPassword' | 'resetPassword' | 'loginSuccess';
+type ViewState = 'login' | 'register' | 'verifyEmailSent' | 'forgotPassword' | 'resetEmailSent' | 'loginSuccess';
 
 // --- UTILITY: Get Device ID ---
 function getOrCreateDeviceId(): string {
@@ -47,16 +47,15 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   const [password, setPassword] = useState('');
   const [showPromo, setShowPromo] = useState(false);
   const [promoCode, setPromoCode] = useState('');
-  const [otp, setOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
   
   // UI States
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Timer State for Resend OTP (in seconds)
+  // Timer State for Resend Link (in seconds)
   const [resendTimer, setResendTimer] = useState(0);
 
   // Referral States
@@ -67,7 +66,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   useEffect(() => {
     if (isOpen) {
       setView(initialView);
-      
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         const refCode = params.get('ref');
@@ -82,7 +80,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     }
   }, [isOpen, initialView]);
 
-  // Handle Resend OTP Timer Countdown
+  // Handle Resend Link Timer Countdown
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (resendTimer > 0) {
@@ -124,38 +122,38 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
   if (!isOpen) return null;
 
   // =====================================
-  // OTP BOX LOGIC (4 Digits)
+  // REUSABLE SUCCESS LOGIN HANDLER
   // =====================================
-  const handleOtpChange = (index: number, val: string) => {
-    if (!/^[0-9]*$/.test(val)) return;
-    const otpArray = otp.padEnd(4, ' ').split('');
-    otpArray[index] = val.slice(-1);
-    const newOtp = otpArray.join('').trim();
-    setOtp(newOtp);
+  const processSuccessfulLogin = (data: any) => {
+    let userToken = data.token || data.accessToken || data.data?.token;
+    if (!userToken && typeof data.data === 'string') userToken = data.data;
 
-    if (val && index < 3) {
-      document.getElementById(`otp-${index + 1}`)?.focus();
+    if (userToken && typeof userToken === 'string' && !userToken.includes('[object Object]')) {
+      localStorage.setItem('token', userToken);
     }
-  };
 
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      document.getElementById(`otp-${index - 1}`)?.focus();
+    const userDetails = data.data?.userDetails || data.userDetails || data.data?.user || data.user;
+    if (userDetails && typeof userDetails === 'object') {
+      localStorage.setItem('userDetails', JSON.stringify(userDetails));
     }
-  };
+    
+    const userId = userDetails?.id ?? userDetails?._id ?? data.userId ?? data.user?._id ?? data.data?.userId ?? data.data?._id ?? data.id;
+    if (userId) {
+      localStorage.setItem('userId', String(userId));
+    }
+    
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('profileUpdated'));
 
-  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text/plain').replace(/[^0-9]/g, '').slice(0, 4);
-    if (pastedData) {
-      setOtp(pastedData);
-      const nextIndex = Math.min(pastedData.length, 3);
-      document.getElementById(`otp-${nextIndex}`)?.focus();
-    }
+    setView('loginSuccess');
+    
+    setTimeout(() => {
+      window.location.href = '/dashboard';
+    }, 1200); 
   };
 
   // =====================================
-  // API LOGIC (WITH ULTRA-STRICT VALIDATION)
+  // API LOGIC
   // =====================================
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,24 +166,16 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     setIsLoading(true);
     setError('');
 
-    const endpoint = 'https://api.binnycash.com/api/user/signup';
-
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
     urlEncoded.append('password', password);
-    // 🔥 FIXED: As per Swagger, exactly device_id 🔥
     urlEncoded.append('device_id', getOrCreateDeviceId());
 
-    if (isUrlReferral && refCodeValue) {
-      urlEncoded.append('referralCode', refCodeValue.trim());
-    }
-
-    if (showPromo && promoCode.trim() !== '') {
-      urlEncoded.append('bonusCode', promoCode.trim());
-    }
+    if (isUrlReferral && refCodeValue) urlEncoded.append('referralCode', refCodeValue.trim());
+    if (showPromo && promoCode.trim() !== '') urlEncoded.append('bonusCode', promoCode.trim());
 
     try {
-      const res = await fetch(endpoint, {
+      const res = await fetch('https://api.binnycash.com/api/user/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
@@ -198,9 +188,8 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       const isError = !res.ok || errCode === 400 || errCode === 403 || errCode === 409 || data?.type === 'error' || errMsg.toLowerCase().includes('already') || errMsg.toLowerCase().includes('alredy') || errMsg.toLowerCase().includes('required');
 
       if (!isError) {
-        setOtp('');
-        setResendTimer(300);
-        setView('verifyOtp');
+        setResendTimer(300); // 5 minutes timer
+        setView('verifyEmailSent'); 
       } else {
         let displayError = errMsg || 'Signup failed. Please check your details.';
         if (displayError.toLowerCase().includes('device alredy') || displayError.toLowerCase().includes('device already')) {
@@ -240,32 +229,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       const isError = !res.ok || errCode === 400 || errCode === 401 || errCode === 403 || errCode === 404 || data?.type === 'error' || errMsg.toLowerCase().includes('wrong');
       
       if (!isError) {
-        let userToken = data.token || data.accessToken || data.data?.token;
-        if (!userToken && typeof data.data === 'string') userToken = data.data;
-
-        if (userToken && typeof userToken === 'string' && !userToken.includes('[object Object]')) {
-          localStorage.setItem('token', userToken);
-        }
-
-        const userDetails = data.data?.userDetails || data.userDetails || data.data?.user || data.user;
-        if (userDetails && typeof userDetails === 'object') {
-          localStorage.setItem('userDetails', JSON.stringify(userDetails));
-        }
-        
-        const userId = userDetails?.id ?? userDetails?._id ?? data.userId ?? data.user?._id ?? data.data?.userId ?? data.data?._id ?? data.id;
-        if (userId) {
-          localStorage.setItem('userId', String(userId));
-        }
-        
-        window.dispatchEvent(new Event('storage'));
-        window.dispatchEvent(new CustomEvent('profileUpdated'));
-
-        setView('loginSuccess');
-        
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 1200); 
-
+        processSuccessfulLogin(data);
       } else {
         setError(errMsg || 'Wrong email or password.');
       }
@@ -276,107 +240,39 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otp.length < 4) {
-      setError('Please enter all 4 digits.');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
+  // 🔥 CHANGED: Now only runs when the user manually clicks "Refresh Status"
+  const checkVerificationStatus = async () => {
+    setIsCheckingStatus(true);
     
     const urlEncoded = new URLSearchParams();
     urlEncoded.append('email', email);
-    urlEncoded.append('otp', otp);
+    urlEncoded.append('password', password);
+    urlEncoded.append('device_id', getOrCreateDeviceId());
 
     try {
-      const res = await fetch('https://api.binnycash.com/api/user/verifyOtp', {
-        method: 'PUT',
+      const res = await fetch('https://api.binnycash.com/api/user/login', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncoded
       });
       const data = await res.json();
-
+      
       const errCode = data?.code || data?.responseCode;
-      const errMsg = data?.message || data?.responseMessage || '';
-      const isError = !res.ok || errCode === 400 || errCode === 403 || data?.type === 'error' || errMsg.toLowerCase().includes('invalid');
-
+      const isError = !res.ok || errCode === 400 || errCode === 401 || errCode === 403 || errCode === 404 || data?.type === 'error';
+      
       if (!isError) {
-        let userToken = data.token || data.accessToken || data.data?.token;
-        if (!userToken && typeof data.data === 'string') userToken = data.data;
-
-        if (userToken && typeof userToken === 'string' && !userToken.includes('[object Object]')) {
-          localStorage.setItem('token', userToken);
-
-          const userDetails = data.data?.userDetails || data.userDetails || data.data?.user || data.user;
-          if (userDetails && typeof userDetails === 'object') {
-            localStorage.setItem('userDetails', JSON.stringify(userDetails));
-          }
-          
-          window.dispatchEvent(new Event('storage'));
-          window.dispatchEvent(new CustomEvent('profileUpdated'));
-          
-          setView('loginSuccess');
-          
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 1200);
-          
-        } else {
-          try {
-            const loginEncoded = new URLSearchParams();
-            loginEncoded.append('email', email);
-            loginEncoded.append('password', password); 
-            loginEncoded.append('device_id', getOrCreateDeviceId());
-
-            const loginRes = await fetch('https://api.binnycash.com/api/user/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: loginEncoded
-            });
-            const loginData = await loginRes.json();
-            
-            const loginErrCode = loginData?.code || loginData?.responseCode;
-            if (loginRes.ok && loginErrCode !== 400 && loginErrCode !== 403 && loginData?.type !== 'error') {
-              let fallbackToken = loginData.token || loginData.accessToken || loginData.data?.token;
-              if (!fallbackToken && typeof loginData.data === 'string') fallbackToken = loginData.data;
-
-              localStorage.setItem('token', fallbackToken);
-
-              const userDetails = loginData.data?.userDetails || loginData.userDetails || loginData.data?.user || loginData.user;
-              if (userDetails && typeof userDetails === 'object') {
-                localStorage.setItem('userDetails', JSON.stringify(userDetails));
-              }
-
-              window.dispatchEvent(new Event('storage'));
-              window.dispatchEvent(new CustomEvent('profileUpdated'));
-
-              setView('loginSuccess');
-              
-              setTimeout(() => {
-                window.location.href = '/dashboard';
-              }, 1200);
-
-            } else {
-              setToast('Email verified successfully! Please log in.');
-              setView('login');
-            }
-          } catch (fallbackErr) {
-            setView('login');
-          }
-        }
+        processSuccessfulLogin(data);
       } else {
-        setError(errMsg || 'Invalid OTP');
+        setToast('Not verified yet. Please check your email and click the link.');
       }
     } catch (err) {
-      setError('Error verifying OTP');
+      setToast('Network Error. Could not check status.');
     } finally {
-      setIsLoading(false);
+      setIsCheckingStatus(false);
     }
   };
 
-  const handleResendSignupOtp = async () => {
+  const handleResendLink = async () => {
     if (resendTimer > 0) return;
 
     const urlEncoded = new URLSearchParams();
@@ -395,13 +291,13 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       const isError = !res.ok || errCode === 400 || errCode === 403 || data?.type === 'error';
 
       if (!isError) {
-        setToast('OTP Resent to your email!');
-        setResendTimer(300); // 300 seconds = 5 minutes
+        setToast('Link resent successfully to your email!');
+        setResendTimer(300); // 5 minutes
       } else {
-        setError(errMsg || 'Failed to resend OTP');
+        setError(errMsg || 'Failed to resend link.');
       }
     } catch (err) {
-      setError('Failed to resend OTP');
+      setError('Network error. Failed to resend.');
     }
   };
 
@@ -426,10 +322,8 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       const isError = !res.ok || errCode === 400 || errCode === 403 || errCode === 404 || data?.type === 'error';
 
       if (!isError) {
-        setOtp('');
-        setNewPassword('');
         setResendTimer(300); 
-        setView('resetPassword'); 
+        setView('resetEmailSent'); 
       } else {
         setError(errMsg || 'Email not found');
       }
@@ -440,83 +334,9 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     }
   };
 
-  const handleResendForgotOtp = async () => {
-    if (resendTimer > 0) return; 
-    
-    const urlEncoded = new URLSearchParams();
-    urlEncoded.append('email', email);
-
-    try {
-      const res = await fetch('https://api.binnycash.com/api/user/resendOtp', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: urlEncoded
-      });
-      const data = await res.json();
-      
-      const errCode = data?.code || data?.responseCode;
-      const errMsg = data?.message || data?.responseMessage || '';
-      const isError = !res.ok || errCode === 400 || errCode === 403 || data?.type === 'error';
-
-      if (!isError) {
-        setToast('OTP Resent to your email!');
-        setResendTimer(300); 
-      } else {
-        setError(errMsg || 'Failed to resend OTP');
-      }
-    } catch (err) {
-      setError('Failed to resend OTP');
-    }
-  };
-
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (otp.length < 4) {
-      setError('Please enter all 4 digits of the OTP.');
-      return;
-    }
-    if (newPassword.length < 8) {
-      setError('New password must be at least 8 characters long.');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
-    
-    const urlEncoded = new URLSearchParams();
-    urlEncoded.append('email', email);
-    urlEncoded.append('otp', otp);
-    urlEncoded.append('newPassword', newPassword); 
-    urlEncoded.append('password', newPassword); 
-
-    try {
-      const res = await fetch('https://api.binnycash.com/api/user/resetPassword', {
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: urlEncoded
-      });
-      const data = await res.json();
-
-      const errCode = data?.code || data?.responseCode;
-      const errMsg = data?.message || data?.responseMessage || '';
-      const isError = !res.ok || errCode === 400 || errCode === 403 || data?.type === 'error';
-
-      if (!isError) {
-        setView('login');
-        setToast('Password reset successful! Please login.');
-      } else {
-        setError(errMsg || 'Invalid OTP. Please try again.');
-        setOtp('');
-      }
-    } catch (err) {
-      setError('Error resetting password');
-      setOtp('');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // =====================================
+  // UI COMPONENTS
+  // =====================================
   const baseInputClass = "w-full bg-[#0B0E14] border border-[#1A1D24] text-white font-medium rounded-[12px] pl-12 pr-11 py-4 outline-none focus:border-[#8B5CF6]/60 focus:bg-[#0E1118] transition-all placeholder:text-[#4B5263] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]";
   const iconClass = "absolute left-4 w-5 h-5 text-[#4B5263] group-focus-within:text-[#8B5CF6] transition-colors pointer-events-none";
 
@@ -541,24 +361,15 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     const handleGoogleLogin = () => {
       const deviceId = getOrCreateDeviceId();
       const params = new URLSearchParams();
-      // 🔥 Match exact param name in Google Auth too
       params.append('device_id', deviceId);
-      
-      if (isUrlReferral && refCodeValue) {
-        params.append('referralCode', refCodeValue.trim());
-      } 
-      
-      if (showPromo && promoCode.trim()) {
-        params.append('promoCode', promoCode.trim());
-      }
-
+      if (isUrlReferral && refCodeValue) params.append('referralCode', refCodeValue.trim());
+      if (showPromo && promoCode.trim()) params.append('promoCode', promoCode.trim());
       window.location.href = `https://api.binnycash.com/auth/google?${params.toString()}`;
     };
 
     return (
       <button 
-        type="button"
-        onClick={handleGoogleLogin}
+        type="button" onClick={handleGoogleLogin}
         className="w-full flex items-center justify-center gap-3 bg-[#0F1219] hover:bg-[#151923] border border-[#232736] text-white font-bold py-4 rounded-[12px] transition-all cursor-pointer shadow-[0_2px_10px_rgba(0,0,0,0.2)]"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -582,11 +393,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
           className="relative flex flex-col items-center z-10"
         >
            <div className="relative mb-8">
-              <motion.div 
-                animate={{ rotate: 360 }} 
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }} 
-                className="absolute -inset-4 rounded-full border border-dashed border-[#8B5CF6]/50" 
-              />
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="absolute -inset-4 rounded-full border border-dashed border-[#8B5CF6]/50" />
               <div className="w-24 h-24 bg-[#0A0D14] border border-[#8B5CF6]/30 rounded-[20px] flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.3)] relative z-10 overflow-hidden">
                 <Rocket className="w-10 h-10 text-[#A855F7]" strokeWidth={2} />
               </div>
@@ -609,23 +416,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-[#000000]/80 backdrop-blur-sm p-4 font-sans overflow-y-auto transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       
       <style jsx global>{`
-        input[type="password"]::-ms-reveal, input[type="password"]::-ms-clear { 
-          display: none; 
-        }
-        @keyframes shimmer { 
-          100% { transform: translateX(100%); } 
-        }
-        .btn-shimmer::after {
-          content: ''; 
-          position: absolute; 
-          top: 0; 
-          left: 0; 
-          width: 50%; 
-          height: 100%;
-          background: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
-          transform: skewX(-20deg) translateX(-150%);
-          animation: shimmer 2s infinite ease-in-out;
-        }
+        input[type="password"]::-ms-reveal, input[type="password"]::-ms-clear { display: none; }
         .cyber-btn {
           background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
           box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3), inset 0 -3px 0 rgba(0,0,0,0.15);
@@ -659,7 +450,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
       {/* Main Container */}
       <div className="w-full max-w-[460px] bg-[#05070A] border border-[#1A1D24] rounded-[24px] shadow-[0_20px_60px_rgba(0,0,0,0.9)] relative my-auto overflow-hidden">
-        
         <div className="absolute inset-0 bg-grid-pattern pointer-events-none" />
         <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#3B82F6]" />
 
@@ -684,55 +474,26 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                 <form onSubmit={handleLogin} className="flex flex-col gap-4">
                   <div className="relative group flex items-center">
                     <Mail className={iconClass} />
-                    <input 
-                      type="email" 
-                      required 
-                      placeholder="Email Address" 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
-                      className={baseInputClass} 
-                    />
+                    <input type="email" required placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className={baseInputClass} />
                   </div>
 
                   <div className="flex flex-col gap-2">
                     <div className="relative group flex items-center">
                       <Lock className={iconClass} />
-                      <input 
-                        type={showPassword ? "text" : "password"} 
-                        required 
-                        placeholder="Password" 
-                        value={password} 
-                        onChange={(e) => setPassword(e.target.value)} 
-                        className={baseInputClass} 
-                      />
-                      <button 
-                        type="button" 
-                        onClick={() => setShowPassword(!showPassword)} 
-                        className="absolute right-4 text-[#4B5263] hover:text-white transition-colors outline-none cursor-pointer"
-                      >
+                      <input type={showPassword ? "text" : "password"} required placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className={baseInputClass} />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 text-[#4B5263] hover:text-white transition-colors outline-none cursor-pointer">
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                     <div className="flex justify-end mt-1">
-                      <button 
-                        type="button" 
-                        onClick={() => setView('forgotPassword')} 
-                        className="text-[11px] font-bold text-[#8F95A3] hover:text-[#8B5CF6] transition-colors cursor-pointer"
-                      >
+                      <button type="button" onClick={() => setView('forgotPassword')} className="text-[11px] font-bold text-[#8F95A3] hover:text-[#8B5CF6] transition-colors cursor-pointer">
                         Recover Password?
                       </button>
                     </div>
                   </div>
 
-                  <button 
-                    disabled={isLoading} 
-                    className="cyber-btn mt-4 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> <span>Logging In...</span></>
-                    ) : (
-                      <>Access Account <ArrowRight className="w-4 h-4" /></>
-                    )}
+                  <button disabled={isLoading} className="cyber-btn mt-4 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2">
+                    {isLoading ? <><Loader2 className="w-5 h-5 animate-spin" /> <span>Logging In...</span></> : <>Access Account <ArrowRight className="w-4 h-4" /></>}
                   </button>
                 </form>
 
@@ -744,20 +505,9 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
                 <GoogleButton />
 
-                {/* LOGIN FOOTER */}
                 <div className="mt-8 text-center flex flex-col gap-3">
-                  <p className="text-[13px] text-[#8F95A3] font-medium">
-                    New player? 
-                    <button 
-                      onClick={() => setView('register')} 
-                      className="text-[#8B5CF6] font-bold hover:underline transition-colors cursor-pointer ml-1"
-                    >
-                      Create Account
-                    </button>
-                  </p>
-                  <p className="text-[10px] leading-relaxed text-[#4B5263]">
-                    Protected by reCAPTCHA and subject to our <a href="/terms" className="text-[#3B82F6] hover:underline">Terms</a> & <a href="/privacy" className="text-[#3B82F6] hover:underline">Privacy Policy</a>.
-                  </p>
+                  <p className="text-[13px] text-[#8F95A3] font-medium">New player? <button onClick={() => setView('register')} className="text-[#8B5CF6] font-bold hover:underline transition-colors cursor-pointer ml-1">Create Account</button></p>
+                  <p className="text-[10px] leading-relaxed text-[#4B5263]">Protected by reCAPTCHA and subject to our <a href="/terms" className="text-[#3B82F6] hover:underline">Terms</a> & <a href="/privacy" className="text-[#3B82F6] hover:underline">Privacy Policy</a>. No VPNs.</p>
                 </div>
               </motion.div>
             )}
@@ -776,37 +526,18 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                 <form onSubmit={handleRegister} className="flex flex-col gap-4">
                   <div className="relative group flex items-center">
                     <Mail className={iconClass} />
-                    <input 
-                      type="email" 
-                      required 
-                      placeholder="Email Address" 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
-                      className={baseInputClass} 
-                    />
+                    <input type="email" required placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className={baseInputClass} />
                   </div>
 
                   <div className="relative group flex items-center">
                     <Lock className={iconClass} />
-                    <input 
-                      type={showPassword ? "text" : "password"} 
-                      required 
-                      placeholder="Create Password" 
-                      value={password} 
-                      onChange={(e) => setPassword(e.target.value)} 
-                      className={baseInputClass} 
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => setShowPassword(!showPassword)} 
-                      className="absolute right-4 text-[#4B5263] hover:text-white transition-colors outline-none cursor-pointer"
-                    >
+                    <input type={showPassword ? "text" : "password"} required placeholder="Create Password" value={password} onChange={(e) => setPassword(e.target.value)} className={baseInputClass} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 text-[#4B5263] hover:text-white transition-colors outline-none cursor-pointer">
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
 
                   <div className="flex flex-col gap-3 mt-1">
-                    {/* Auto-detected Referral Banner */}
                     {isUrlReferral && refCodeValue && (
                       <div className="bg-[#00E57A]/10 border border-[#00E57A]/20 rounded-[12px] p-3 flex items-center gap-3">
                         <Zap className="w-4 h-4 text-[#00E57A]" />
@@ -816,33 +547,16 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                         </div>
                       </div>
                     )}
-                    
-                    {/* Optional Bonus Code Input */}
                     <div>
-                      <button 
-                        type="button" 
-                        onClick={() => setShowPromo(!showPromo)} 
-                        className="text-left text-[11px] font-bold text-[#8B5CF6] hover:text-[#A66CFF] transition-colors cursor-pointer w-fit flex items-center gap-1"
-                      >
+                      <button type="button" onClick={() => setShowPromo(!showPromo)} className="text-left text-[11px] font-bold text-[#8B5CF6] hover:text-[#A66CFF] transition-colors cursor-pointer w-fit flex items-center gap-1">
                         {showPromo ? '− Hide Bonus Code' : '+ Add Bonus Code (Optional)'}
                       </button>
                       <AnimatePresence>
                         {showPromo && (
-                          <motion.div 
-                            initial={{ height: 0, opacity: 0 }} 
-                            animate={{ height: 'auto', opacity: 1 }} 
-                            exit={{ height: 0, opacity: 0 }} 
-                            className="overflow-hidden mt-3"
-                          >
+                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-3">
                             <div className="relative group flex items-center">
                               <Hash className={iconClass} />
-                              <input 
-                                type="text" 
-                                placeholder="Enter bonus code" 
-                                value={promoCode} 
-                                onChange={(e) => setPromoCode(e.target.value)} 
-                                className={baseInputClass} 
-                              />
+                              <input type="text" placeholder="Enter bonus code" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} className={baseInputClass} />
                             </div>
                           </motion.div>
                         )}
@@ -850,15 +564,8 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                     </div>
                   </div>
 
-                  <button 
-                    disabled={isLoading} 
-                    className="cyber-btn mt-4 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> <span>Signing Up...</span></>
-                    ) : (
-                      <>Sign Up Now <ArrowRight className="w-4 h-4" /></>
-                    )}
+                  <button disabled={isLoading} className="cyber-btn mt-4 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2">
+                    {isLoading ? <><Loader2 className="w-5 h-5 animate-spin" /> <span>Signing Up...</span></> : <>Sign Up Now <ArrowRight className="w-4 h-4" /></>}
                   </button>
                 </form>
 
@@ -870,92 +577,70 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 
                 <GoogleButton />
 
-                {/* REGISTER FOOTER */}
                 <div className="mt-8 text-center flex flex-col gap-3">
-                  <p className="text-[13px] text-[#8F95A3] font-medium">
-                    Already registered? 
-                    <button 
-                      onClick={() => setView('login')} 
-                      className="text-[#8B5CF6] font-bold hover:underline transition-colors cursor-pointer ml-1"
-                    >
-                      Log In
-                    </button>
-                  </p>
-                  <p className="text-[10px] leading-relaxed text-[#4B5263]">
-                    By joining, you agree to our <a href="/terms" className="text-[#3B82F6] hover:underline">Terms</a> & <a href="/privacy" className="text-[#3B82F6] hover:underline">Privacy Policy</a>. No VPNs.
-                  </p>
+                  <p className="text-[13px] text-[#8F95A3] font-medium">Already registered? <button onClick={() => setView('login')} className="text-[#8B5CF6] font-bold hover:underline transition-colors cursor-pointer ml-1">Log In</button></p>
+                  <p className="text-[10px] leading-relaxed text-[#4B5263]">By joining, you agree to our <a href="/terms" className="text-[#3B82F6] hover:underline">Terms</a> & <a href="/privacy" className="text-[#3B82F6] hover:underline">Privacy Policy</a>. No VPNs.</p>
                 </div>
               </motion.div>
             )}
 
-            {/* ======================= VERIFY SIGNUP OTP VIEW ======================= */}
-            {view === 'verifyOtp' && (
-              <motion.div key="otp" {...animConfig} className="relative z-10 flex flex-col items-center">
-                <div className="text-center mb-8">
-                  <h2 className="text-white text-[28px] font-black tracking-tight mb-2">Verify Email</h2>
-                  <p className="text-[#8F95A3] text-[13px]">
-                    Enter the 4-digit code we sent to <br/>
-                    <span className="text-white font-medium">{email}</span>
+            {/* ======================= VERIFY EMAIL SENT (MANUAL REFRESH ONLY) ======================= */}
+            {view === 'verifyEmailSent' && (
+              <motion.div key="verify-email" {...animConfig} className="relative z-10 flex flex-col items-center">
+                
+                <div className="w-20 h-20 bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(139,92,246,0.2)] relative">
+                  <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="absolute inset-0 bg-[#8B5CF6]/20 rounded-full blur-md" />
+                  <MailOpen className="w-8 h-8 text-[#A855F7] relative z-10" />
+                </div>
+
+                <div className="text-center mb-6">
+                  <h2 className="text-white text-[26px] font-black tracking-tight mb-3">Check Your Email</h2>
+                  <p className="text-[#8F95A3] text-sm leading-relaxed">
+                    We've sent a magic link to <br/>
+                    <span className="text-white font-bold">{email}</span>
                   </p>
                 </div>
-                
-                {error && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 w-full p-3 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs font-bold text-center">
-                    {error}
-                  </motion.div>
-                )}
-                
-                <form onSubmit={handleVerifyOtp} className="w-full flex flex-col gap-6">
-                  <div className="flex justify-center gap-3 sm:gap-4" onPaste={handleOtpPaste}>
-                    {[0, 1, 2, 3].map((index) => (
-                      <input
-                        key={index}
-                        id={`otp-${index}`}
-                        type="text"
-                        maxLength={1}
-                        value={otp[index] || ''}
-                        onChange={(e) => handleOtpChange(index, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                        className="w-14 h-16 sm:w-16 sm:h-20 bg-[#0B0E14] border border-[#1A1D24] rounded-2xl text-center text-[28px] font-bold text-white focus:border-[#8B5CF6] focus:bg-[#0B0E14] focus:ring-1 focus:ring-[#8B5CF6] transition-all outline-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]"
-                      />
-                    ))}
-                  </div>
-                  
+
+                <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 mb-6 text-center">
+                  <p className="text-xs text-[#8F95A3] mb-4">
+                    Click the link in the email to verify your account. Once verified in the new tab, click below to access your account.
+                  </p>
+                  {/* 🔥 MANUAL REFRESH BUTTON ONLY 🔥 */}
                   <button 
-                    disabled={isLoading} 
-                    className="cyber-btn mt-6 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
+                    onClick={checkVerificationStatus}
+                    disabled={isCheckingStatus}
+                    className="w-full bg-[#1A1D24] hover:bg-[#232736] border border-white/10 text-white font-bold text-sm py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-sm"
                   >
-                    {isLoading ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> <span>Verifying...</span></>
-                    ) : (
-                      <>Verify & Access <ArrowRight className="w-4 h-4" /></>
-                    )}
+                    <RefreshCcw className={`w-4 h-4 ${isCheckingStatus ? 'animate-spin' : ''}`} /> 
+                    {isCheckingStatus ? 'Checking Status...' : 'Refresh Status'}
                   </button>
-                </form>
+                </div>
                 
-                {/* 🔥 SIGNUP RESEND OTP TIMER 🔥 */}
-                <div className="mt-8 text-center">
+                <div className="text-center w-full">
                   {resendTimer > 0 ? (
-                    <span className="text-[13px] text-[#8F95A3]">
-                      You can resend OTP in <span className="font-bold text-white tracking-widest">{formatTime(resendTimer)}</span>
+                    <span className="text-[12px] text-[#8F95A3]">
+                      Resend available in <span className="font-bold text-white tracking-widest">{formatTime(resendTimer)}</span>
                     </span>
                   ) : (
                     <button 
-                      type="button"
-                      onClick={handleResendSignupOtp} 
+                      type="button" onClick={handleResendLink} 
                       className="text-[13px] text-[#8F95A3] hover:text-white transition-colors cursor-pointer"
                     >
-                      Didn't receive it? <span className="font-bold underline text-[#8B5CF6]">Resend</span>
+                      Didn't receive it? <span className="font-bold underline text-[#8B5CF6]">Resend Link</span>
                     </button>
                   )}
                 </div>
+
+                <button onClick={() => setView('login')} className="mt-6 text-[12px] font-bold text-[#4B5263] hover:text-white transition-colors cursor-pointer">
+                  ← Back to Login
+                </button>
               </motion.div>
             )}
 
-            {/* ======================= FORGOT PASSWORD STEP 1 (Email Only) ======================= */}
+            {/* ======================= FORGOT PASSWORD STEP 1 ======================= */}
             {view === 'forgotPassword' && (
               <motion.div key="forgot" {...animConfig} className="relative z-10">
-                <BrandHeader title="Reset Identity" subtitle="Enter your email to receive a recovery code." />
+                <BrandHeader title="Reset Identity" subtitle="Enter your email to receive a recovery link." />
                 
                 {error && (
                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-3 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs font-bold text-center">
@@ -966,120 +651,60 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                 <form onSubmit={handleForgotPassword} className="flex flex-col gap-4">
                   <div className="relative group flex items-center">
                     <Mail className={iconClass} />
-                    <input 
-                      type="email" 
-                      required 
-                      placeholder="Registered Email" 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
-                      className={baseInputClass} 
-                    />
+                    <input type="email" required placeholder="Registered Email" value={email} onChange={(e) => setEmail(e.target.value)} className={baseInputClass} />
                   </div>
                   
-                  <button 
-                    disabled={isLoading} 
-                    className="cyber-btn mt-4 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> <span>Sending...</span></>
-                    ) : (
-                      <>Send Recovery Code</>
-                    )}
+                  <button disabled={isLoading} className="cyber-btn mt-4 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2">
+                    {isLoading ? <><Loader2 className="w-5 h-5 animate-spin" /> <span>Sending...</span></> : <>Send Recovery Link</>}
                   </button>
                 </form>
 
-                <button 
-                  onClick={() => setView('login')} 
-                  className="mt-8 w-full text-center text-[13px] text-[#8F95A3] hover:text-white font-bold cursor-pointer transition-colors"
-                >
+                <button onClick={() => setView('login')} className="mt-8 w-full text-center text-[13px] text-[#8F95A3] hover:text-white font-bold cursor-pointer transition-colors">
                   ← Back to Login
                 </button>
               </motion.div>
             )}
 
-            {/* ======================= FORGOT PASSWORD STEP 2 (Combined OTP + New Password) ======================= */}
-            {view === 'resetPassword' && (
-              <motion.div key="reset-password" {...animConfig} className="relative z-10 flex flex-col items-center">
-                <div className="text-center mb-8">
-                  <h2 className="text-white text-[28px] font-black tracking-tight mb-2">Reset Password</h2>
-                  <p className="text-[#8F95A3] text-[13px]">
-                    Enter the 4-digit code sent to <br/>
-                    <span className="text-white font-medium">{email}</span>
+            {/* ======================= RESET EMAIL SENT (FORGOT PASSWORD) ======================= */}
+            {view === 'resetEmailSent' && (
+              <motion.div key="reset-email" {...animConfig} className="relative z-10 flex flex-col items-center">
+                <div className="w-20 h-20 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(245,158,11,0.2)] relative">
+                  <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="absolute inset-0 bg-amber-500/20 rounded-full blur-md" />
+                  <MailOpen className="w-8 h-8 text-amber-400 relative z-10" />
+                </div>
+
+                <div className="text-center mb-6">
+                  <h2 className="text-white text-[26px] font-black tracking-tight mb-3">Check Your Email</h2>
+                  <p className="text-[#8F95A3] text-sm leading-relaxed">
+                    We've sent password reset instructions to <br/>
+                    <span className="text-white font-bold">{email}</span>
+                  </p>
+                </div>
+
+                <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 mb-6 text-center">
+                  <p className="text-xs text-[#8F95A3]">
+                    Please open the link in the email to securely create a new password. You can close this tab if you've opened the link on a different device.
                   </p>
                 </div>
                 
-                {error && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 w-full p-3 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs font-bold text-center">
-                    {error}
-                  </motion.div>
-                )}
-                
-                <form onSubmit={handleResetPassword} className="w-full flex flex-col gap-6">
-                  
-                  {/* OTP Input */}
-                  <div className="flex justify-center gap-3 sm:gap-4" onPaste={handleOtpPaste}>
-                    {[0, 1, 2, 3].map((index) => (
-                      <input
-                        key={index}
-                        id={`otp-${index}`}
-                        type="text"
-                        maxLength={1}
-                        value={otp[index] || ''}
-                        onChange={(e) => handleOtpChange(index, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                        className="w-14 h-16 sm:w-16 sm:h-20 bg-[#0B0E14] border border-[#1A1D24] rounded-2xl text-center text-[28px] font-bold text-white focus:border-[#8B5CF6] focus:bg-[#0B0E14] focus:ring-1 focus:ring-[#8B5CF6] transition-all outline-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]"
-                      />
-                    ))}
-                  </div>
-
-                  {/* New Password Input */}
-                  <div className="relative group flex items-center w-full mt-2">
-                    <Lock className={iconClass} />
-                    <input 
-                      type={showPassword ? "text" : "password"} 
-                      required 
-                      placeholder="Enter new secure password" 
-                      value={newPassword} 
-                      onChange={(e) => setNewPassword(e.target.value)} 
-                      className={baseInputClass} 
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => setShowPassword(!showPassword)} 
-                      className="absolute right-4 text-[#4B5263] hover:text-white transition-colors cursor-pointer outline-none"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-
-                  <button 
-                    disabled={isLoading} 
-                    className="cyber-btn mt-2 w-full text-white font-black text-sm uppercase tracking-widest py-4 rounded-[12px] transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> <span>Updating...</span></>
-                    ) : (
-                      <>Update & Access <CheckCircle2 className="w-4 h-4" /></>
-                    )}
-                  </button>
-                </form>
-
-                {/* 🔥 FORGOT PASSWORD RESEND OTP TIMER 🔥 */}
-                <div className="mt-8 text-center">
+                <div className="text-center w-full mb-6">
                   {resendTimer > 0 ? (
-                    <span className="text-[13px] text-[#8F95A3]">
-                      You can resend OTP in <span className="font-bold text-white tracking-widest">{formatTime(resendTimer)}</span>
+                    <span className="text-[12px] text-[#8F95A3]">
+                      Resend available in <span className="font-bold text-white tracking-widest">{formatTime(resendTimer)}</span>
                     </span>
                   ) : (
                     <button 
-                      type="button"
-                      onClick={handleResendForgotOtp} 
+                      type="button" onClick={handleResendLink} 
                       className="text-[13px] text-[#8F95A3] hover:text-white transition-colors cursor-pointer"
                     >
-                      Didn't receive it? <span className="font-bold underline text-[#8B5CF6]">Resend OTP</span>
+                      Didn't receive it? <span className="font-bold underline text-amber-400">Resend Link</span>
                     </button>
                   )}
                 </div>
+
+                <button onClick={() => setView('login')} className="w-full py-3.5 bg-white hover:bg-gray-200 text-black font-black text-sm uppercase tracking-widest rounded-xl transition-all cursor-pointer">
+                  Return to Login
+                </button>
               </motion.div>
             )}
 
