@@ -30,7 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Offerwall', href: '/v9/offerwall', icon: Layers },
     { name: 'Daily Rewards', href: '/v9/daily-rewards', icon: Gift },
     { name: 'Transactions', href: '/v9/transactions' , icon: Layers },
-    {name:'Payout Percentage', href:'/v9/payout',icon:Ticket},
+    { name: 'Leaderboards', href: '/v9/leaderboards' , icon: ShieldCheck },
     { name: 'Settings', href: '/v9/settings', icon: Settings },
     { name: 'Logs', href: '/v9/logs', icon: ListOrdered },
   ];
