@@ -16,6 +16,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
 import ChatDrawer from '@/components/chat/ChatDrawer';
 
+// --- GOOGLE PLAY STORE SVG ICON ---
+const GooglePlayIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M49.49 48.71C48.51 51.52 48 55.45 48 60.19V451.81C48 456.55 48.51 460.48 49.49 463.29L262.15 256.02L49.49 48.71Z" fill="#00E676"/>
+    <path d="M331.42 323.51L262.15 256.02L49.49 463.29C54.49 468.15 62.46 469.75 72.33 464.08L331.42 323.51Z" fill="#FF3D00"/>
+    <path d="M331.42 188.49L72.33 47.92C62.46 42.25 54.49 43.85 49.49 48.71L262.15 256.02L331.42 188.49Z" fill="#00B0FF"/>
+    <path d="M451.15 253.25L331.42 188.49L262.15 256.02L331.42 323.51L451.15 258.79C465.64 250.94 465.64 261.1 451.15 253.25Z" fill="#FFC400"/>
+  </svg>
+);
+
 const getDynamicColor = (name: string) => {
   const colors = [
     'bg-[#8B5CF6]', 'bg-[#3B82F6]', 'bg-[#EC4899]', 
@@ -124,7 +134,6 @@ export default function Navbar() {
   const [unreadChatCount, setUnreadChatCount] = useState(0);
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAppModalOpen, setIsAppModalOpen] = useState(false);
 
   const navRef = useRef<HTMLElement>(null);
   const lastFetchRef = useRef<number>(0);
@@ -572,36 +581,6 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {isAppModalOpen && (
-          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.9, y: 20 }} 
-              className="bg-[#111319] border border-white/10 rounded-3xl p-6 md:p-8 w-full max-w-sm text-center shadow-2xl relative"
-            >
-              <button onClick={() => setIsAppModalOpen(false)} className="absolute top-4 right-4 text-[#8F95A3] hover:text-white transition-colors cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-              
-              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-[#8B5CF6]/20 to-[#3B82F6]/20 flex items-center justify-center mb-5 border border-[#8B5CF6]/30 shadow-[0_0_30px_rgba(139,92,246,0.2)]">
-                <Download className="w-10 h-10 text-[#A855F7]" />
-              </div>
-              
-              <h3 className="text-2xl font-black text-white mb-2">Coming Soon!</h3>
-              <p className="text-[#8F95A3] text-[15px] mb-8 leading-relaxed font-medium">
-                Our mobile app is currently under development. Stay tuned for an even better experience!
-              </p>
-              
-              <button onClick={() => setIsAppModalOpen(false)} className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#7c3aed] text-white font-bold transition-all shadow-[0_0_20px_rgba(139,92,246,0.4)] hover:scale-[1.02] cursor-pointer">
-                Got it
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
       <nav ref={navRef} className="w-full bg-[#0E1015]/80 backdrop-blur-xl sticky top-0 z-50 border-b border-white/5 h-[70px] md:h-[80px] flex items-center shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
         <div className="w-full px-4 lg:px-10 flex justify-between items-center relative">
           
@@ -635,13 +614,16 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0 ml-auto md:ml-0">
             
-            <button 
-              onClick={() => setIsAppModalOpen(true)} 
-              className="hidden sm:flex items-center gap-1.5 bg-white/5 border border-white/10 hover:border-[#8B5CF6]/50 hover:bg-[#8B5CF6]/10 px-3 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+            {/* 🔥 GET THE APP BUTTON (DESKTOP) 🔥 */}
+            <a 
+              href="https://play.google.com/store/apps/details?id=com.binnycash"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:flex items-center gap-1.5 bg-white/5 border border-white/10 hover:border-[#8B5CF6]/50 hover:bg-[#8B5CF6]/10 px-3 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-sm cursor-pointer group"
             >
-              <Smartphone className="w-4 h-4 text-[#A855F7]" />
+              <GooglePlayIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
               <span>Get App</span>
-            </button>
+            </a>
 
             {!isLoggedIn && pathname === '/' && (
               <div className="relative">
@@ -954,13 +936,17 @@ export default function Navbar() {
                   <span className="text-sm font-bold">Affiliates</span>
                 </Link>
 
-                <button 
-                  onClick={() => { setIsMobileMenuOpen(false); setIsAppModalOpen(true); }} 
-                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-gradient-to-r from-[#8B5CF6]/20 to-transparent border border-[#8B5CF6]/30 hover:border-[#8B5CF6]/50 text-white transition-all mt-2 cursor-pointer"
+                {/* 🔥 GET THE APP BUTTON (MOBILE) 🔥 */}
+                <a 
+                  href="https://play.google.com/store/apps/details?id=com.binnycash"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-gradient-to-r from-[#8B5CF6]/20 to-transparent border border-[#8B5CF6]/30 hover:border-[#8B5CF6]/50 text-white transition-all mt-2 cursor-pointer group"
                 >
-                  <Smartphone className="w-5 h-5 text-[#A855F7]" />
+                  <GooglePlayIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
                   <span className="text-sm font-bold">Get the App</span>
-                </button>
+                </a>
               </div>
 
               <div className="mt-auto p-6 border-t border-white/5 bg-gradient-to-t from-black/20 to-transparent">

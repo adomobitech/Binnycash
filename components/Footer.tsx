@@ -5,6 +5,16 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from './AuthContext';
 import { useTranslation } from './LanguageContext';
 
+// --- GOOGLE PLAY STORE SVG ICON ---
+const GooglePlayIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M49.49 48.71C48.51 51.52 48 55.45 48 60.19V451.81C48 456.55 48.51 460.48 49.49 463.29L262.15 256.02L49.49 48.71Z" fill="#00E676"/>
+    <path d="M331.42 323.51L262.15 256.02L49.49 463.29C54.49 468.15 62.46 469.75 72.33 464.08L331.42 323.51Z" fill="#FF3D00"/>
+    <path d="M331.42 188.49L72.33 47.92C62.46 42.25 54.49 43.85 49.49 48.71L262.15 256.02L331.42 188.49Z" fill="#00B0FF"/>
+    <path d="M451.15 253.25L331.42 188.49L262.15 256.02L331.42 323.51L451.15 258.79C465.64 250.94 465.64 261.1 451.15 253.25Z" fill="#FFC400"/>
+  </svg>
+);
+
 export default function Footer() {
   const { openRegister } = useAuth();
   const router = useRouter();
@@ -114,6 +124,20 @@ export default function Footer() {
             <p className="text-[#8F95A3] text-xs md:text-sm leading-relaxed mb-6 max-w-sm">
               {t.Footer?.desc || 'The premier platform for gamers and hustlers to earn real cash by completing offers, premium surveys, and leveling the leaderboard.'}
             </p>
+
+            {/* 🔥 GOOGLE PLAY BUTTON (FOOTER) 🔥 */}
+            <a 
+              href="https://play.google.com/store/apps/details?id=com.binnycash"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 bg-[#0F0D14] hover:bg-[#15121c] border border-white/10 hover:border-[#a855f7]/50 px-4 py-2.5 rounded-2xl transition-all shadow-md group cursor-pointer w-fit mb-6"
+            >
+              <GooglePlayIcon className="w-6 h-6 group-hover:scale-110 transition-transform" />
+              <div className="flex flex-col items-start justify-center">
+                <span className="text-[9px] text-gray-400 uppercase tracking-wider leading-none mb-0.5">Get it on</span>
+                <span className="text-white font-bold text-[15px] leading-none tracking-tight">Google Play</span>
+              </div>
+            </a>
 
             <div className="flex items-center gap-3">
               {socialLinks.map((social, i) => (
