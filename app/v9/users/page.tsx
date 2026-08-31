@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, UserCheck, UserX, FileText, FileClock, 
   Search, Eye, ChevronLeft, ChevronRight, X, Loader2, Mail, MapPin, Phone, ShieldCheck,
-  Gift, Share2, History, MonitorSmartphone, Wallet, AlertCircle, Clock, Info, ShieldAlert, Layers, Star, SlidersHorizontal, PlusCircle, MinusCircle, DollarSign, CheckCircle2, XCircle
+  Gift, Share2, History, MonitorSmartphone, Wallet, AlertCircle, Clock, Info, ShieldAlert, Layers, Star, SlidersHorizontal, PlusCircle, MinusCircle, DollarSign, CheckCircle2, XCircle,
+  AlertOctagon // 🔥 Imported AlertOctagon for Warning Button
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -40,6 +41,14 @@ export default function AdminUsersPage() {
   const [actionStatus, setActionStatus] = useState<'1' | '0'>('1'); // 1 = Add, 0 = Deduct
   const [isSubmittingAdjust, setIsSubmittingAdjust] = useState(false);
   const [adjustMessage, setAdjustMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
+  // --- 🔥 WARNING MODAL STATES 🔥 ---
+  const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
+  const [selectedUserForWarning, setSelectedUserForWarning] = useState<any>(null);
+  const [warningTitle, setWarningTitle] = useState('');
+  const [warningReason, setWarningReason] = useState('');
+  const [isSubmittingWarning, setIsSubmittingWarning] = useState(false);
+  const [warningMessage, setWarningMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -88,7 +97,7 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, [router]);
 
-  // 🔥 GET USER DETAILED PROFILE API
+  // GET USER DETAILED PROFILE API
   const handleViewProfile = async (numericId: string | number) => {
     setIsProfileModalOpen(true);
     setIsProfileLoading(true);
@@ -120,7 +129,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  // 🔥 HANDLE BALANCE ADJUST SUBMIT (PATCH)
+  // HANDLE BALANCE ADJUST SUBMIT (PATCH)
   const handleAdjustSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amountInput || Number(amountInput) <= 0) { 
@@ -175,6 +184,55 @@ export default function AdminUsersPage() {
     setIsAdjustModalOpen(true);
   };
 
+  // 🔥 HANDLE SEND WARNING SUBMIT (PUT) 🔥
+  const openWarningModal = (user: any) => {
+    setSelectedUserForWarning(user);
+    setWarningTitle('');
+    setWarningReason('');
+    setWarningMessage(null);
+    setIsWarningModalOpen(true);
+  };
+
+  const handleWarningSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!warningTitle.trim() || !warningReason.trim()) return;
+
+    setIsSubmittingWarning(true);
+    setWarningMessage(null);
+    const token = localStorage.getItem('admin_token');
+
+    try {
+      const fd = new URLSearchParams();
+      fd.append('userId', selectedUserForWarning?.id || selectedUserForWarning?._id);
+      fd.append('title', warningTitle.trim());
+      fd.append('reason', warningReason.trim());
+
+      const res = await fetch(`https://api.binnycash.com/api/admin/sendWarning`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`, 
+          'Content-Type': 'application/x-www-form-urlencoded' 
+        },
+        body: fd
+      });
+
+      const json = await res.json();
+      if (res.ok || json?.code === 200) {
+        setWarningMessage({ text: json.message || "Warning sent successfully!", type: 'success' });
+        setTimeout(() => {
+          setIsWarningModalOpen(false);
+          setWarningMessage(null);
+        }, 1500);
+      } else {
+        setWarningMessage({ text: json.message || "Failed to send warning.", type: 'error' });
+      }
+    } catch (error) {
+      setWarningMessage({ text: "Network error while sending warning.", type: 'error' });
+    } finally {
+      setIsSubmittingWarning(false);
+    }
+  };
+
   const safeUsers = Array.isArray(users) ? users : [];
   const filteredUsers = safeUsers.filter(u => {
     const name = u?.userName || u?.name || '';
@@ -183,18 +241,15 @@ export default function AdminUsersPage() {
     return name.toLowerCase().includes(query) || email.toLowerCase().includes(query);
   });
 
-  // 🔥 FIXED KYC COUNTERS LOGIC 🔥
   const totalUsersCount = safeUsers.length;
   const activeUsersCount = safeUsers.filter(u => u?.status === 'ACTIVE').length;
   const deletedUsersCount = safeUsers.filter(u => u?.status === 'DELETE').length;
   
-  // Submitted means they uploaded at least once (Approved, Pending, Under Review, Rejected, etc.)
   const kycSubmittedCount = safeUsers.filter(u => {
     const s = String(u?.documents?.status || '').toLowerCase();
     return ['approved', 'submitted', 'pending', 'under_review', 'rejected', 'reupload_required'].includes(s);
   }).length;
   
-  // Pending means they are waiting for Admin action
   const kycPendingCount = safeUsers.filter(u => {
     const s = String(u?.documents?.status || '').toLowerCase();
     return ['submitted', 'pending', 'under_review'].includes(s);
@@ -210,7 +265,6 @@ export default function AdminUsersPage() {
 
   const getStatusColor = (status: string) => status === 'ACTIVE' ? 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10' : 'text-red-400 border-red-400/20 bg-red-400/10';
   
-  // 🔥 FIXED KYC STATUS TEXT MAPPING 🔥
   const getKycStatusText = (docStatus: string) => {
     const s = String(docStatus || '').toLowerCase();
     if (s === 'approved') return 'Approved';
@@ -220,7 +274,6 @@ export default function AdminUsersPage() {
     return 'Not Submitted';
   };
 
-  // 🔥 FIXED KYC COLOR MAPPING 🔥
   const getKycColor = (docStatus: string) => {
     const s = String(docStatus || '').toLowerCase();
     if (s === 'approved') return 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10';
@@ -323,11 +376,8 @@ export default function AdminUsersPage() {
                   const displayId = u?.id || idx + 1;
                   const joinedDate = u?.createdAt ? new Date(u.createdAt) : null;
                   
-                  // Safe extraction of document status
                   const docStatus = u?.documents?.status || 'not_submited';
                   const hasImageError = imageErrors[u?._id];
-
-                  // Country Code Logic Only (No Earth Icon, max 2 chars if possible)
                   const countryDisplay = (u?.countryCode || u?.country || 'IN').substring(0, 2).toUpperCase();
 
                   return (
@@ -365,7 +415,6 @@ export default function AdminUsersPage() {
                       </td>
                       
                       <td className="py-3 px-4 text-center">
-                        {/* 🔥 FIXED KYC STATUS BADGE 🔥 */}
                         <span className={`inline-block text-[10px] font-bold uppercase tracking-wider border px-2.5 py-1 rounded ${getKycColor(docStatus)}`}>
                           {getKycStatusText(docStatus)}
                         </span>
@@ -398,6 +447,15 @@ export default function AdminUsersPage() {
                               title="Adjust Wallet Balance"
                             >
                               <SlidersHorizontal className="w-4 h-4" /> 
+                            </button>
+
+                            {/* 🔥 NEW WARNING ACTION BUTTON 🔥 */}
+                            <button 
+                              onClick={() => openWarningModal(u)}
+                              className="w-8 h-8 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 flex items-center justify-center transition-colors cursor-pointer"
+                              title="Send Warning"
+                            >
+                              <AlertOctagon className="w-4 h-4" /> 
                             </button>
                          </div>
                       </td>
@@ -612,7 +670,7 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* --- MODAL: BALANCE ADJUSTER (WITH EXACT SWAGGER PARAMETERS) --- */}
+      {/* --- MODAL: BALANCE ADJUSTER --- */}
       <AnimatePresence>
         {isAdjustModalOpen && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#050409]/90 backdrop-blur-sm">
@@ -670,7 +728,6 @@ export default function AdminUsersPage() {
                   </div>
                 </div>
 
-                {/* 🔥 DROPDOWN FOR ADD(1) / DEDUCT(0) 🔥 */}
                 <div className="flex flex-col gap-2.5">
                   <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest">Action</label>
                   <div className="relative">
@@ -696,6 +753,78 @@ export default function AdminUsersPage() {
                   }`}
                 >
                   {isSubmittingAdjust ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Adjustment'}
+                </button>
+
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- 🔥 MODAL: SEND WARNING (NEW SEPARATE MODAL) 🔥 --- */}
+      <AnimatePresence>
+        {isWarningModalOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#050409]/90 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-[#12141C] border border-white/10 w-full max-w-sm rounded-[32px] shadow-2xl relative flex flex-col overflow-hidden"
+            >
+              <div className="bg-[#1A1C24] border-b border-white/5 px-8 py-6 flex items-center justify-between">
+                <h3 className="text-xl font-black flex items-center gap-3 tracking-tight text-white">
+                  <AlertOctagon className="w-6 h-6 text-rose-500" /> Send Warning
+                </h3>
+                <button onClick={() => setIsWarningModalOpen(false)} className="text-[#8F95A3] hover:text-white transition-colors cursor-pointer w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleWarningSubmit} className="p-8 flex flex-col gap-6">
+                
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex flex-col shadow-inner">
+                  <span className="text-[11px] text-[#8F95A3] font-bold uppercase tracking-widest mb-1.5">Target User</span>
+                  <span className="text-white font-black text-base tracking-wide">{selectedUserForWarning?.name || selectedUserForWarning?.userName || selectedUserForWarning?.email || 'N/A'}</span>
+                  <span className="text-[#8F95A3] font-mono text-[12px] mt-1 font-medium">ID: {selectedUserForWarning?.id || selectedUserForWarning?._id || 'N/A'}</span>
+                </div>
+
+                {warningMessage && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`p-4 rounded-xl text-xs font-bold flex items-center gap-2 ${warningMessage.type === 'success' ? 'bg-[#00E57A]/10 text-[#00E57A] border border-[#00E57A]/20' : 'bg-[#FF5D73]/10 text-[#FF5D73] border border-[#FF5D73]/20'}`}>
+                    {warningMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+                    {warningMessage.text}
+                  </motion.div>
+                )}
+
+                <div className="flex flex-col gap-2.5">
+                  <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest">Warning Title</label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="e.g. Violation of Terms" 
+                    value={warningTitle}
+                    onChange={(e) => setWarningTitle(e.target.value)}
+                    className="w-full bg-[#0B0D14] rounded-2xl px-5 py-4 text-white text-sm focus:outline-none transition-all shadow-inner border border-transparent focus:border-rose-500/50" 
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2.5">
+                  <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest">Reason</label>
+                  <textarea 
+                    required 
+                    rows={3}
+                    placeholder="Explain the reason for this warning..." 
+                    value={warningReason}
+                    onChange={(e) => setWarningReason(e.target.value)}
+                    className="w-full bg-[#0B0D14] rounded-2xl px-5 py-4 text-white text-sm focus:outline-none transition-all shadow-inner border border-transparent focus:border-rose-500/50 resize-none custom-scrollbar" 
+                  />
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={isSubmittingWarning}
+                  className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all cursor-pointer disabled:opacity-50 bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-[0_0_25px_rgba(243,33,101,0.4)] hover:shadow-[0_0_35px_rgba(243,33,101,0.6)]"
+                >
+                  {isSubmittingWarning ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send Warning'}
                 </button>
 
               </form>

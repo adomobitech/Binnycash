@@ -31,6 +31,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Daily Rewards', href: '/v9/daily-rewards', icon: Gift },
     { name: 'Transactions', href: '/v9/transactions' , icon: Layers },
     { name: 'Leaderboards', href: '/v9/leaderboards' , icon: ShieldCheck },
+    { name: 'Support', href: '/v9/support' , icon: Layers },
     { name: 'Settings', href: '/v9/settings', icon: Settings },
     { name: 'Logs', href: '/v9/logs', icon: ListOrdered },
   ];

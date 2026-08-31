@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   HelpCircle, MessageSquare, Mail, ShieldCheck, Clock, 
   Send, UploadCloud, ChevronDown, CheckCircle2, AlertCircle, Search, FileText, X, Trash2, Eye, PlusCircle,
@@ -38,6 +38,11 @@ const FAQS_DATA = [
 
 function SupportPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  // 🔥 AUTH GUARD STATE 🔥
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+
   const [activeTab, setActiveTab] = useState<'ticket' | 'faqs' | 'myTickets'>('ticket');
   
   const [ticketSubject, setTicketSubject] = useState('');
@@ -78,6 +83,27 @@ function SupportPageContent() {
   const [replyImage, setReplyImage] = useState<File | null>(null);
   const [isReplying, setIsReplying] = useState(false);
 
+  // 🔥 AUTH GUARD EFFECT 🔥
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      // Agar token nahi h to seedha homepage pe bhej do
+      router.push('/');
+    } else {
+      setIsAuthChecking(false);
+    }
+  }, [router]);
+
+  // LOGGED IN USER EMAIL AUTOFILL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedEmail = localStorage.getItem('email') || localStorage.getItem('userEmail') || '';
+      if (storedEmail) {
+        setContactEmail(storedEmail);
+      }
+    }
+  }, []);
+
   // URL PARAMS AUTOFILL LOGIC
   useEffect(() => {
     if (searchParams) {
@@ -116,10 +142,10 @@ function SupportPageContent() {
   };
 
   useEffect(() => {
-    if (activeTab === 'myTickets') {
+    if (activeTab === 'myTickets' && !isAuthChecking) {
       fetchTickets();
     }
-  }, [activeTab]);
+  }, [activeTab, isAuthChecking]);
 
   const handleTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +189,6 @@ function SupportPageContent() {
         setSubmitDone(true);
         setTicketSubject('');
         setCategory('');
-        setContactEmail('');
         setMessage('');
         setImageFile(null);
         setTimeout(() => {
@@ -271,6 +296,23 @@ function SupportPageContent() {
     f.q.toLowerCase().includes(faqSearch.toLowerCase()) || 
     f.a.toLowerCase().includes(faqSearch.toLowerCase())
   );
+
+  // HELPER FUNCTION TO ENSURE API DOMAIN FOR ATTACHMENTS
+  const getAttachmentUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return `https://api.binnycash.com${cleanPath}`;
+  };
+
+  // 🔥 AGAR AUTH CHECK HO RAHA HAI TO KHALI LOADER DIKHEGA 🔥
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-[#07080F] flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-[#00F2FE] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#07080F] text-white selection:bg-[#00F2FE]/30 relative overflow-x-hidden pb-20">
@@ -499,7 +541,13 @@ function SupportPageContent() {
                   <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
                     <button 
                       type="reset"
-                      onClick={() => { setTicketSubject(''); setCategory(''); setContactEmail(''); setMessage(''); setImageFile(null); }}
+                      onClick={() => { 
+                        setTicketSubject(''); 
+                        setCategory(''); 
+                        setMessage(''); 
+                        setImageFile(null); 
+                        // Do not reset contact email if autofilled
+                      }}
                       className="px-6 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 transition-colors cursor-pointer"
                     >
                       Reset Form
@@ -848,9 +896,11 @@ function SupportPageContent() {
                                   </span>
                                 </div>
                                 <p className="text-sm leading-relaxed">{msg.message || msg.text}</p>
+                                
+                                {/* ATTACHMENT DOMAIN FIX APPLIED HERE */}
                                 {msg.userImage || msg.image ? (
-                                  <a href={msg.userImage || msg.image} target="_blank" rel="noreferrer">
-                                    <img src={msg.userImage || msg.image} alt="Attachment" className="mt-2 rounded-xl max-h-48 object-cover border border-white/10 hover:opacity-90 transition-opacity" />
+                                  <a href={getAttachmentUrl(msg.userImage || msg.image)} target="_blank" rel="noreferrer">
+                                    <img src={getAttachmentUrl(msg.userImage || msg.image)} alt="Attachment" className="mt-2 rounded-xl max-h-48 object-cover border border-white/10 hover:opacity-90 transition-opacity" />
                                   </a>
                                 ) : null}
                               </div>
