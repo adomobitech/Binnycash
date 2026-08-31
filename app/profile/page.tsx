@@ -448,7 +448,8 @@ export default function ProfilePage() {
       });
 
       if (json && (json.code === 200 || json.responseCode === 0)) {
-        const user = json?.data?.user || json?.data || json;
+        const rawData = json?.data;
+        const user = rawData?.user || (Array.isArray(rawData) ? rawData[0] : rawData) || json;
         setUserData(user);
 
         const fullName = user?.name || user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || '';
