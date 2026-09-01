@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Star, CheckCircle2, AlertCircle, Smartphone, ShieldCheck, Sparkles, RotateCcw, Headphones, ChevronRight, Laptop } from "lucide-react";
-import SurveyModal from '@/components/surveys/SurveyModal';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency'; 
 import Link from 'next/link';
 
@@ -659,12 +658,6 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
           </div>
         </div>
       </div>
-
-      {isStrictlySurvey ? (
-        <SurveyModal survey={offer} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-      ) : (
-        <OfferDetailsModal offer={offer} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-      )}
     </>
   );
 }

@@ -712,10 +712,13 @@ export default function ProfilePage() {
     alert('Copied to clipboard!');
   };
 
+  // 🔥 FIX: Improved Image Resolver 🔥
   const resolveImage = (imgSrc: string | null | undefined) => {
     if (!imgSrc || imgSrc.trim() === '') return null;
     if (imgSrc.startsWith('http')) return imgSrc;
-    return imgSrc.startsWith('/') ? `https://api.binnycash.com${imgSrc}` : `https://api.binnycash.com/${imgSrc}`;
+    // Ensuring it always prefixes https://api.binnycash.com to partial paths like /uploads/...
+    const cleanPath = imgSrc.startsWith('/') ? imgSrc : `/${imgSrc}`;
+    return `https://api.binnycash.com${cleanPath}`;
   };
 
   const name = userData?.name || userData?.fullName || [userData?.firstName, userData?.lastName].filter(Boolean).join(' ').trim() || userData?.userName || 'User';
@@ -723,7 +726,6 @@ export default function ProfilePage() {
   const rawProfilePic = userData?.image || userData?.profilePic;
   const displayImage = resolveImage(rawProfilePic);
   
-  // --- 🔥 DATE LOGIC FIX: Show exact string if missing 🔥 ---
   const rawDate = userData?.createdAt || userData?.created_at || userData?.Date || userData?.date || userData?.registerDate;
   const joinDateText = rawDate ? `Joined ${new Date(rawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : 'Joined Recently';
   
@@ -821,6 +823,8 @@ export default function ProfilePage() {
                     <img 
                       src={displayImage} 
                       alt="Profile" 
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
                       onError={() => setImgError(true)}
                       className="w-full h-full object-cover" 
                     />
@@ -1263,6 +1267,8 @@ export default function ProfilePage() {
                           <img 
                             src={displayImage} 
                             alt="Profile" 
+                            referrerPolicy="no-referrer"
+                            crossOrigin="anonymous"
                             onError={() => setImgError(true)}
                             className="w-full h-full object-cover" 
                           />

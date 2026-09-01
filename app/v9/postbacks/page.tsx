@@ -5,10 +5,9 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Link2, Save, Loader2, Plus, X, UploadCloud, 
-  AlertCircle, Image as ImageIcon, ShieldCheck, 
-  Activity, Tag, Settings, Percent, User, Edit3, Globe,
-  List, PlaySquare, RefreshCcw, Eye, Copy, Check, Info,
-  Trash2, CheckCircle2 
+  AlertCircle, Image as ImageIcon, Activity, Tag, 
+  Settings, User, Edit3, Globe, List, PlaySquare, 
+  RefreshCcw, Eye, Copy, Check, Info, Trash2, CheckCircle2 
 } from 'lucide-react';
 
 // --- UTILITY: Get Admin ID ---
@@ -28,10 +27,6 @@ export default function AdminPostbackPage() {
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' | 'warning' } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // --- STANDALONE API STATES ---
-  const [standaloneIp, setStandaloneIp] = useState('');
-  const [isAddingStandaloneIp, setIsAddingStandaloneIp] = useState(false);
-
   // --- LIST STATES ---
   const [postbacks, setPostbacks] = useState<any[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
@@ -50,7 +45,6 @@ export default function AdminPostbackPage() {
     event_name: '',   
     reverse: '',
     payout: 'Cash',
-    percent: '',
     sucess: '',       
     fail: ''
   });
@@ -59,6 +53,9 @@ export default function AdminPostbackPage() {
   const [ipList, setIpList] = useState<string[]>([]);
   const [postbackImage, setPostbackImage] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  
+  // Broken Image Fallback State
+  const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
 
   // Set Admin ID on mount
   useEffect(() => {
@@ -140,7 +137,8 @@ export default function AdminPostbackPage() {
   const getFullImageUrl = (path: string) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    return `https://api.binnycash.com${path}`;
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return `https://api.binnycash.com${cleanPath}`;
   };
 
   // ==========================================
@@ -199,7 +197,6 @@ export default function AdminPostbackPage() {
         event_name: pb.event_name || '',
         reverse: pb.reverse || '',
         payout: pb.payout || 'Cash',
-        percent: pb.percent?.toString() || '',
         sucess: pb.sucess || '',
         fail: pb.fail || ''
       });
@@ -231,7 +228,7 @@ export default function AdminPostbackPage() {
 
   const resetForm = () => {
     setFormData({
-      adminId: getAdminId(), postbackId: '', name: '', category: 'Offer', event_name: '', reverse: '', payout: 'Cash', percent: '', sucess: '', fail: ''
+      adminId: getAdminId(), postbackId: '', name: '', category: 'Offer', event_name: '', reverse: '', payout: 'Cash', sucess: '', fail: ''
     });
     setIpList([]);
     clearImage();
@@ -239,44 +236,7 @@ export default function AdminPostbackPage() {
   };
 
   // ==========================================
-  // 5. STANDALONE ADD IP API LOGIC
-  // ==========================================
-  const handleStandaloneAddIp = async () => {
-    if (!standaloneIp.trim()) return;
-    
-    setIsAddingStandaloneIp(true);
-    setMessage(null);
-    const token = localStorage.getItem('admin_token');
-    const adminId = getAdminId();
-
-    try {
-      const fd = new FormData();
-      fd.append('id', adminId); // Passed Admin ID here exactly as requested
-      fd.append('ip', standaloneIp.trim());
-
-      const res = await fetch('https://api.binnycash.com/api/pts/addIpToPostback', {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: fd
-      });
-
-      const json = await res.json().catch(() => null);
-
-      if (res.ok || json?.code === 200 || json?.type === 'success') {
-        setMessage({ text: 'IP whitelisted successfully via standalone API!', type: 'success' });
-        setStandaloneIp('');
-      } else {
-        setMessage({ text: json?.message || 'Failed to add IP.', type: 'error' });
-      }
-    } catch (err) {
-      setMessage({ text: 'Network error while adding IP.', type: 'error' });
-    } finally {
-      setIsAddingStandaloneIp(false);
-    }
-  };
-
-  // ==========================================
-  // 6. FORM HANDLERS & SUBMIT
+  // 5. FORM HANDLERS & SUBMIT
   // ==========================================
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     let value = e.target.value;
@@ -286,7 +246,6 @@ export default function AdminPostbackPage() {
     setFormData({ ...formData, [e.target.name]: value });
   };
 
-  // Standard Offline IP Array Add (For Create/Update Form only)
   const handleAddIp = () => {
     if (ipInput.trim() !== '' && !ipList.includes(ipInput.trim())) {
       setIpList([...ipList, ipInput.trim()]);
@@ -325,7 +284,6 @@ export default function AdminPostbackPage() {
 
     if (!formData.adminId) return setMessage({ text: "Admin ID is missing. Please log in again.", type: 'error' });
     if (!formData.name) return setMessage({ text: "Name is required.", type: 'error' });
-    if (!formData.percent) return setMessage({ text: "Percent is required.", type: 'error' });
     if (!formData.event_name) return setMessage({ text: "Event Name is required.", type: 'error' });
     
     if (activeTab === 'create' && !postbackImage) {
@@ -353,7 +311,6 @@ export default function AdminPostbackPage() {
       fd.append('adminId', formData.adminId);
       fd.append('name', formData.name);
       fd.append('category', formData.category);
-      fd.append('percent', formData.percent);
       
       if (activeTab === 'update') {
         fd.append('postbackId', formData.postbackId);
@@ -408,7 +365,7 @@ export default function AdminPostbackPage() {
   );
 
   return (
-    <div className="flex flex-col gap-6 text-white w-full max-w-[1400px] mx-auto pb-10 font-sans relative">
+    <div className="flex flex-col gap-6 text-white w-full max-w-[1200px] mx-auto pb-10 font-sans relative">
       
       {/* --- HEADER & TABS --- */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/10 pb-5 gap-4">
@@ -456,33 +413,6 @@ export default function AdminPostbackPage() {
         )}
       </AnimatePresence>
 
-      {/* 🔥 STANDALONE ADD IP BLOCK 🔥 */}
-      <div className="bg-[#12141C] border border-white/5 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div>
-          <h3 className="text-white font-bold text-sm flex items-center gap-2">
-            <Globe className="w-4 h-4 text-[#00E57A]" /> Quick Add IP (Standalone API)
-          </h3>
-          <p className="text-[10px] text-gray-500 mt-1">Hits /pts/addIpToPostback passing Admin ID and IP Address.</p>
-        </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          <input 
-            type="text" 
-            value={standaloneIp}
-            onChange={(e) => setStandaloneIp(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleStandaloneAddIp(); } }}
-            placeholder="Enter IP (e.g. 192.168.1.1)"
-            className="flex-1 bg-[#0B0D14] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#00E57A] shadow-inner md:w-[250px]"
-          />
-          <button 
-            onClick={handleStandaloneAddIp}
-            disabled={isAddingStandaloneIp || !standaloneIp.trim()}
-            className="bg-[#00E57A]/10 text-[#00E57A] hover:bg-[#00E57A]/20 px-5 rounded-xl font-bold text-xs flex items-center gap-2 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
-          >
-            {isAddingStandaloneIp ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add IP"}
-          </button>
-        </div>
-      </div>
-
       <AnimatePresence mode="wait">
 
         {/* ========================================== */}
@@ -500,8 +430,9 @@ export default function AdminPostbackPage() {
                 </button>
               </div>
 
+              {/* REMOVED min-w-[1100px] to prevent horizontal scroll */}
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1100px]">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
                   <thead>
                     <tr className="border-b border-white/10 text-gray-400 text-xs font-bold uppercase tracking-wider bg-[#1A1C24]/50">
                       <th className="py-4 px-5">Network Detail</th>
@@ -518,13 +449,22 @@ export default function AdminPostbackPage() {
                     ) : listError ? (
                       <tr><td colSpan={6} className="py-16 text-center text-rose-400 font-medium"><AlertCircle className="w-6 h-6 mx-auto mb-2" /> {listError}</td></tr>
                     ) : postbacks.length > 0 ? (
-                      postbacks.map((pb: any, idx: number) => (
+                      postbacks.map((pb: any, idx: number) => {
+                        const imgUrl = getFullImageUrl(pb.postbackImage);
+                        const hasImageError = imageErrors[pb._id || idx];
+
+                        return (
                         <tr key={pb._id || idx} className="hover:bg-white/[0.02] transition-colors align-middle group">
                           <td className="py-4 px-5">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-white border border-white/10 flex items-center justify-center p-1 shrink-0">
-                                {pb.postbackImage ? (
-                                  <img src={getFullImageUrl(pb.postbackImage)} alt={pb.name} className="w-full h-full object-contain" />
+                              <div className="w-10 h-10 rounded-xl bg-white border border-white/10 flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                                {imgUrl && !hasImageError ? (
+                                  <img 
+                                    src={imgUrl} 
+                                    alt={pb.name} 
+                                    className="w-full h-full object-contain p-1" 
+                                    onError={() => setImageErrors(prev => ({ ...prev, [pb._id || idx]: true }))}
+                                  />
                                 ) : (
                                   <ImageIcon className="w-5 h-5 text-gray-400" />
                                 )}
@@ -536,7 +476,7 @@ export default function AdminPostbackPage() {
                             </div>
                           </td>
                           <td className="py-4 px-4 text-center">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-black uppercase tracking-wider ${pb.category === 'Offer' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-black uppercase tracking-wider ${pb.category?.toLowerCase().includes('offer') ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
                               <Tag className="w-3 h-3" /> {pb.category || 'N/A'}
                             </span>
                           </td>
@@ -547,12 +487,11 @@ export default function AdminPostbackPage() {
                           </td>
                           <td className="py-4 px-4 text-center">
                             <div className="flex flex-col items-center justify-center">
-                              <span className="font-black text-emerald-400">{pb.percent}%</span>
-                              <span className="text-[10px] text-gray-500 uppercase font-bold">{pb.payout}</span>
+                              <span className="text-xs text-emerald-400 uppercase font-bold">{pb.payout}</span>
                             </div>
                           </td>
                           <td className="py-4 px-4">
-                            <div className="flex items-center gap-2 bg-[#0B0D14] border border-white/5 px-3 py-2 rounded-xl">
+                            <div className="flex items-center gap-2 bg-[#0B0D14] border border-white/5 px-3 py-2 rounded-xl w-full max-w-[300px]">
                               <div className="flex-1 overflow-hidden">
                                 <p className="text-gray-400 text-xs font-mono truncate select-all">{pb.postback || 'No URL generated'}</p>
                               </div>
@@ -577,17 +516,17 @@ export default function AdminPostbackPage() {
                             </div>
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr><td colSpan={6} className="py-20 text-center text-gray-500"><Link2 className="w-12 h-12 mx-auto mb-3 opacity-20" /><p>No postbacks integrated yet.</p></td></tr>
-                    )}
+                      );
+                    })
+                  ) : (
+                    <tr><td colSpan={6} className="py-20 text-center text-gray-500"><Link2 className="w-12 h-12 mx-auto mb-3 opacity-20" /><p>No postbacks integrated yet.</p></td></tr>
+                  )}
                   </tbody>
                 </table>
               </div>
             </div>
           </motion.div>
         )}
-
 
         {/* ========================================== */}
         {/* TAB 2: CREATE / UPDATE POSTBACK FORM */}
@@ -653,6 +592,8 @@ export default function AdminPostbackPage() {
                           <select required name="category" value={formData.category || 'Offer'} onChange={handleChange} className="w-full bg-[#0B0D14] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white focus:outline-none focus:border-[#3B82F6] appearance-none cursor-pointer shadow-inner">
                             <option value="Offer">Offer</option>
                             <option value="Survey">Survey</option>
+                            <option value="Offerwall">Offerwall</option>
+                            <option value="Surveywall">Surveywall</option>
                           </select>
                           <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 text-xs">▼</span>
                         </div>
@@ -671,7 +612,7 @@ export default function AdminPostbackPage() {
                     </h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 md:col-span-2">
                         <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest flex items-center gap-1">
                           Payout Type <span className="text-gray-500 normal-case font-medium text-[10px]">(replaces reward_value)</span>
                         </label>
@@ -681,14 +622,6 @@ export default function AdminPostbackPage() {
                             <option value="Cash">Cash</option>
                           </select>
                           <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 text-xs">▼</span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest">Percent <span className="text-rose-500">*</span></label>
-                        <div className="relative">
-                          <Percent className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                          <input required type="number" step="any" name="percent" value={formData.percent || ''} onChange={handleChange} placeholder="e.g. 100" className="w-full bg-[#0B0D14] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white focus:outline-none focus:border-[#3B82F6] transition-all shadow-inner" />
                         </div>
                       </div>
 
@@ -814,7 +747,7 @@ export default function AdminPostbackPage() {
       {/* ========================================== */}
       <AnimatePresence>
         {isViewModalOpen && viewingPostback && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-[#12141C] border border-white/10 w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
               
               <div className="p-5 border-b border-white/5 bg-[#161821] flex justify-between items-center shrink-0">
@@ -855,10 +788,9 @@ export default function AdminPostbackPage() {
                   </div>
 
                   {/* Variables Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <DetailItem label="Category" value={viewingPostback.category} />
                     <DetailItem label="Payout Type" value={viewingPostback.payout} />
-                    <DetailItem label="Percent" value={viewingPostback.percent ? `${viewingPostback.percent}%` : ''} highlight />
                     <DetailItem label="Event Name" value={viewingPostback.event_name} />
                     
                     {viewingPostback.reverse && <DetailItem label="Reverse Variable" value={viewingPostback.reverse} />}
@@ -904,7 +836,7 @@ export default function AdminPostbackPage() {
                 </div>
               )}
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

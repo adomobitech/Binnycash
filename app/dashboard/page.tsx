@@ -7,7 +7,6 @@ import { motion } from 'framer-motion';
 import DashboardHero from '@/components/dashboard/DashboardHero';
 import CategoryTabs from '@/components/dashboard/CategoryTabs';
 import OfferSlider from '@/components/offers/OfferSlider';
-import SurveySlider from '@/components/surveys/SurveySlider';
 import OfferwallSlider from '@/components/offerwalls/OfferwallSlider';
 import SurveywallSlider from '@/components/surveywalls/SurveywallSlider'; 
 
@@ -17,16 +16,16 @@ export default function DashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // 1. OFFERS STATE
   const [offers, setOffers] = useState<any[]>([]);
   const [isLoadingOffers, setIsLoadingOffers] = useState(true);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
 
-  const [surveys, setSurveys] = useState<any[]>([]);
-  const [isLoadingSurveys, setIsLoadingSurveys] = useState(true);
-
+  // 2. OFFERWALLS STATE
   const [offerwalls, setOfferwalls] = useState<any[]>([]);
   const [isLoadingOfferwalls, setIsLoadingOfferwalls] = useState(true);
 
+  // 3. SURVEYWALLS STATE
   const [surveywalls, setSurveywalls] = useState<any[]>([]);
   const [isLoadingSurveywalls, setIsLoadingSurveywalls] = useState(true);
 
@@ -45,6 +44,7 @@ export default function DashboardPage() {
     setSelectedDevices(prev => prev.includes(device) ? prev.filter(d => d !== device) : [...prev, device]);
   };
 
+  // --- FETCH OFFERS ---
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchAllOffers = async () => {
@@ -56,73 +56,46 @@ export default function DashboardPage() {
         });
         const resData = await res.json();
         setOffers(resData?.data?.list || resData?.data || resData || []);
-      } catch (err) {} finally { setIsLoadingOffers(false); }
+      } catch (err) {
+        console.error(err);
+      } finally { 
+        setIsLoadingOffers(false); 
+      }
     };
     fetchAllOffers();
   }, [isAuthenticated]);
 
+  // --- FETCH BOTH OFFERWALLS & SURVEYWALLS IN A SINGLE API CALL ---
   useEffect(() => {
     if (!isAuthenticated) return;
-    const fetchAllSurveys = async () => {
-      const token = localStorage.getItem('token') || '';
-      try {
-        const res = await fetch(`https://api.binnycash.com/api/user/surveyList`, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const resData = await res.json();
-        setSurveys(resData?.data?.list || resData?.data || resData?.surveys || resData || []);
-      } catch (err) {} finally { setIsLoadingSurveys(false); }
-    };
-    fetchAllSurveys();
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const fetchOfferwalls = async () => {
+    const fetchWallsData = async () => {
       const token = localStorage.getItem('token') || '';
       try {
         const res = await fetch(`https://api.binnycash.com/api/user/user_offerwall_list`, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${token}` 
+          }
         });
-        const text = await res.text();
-        let resData; try { resData = JSON.parse(text); } catch (e) { resData = {}; }
-        let list: any[] = [];
-        if (Array.isArray(resData)) list = resData; 
-        else if (Array.isArray(resData?.data?.data?.offerwall)) list = resData.data.data.offerwall; 
-        else if (Array.isArray(resData?.data?.offerwall)) list = resData.data.offerwall; 
-        else if (Array.isArray(resData?.offerwall)) list = resData.offerwall; 
-        else if (Array.isArray(resData?.data?.list)) list = resData.data.list; 
-        else if (Array.isArray(resData?.data)) list = resData.data;
-        setOfferwalls(list);
-      } catch (err) { console.error(err); } finally { setIsLoadingOfferwalls(false); }
-    };
-    fetchOfferwalls();
-  }, [isAuthenticated]);
+        const json = await res.json();
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const fetchSurveywalls = async () => {
-      const token = localStorage.getItem('token') || '';
-      try {
-        const res = await fetch(`https://api.binnycash.com/api/user/user_surveywall_list`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
-        });
-        const text = await res.text();
-        let resData; try { resData = JSON.parse(text); } catch (e) { resData = {}; }
-        let list: any[] = [];
-        if (Array.isArray(resData)) list = resData; 
-        else if (Array.isArray(resData?.data?.data?.surveywall)) list = resData.data.data.surveywall; 
-        else if (Array.isArray(resData?.data?.surveywall)) list = resData.data.surveywall; 
-        else if (Array.isArray(resData?.surveywall)) list = resData.surveywall; 
-        else if (Array.isArray(resData?.data?.list)) list = resData.data.list; 
-        else if (Array.isArray(resData?.data)) list = resData.data;
-        setSurveywalls(list);
-      } catch (err) { console.error(err); } finally { setIsLoadingSurveywalls(false); }
+        // Safe extraction format strictly based on your JSON structure
+        const wallsData = json?.data?.data || {};
+        
+        // Setting both states from the same API response
+        setOfferwalls(wallsData?.offerwall || []);
+        setSurveywalls(wallsData?.survey || []);
+
+      } catch (err) { 
+        console.error("Failed to fetch walls:", err); 
+      } finally { 
+        setIsLoadingOfferwalls(false); 
+        setIsLoadingSurveywalls(false); 
+      }
     };
-    fetchSurveywalls();
+    
+    fetchWallsData();
   }, [isAuthenticated]);
 
   if (!isMounted || !isAuthenticated) {
@@ -133,10 +106,8 @@ export default function DashboardPage() {
     <div className="flex flex-col bg-[#0B0D19] min-h-screen text-white relative">
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[#8B5CF6]/5 blur-[120px] rounded-full pointer-events-none" />
 
-      {/* Page padding top/bottom reduced */}
       <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10 custom-scrollbar pb-24 sm:pb-8">
         
-        {/* Margin Bottom reduced */}
         <div className="w-full mb-4">
           <DashboardHero />
         </div>
@@ -147,25 +118,34 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="flex flex-col gap-8" 
+          className="flex flex-col gap-8 mt-2" 
         >
-          {/* CONDITIONAL RENDERING ADDED */}
+          {/* STAGE 1: OFFERS */}
           {(isLoadingOffers || offers.length > 0) && (
             <div id="featured-offers">
-              <OfferSlider offers={offers} isLoading={isLoadingOffers} selectedDevices={selectedDevices} onSelectDevice={handleSelectDevice} />
+              <OfferSlider 
+                offers={offers} 
+                isLoading={isLoadingOffers} 
+                selectedDevices={selectedDevices} 
+                onSelectDevice={handleSelectDevice} 
+              />
             </div>
           )}
           
-          {(isLoadingSurveys || surveys.length > 0) && (
-            <SurveySlider surveys={surveys} isLoading={isLoadingSurveys} />
-          )}
-
+          {/* STAGE 2: OFFERWALLS (Hides automatically if no data after loading) */}
           {(isLoadingOfferwalls || offerwalls.length > 0) && (
-            <OfferwallSlider offerwalls={offerwalls} isLoading={isLoadingOfferwalls} />
+            <OfferwallSlider 
+              offerwalls={offerwalls} 
+              isLoading={isLoadingOfferwalls} 
+            />
           )}
 
+          {/* STAGE 3: SURVEYWALLS (Hides automatically if no data after loading) */}
           {(isLoadingSurveywalls || surveywalls.length > 0) && (
-            <SurveywallSlider surveywalls={surveywalls} isLoading={isLoadingSurveywalls} />
+            <SurveywallSlider 
+              surveywalls={surveywalls} 
+              isLoading={isLoadingSurveywalls} 
+            />
           )}
         </motion.div>
       </main>

@@ -168,7 +168,7 @@ export default function Navbar() {
     };
   }, []);
 
-  // 🔥 DIRECT REDIRECT FROM HOMEPAGE (No Splash Screen Conflicts) 🔥
+  // 櫨 DIRECT REDIRECT FROM HOMEPAGE (No Splash Screen Conflicts) 櫨
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && token !== 'undefined' && pathname === '/') {
@@ -284,10 +284,12 @@ export default function Navbar() {
     }
   }, [isLoggedIn]);
 
-  const resolveImage = (imgSrc: string) => {
-    if (!imgSrc || imgSrc === 'null' || imgSrc === 'undefined') return null;
+  // 🔥 FIX: Improved Image Resolver 🔥
+  const resolveImage = (imgSrc: string | null | undefined) => {
+    if (!imgSrc || imgSrc === 'null' || imgSrc === 'undefined' || imgSrc.trim() === '') return null;
     if (imgSrc.startsWith('http')) return imgSrc;
-    return `https://api.binnycash.com${imgSrc}`;
+    const cleanPath = imgSrc.startsWith('/') ? imgSrc : `/${imgSrc}`;
+    return `https://api.binnycash.com${cleanPath}`;
   };
 
   const fetchUserData = async (forceFetch = false) => {
@@ -614,7 +616,7 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0 ml-auto md:ml-0">
             
-            {/* 🔥 GET THE APP BUTTON (DESKTOP) 🔥 */}
+            {/* 櫨 GET THE APP BUTTON (DESKTOP) 櫨 */}
             <a 
               href="https://play.google.com/store/apps/details?id=com.binnycash"
               target="_blank"
@@ -757,7 +759,14 @@ export default function Navbar() {
                 >
                   <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] p-1 pr-2 rounded-xl transition-all cursor-pointer border border-white/5">
                     {userAvatar && !imageError ? (
-                      <img src={userAvatar} alt="Profile" className="w-6 h-6 md:w-8 md:h-8 rounded-lg object-cover shadow-sm" onError={() => setImageError(true)} />
+                      <img 
+                        src={userAvatar} 
+                        alt="Profile" 
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        className="w-6 h-6 md:w-8 md:h-8 rounded-lg object-cover shadow-sm" 
+                        onError={() => setImageError(true)} 
+                      />
                     ) : (
                       <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg ${getDynamicColor(userName)} flex items-center justify-center text-white text-[12px] md:text-[15px] font-black shadow-sm uppercase`}>
                         {userName ? userName.charAt(0) : '?'}
@@ -936,7 +945,7 @@ export default function Navbar() {
                   <span className="text-sm font-bold">Affiliates</span>
                 </Link>
 
-                {/* 🔥 GET THE APP BUTTON (MOBILE) 🔥 */}
+                {/* 櫨 GET THE APP BUTTON (MOBILE) 櫨 */}
                 <a 
                   href="https://play.google.com/store/apps/details?id=com.binnycash"
                   target="_blank"
