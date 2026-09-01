@@ -569,6 +569,7 @@ export function OfferDetailsModal({ offer, isOpen, onClose }: any) {
   );
 }
 
+// 🔥 ADDED MODAL RENDERER INSIDE OFFER CARD 🔥
 export default function OfferCard({ offer, onClick, isSurveyCard = false }: OfferCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -589,7 +590,7 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
 
   const handleCardClick = () => {
     if (onClick) onClick();
-    setIsModalOpen(true);
+    setIsModalOpen(true); // Open the modal here
   };
 
   const isStrictlySurvey = isSurveyCard || offer?.offer_type === 'survey';
@@ -658,6 +659,13 @@ export default function OfferCard({ offer, onClick, isSurveyCard = false }: Offe
           </div>
         </div>
       </div>
+
+      {/* 🔥 The Missing Modal is now properly integrated here! 🔥 */}
+      <OfferDetailsModal 
+        offer={offer} 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
     </>
   );
 }
