@@ -6,10 +6,10 @@ import {
   Layers, Link as LinkIcon, Star, Tag, Globe, 
   RefreshCcw, Type, Image as ImageIcon, CheckCircle2, 
   XCircle, Loader2, Monitor, Smartphone, Apple, Activity,
-  List, PlusCircle, Eye, Trash2, Search, ArrowRightLeft, X, ShieldAlert, AlertCircle
+  List, PlusCircle, Eye, Trash2, Search, X, ShieldAlert, AlertCircle, Edit3
 } from 'lucide-react';
 
-// 🔥 STANDALONE INPUT FIELD (Prevents re-render focus bug) 🔥
+// 🔥 STANDALONE INPUT FIELD 🔥
 const InputField = ({ label, icon: Icon, name, required, placeholder, type = "text", value, onChange }: any) => (
   <div className="flex flex-col gap-2">
     <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest flex items-center gap-2">
@@ -32,7 +32,7 @@ const InputField = ({ label, icon: Icon, name, required, placeholder, type = "te
 
 export default function OfferwallManagementPage() {
   // --- GLOBAL STATES ---
-  const [activeTab, setActiveTab] = useState<'list' | 'create'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'create' | 'edit'>('list');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   // --- LIST STATES ---
@@ -48,13 +48,15 @@ export default function OfferwallManagementPage() {
   // --- DELETE STATE ---
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
 
-  // --- CREATE FORM STATES ---
+  // --- CREATE / EDIT FORM STATES ---
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '', rating: '', category: '', excludeCountryCode: '',
     offerwallUrl: '', postbackName: '', type: '',
     status: '', web: '', android: '', ios: ''
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
   
@@ -67,25 +69,43 @@ export default function OfferwallManagementPage() {
     setErrorMsg(null);
     const token = localStorage.getItem('admin_token');
 
+    let pageNum = 1;
+    let hasMore = true;
+    let accumulatedList: any[] = [];
+
     try {
-      const res = await fetch(`https://api.binnycash.com/api/admin/offerwallList`, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
-      const json = await res.json();
-      if (res.ok && json?.code === 200) {
-        setOfferwalls(Array.isArray(json.data) ? json.data : []);
-      } else {
-        setErrorMsg(json?.message || "Failed to load offerwalls.");
+      while (hasMore && pageNum <= 100) { 
+        const res = await fetch(`https://api.binnycash.com/api/admin/offerwallList?page=${pageNum}`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+        });
+        const json = await res.json();
+        
+        if (res.ok && json?.code === 200) {
+          const list = Array.isArray(json.data) ? json.data : (Array.isArray(json.data?.list) ? json.data.list : []);
+          if (list && list.length > 0) {
+            accumulatedList = [...accumulatedList, ...list];
+            pageNum++;
+            if (json.data?.totalPages && pageNum > json.data.totalPages) hasMore = false;
+            else if (list.length === 0) hasMore = false;
+          } else {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+          if (accumulatedList.length === 0) setErrorMsg(json?.message || "Failed to load offerwalls.");
+        }
       }
+      setOfferwalls(accumulatedList);
     } catch (error) {
       setErrorMsg("Network error while fetching offerwalls.");
+      setOfferwalls([]);
     } finally {
       setIsLoadingList(false);
     }
   };
 
-  // --- 2. FETCH POSTBACKS FOR CREATE FORM ---
+  // --- 2. FETCH POSTBACKS FOR FORM ---
   const fetchPostbacks = async () => {
     const token = localStorage.getItem('admin_token');
     try {
@@ -158,7 +178,51 @@ export default function OfferwallManagementPage() {
     }
   };
 
-  // --- 5. CREATE OFFERWALL HANDLERS ---
+  // --- 5. EDIT OFFERWALL (POPULATE FORM) ---
+  const handleEditClick = async (id: string) => {
+    setActiveTab('edit');
+    setEditingId(id);
+    setSubmitMessage(null);
+    setImageFile(null);
+    setExistingImageUrl(null);
+    
+    // Set temp loading state
+    setFormData({ title: 'Loading...', rating: '', category: '', excludeCountryCode: '', offerwallUrl: '', postbackName: '', type: '', status: '', web: '', android: '', ios: '' });
+
+    const token = localStorage.getItem('admin_token');
+    try {
+      const res = await fetch(`https://api.binnycash.com/api/admin/view-offerwall-details?id=${id}`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+      });
+      const json = await res.json();
+      if (res.ok && json?.code === 200 && json.data) {
+        const d = json.data;
+        setFormData({
+          title: d.title || '',
+          rating: d.rating ? String(d.rating) : '',
+          category: Array.isArray(d.category) ? d.category.join(',') : (d.category || ''),
+          excludeCountryCode: Array.isArray(d.excludeCountryCode) ? d.excludeCountryCode.join(',') : (d.excludeCountryCode || ''),
+          offerwallUrl: d.offerwallUrl || '',
+          postbackName: d.postbackName || '',
+          type: d.type || '',
+          status: d.status !== undefined ? String(d.status) : '',
+          web: d.platforms?.web !== undefined ? String(d.platforms.web) : (d.web !== undefined ? String(d.web) : ''),
+          android: d.platforms?.android !== undefined ? String(d.platforms.android) : (d.android !== undefined ? String(d.android) : ''),
+          ios: d.platforms?.ios !== undefined ? String(d.platforms.ios) : (d.ios !== undefined ? String(d.ios) : '')
+        });
+        if (d.image) setExistingImageUrl(d.image);
+      } else {
+        setSubmitMessage({ text: "Failed to load offerwall data for editing.", type: 'error' });
+        setActiveTab('list');
+      }
+    } catch (error) {
+      setSubmitMessage({ text: "Network error while loading data.", type: 'error' });
+      setActiveTab('list');
+    }
+  };
+
+  // --- 6. CREATE / UPDATE OFFERWALL HANDLERS ---
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -170,16 +234,26 @@ export default function OfferwallManagementPage() {
     }
   };
 
-  const handleCreateSubmit = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setFormData({ title: '', rating: '', category: '', excludeCountryCode: '', offerwallUrl: '', postbackName: '', type: '', status: '', web: '', android: '', ios: '' });
+    setImageFile(null);
+    setExistingImageUrl(null);
+    setEditingId(null);
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.offerwallUrl) {
       setSubmitMessage({ text: "Title and Offerwall URL are required fields.", type: 'error' });
       return;
     }
-    if (!imageFile) {
+    
+    // Image is required for CREATE, but optional for EDIT
+    if (activeTab === 'create' && !imageFile) {
       setSubmitMessage({ text: "Offerwall Cover Image is required.", type: 'error' });
       return;
     }
+
     if (!formData.status || !formData.web || !formData.android || !formData.ios) {
       setSubmitMessage({ text: "Please select the status for all platforms.", type: 'error' });
       return;
@@ -191,39 +265,47 @@ export default function OfferwallManagementPage() {
 
     try {
       const fd = new FormData();
+      
+      // Append PUT specific field
+      if (activeTab === 'edit' && editingId) {
+        fd.append('id', editingId);
+      }
+
       Object.entries(formData).forEach(([key, value]) => {
         if (value !== '') fd.append(key, value);
       });
+      
+      // Only append image if a new one is selected
       if (imageFile) fd.append('image', imageFile);
 
-      const res = await fetch(`https://api.binnycash.com/api/admin/createOfferwall`, {
-        method: 'POST',
+      const url = activeTab === 'edit' 
+        ? `https://api.binnycash.com/api/admin/updateOfferwall` 
+        : `https://api.binnycash.com/api/admin/createOfferwall`;
+      
+      const method = activeTab === 'edit' ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method: method,
         headers: { 'Authorization': `Bearer ${token}` },
         body: fd
       });
 
       const json = await res.json();
-      if (res.ok || json?.code === 200 || json?.code === 201) {
-        setSubmitMessage({ text: json.message || "Offerwall created successfully!", type: 'success' });
+      if (res.ok || json?.code === 200 || json?.code === 201 || json?.type === 'success') {
+        setSubmitMessage({ text: json.message || `Offerwall ${activeTab === 'edit' ? 'updated' : 'created'} successfully!`, type: 'success' });
         
-        setFormData({
-          title: '', rating: '', category: '', excludeCountryCode: '',
-          offerwallUrl: '', postbackName: '', type: '',
-          status: '', web: '', android: '', ios: ''
-        });
-        setImageFile(null);
-
         setTimeout(() => {
           setSubmitMessage(null);
+          resetForm();
           setActiveTab('list');
           fetchOfferwallsList();
         }, 1500);
 
       } else {
-        setSubmitMessage({ text: json.message || "Failed to create offerwall.", type: 'error' });
+        setSubmitMessage({ text: json.message || `Failed to ${activeTab} offerwall.`, type: 'error' });
       }
     } catch (error) {
-      setSubmitMessage({ text: "Network error while creating offerwall.", type: 'error' });
+      setSubmitMessage({ text: `Network error while processing request.`, type: 'error' });
     } finally {
       setIsSubmitting(false);
     }
@@ -290,19 +372,24 @@ export default function OfferwallManagementPage() {
       {/* TABS */}
       <div className="flex items-center gap-2 p-1.5 bg-[#12141C] rounded-2xl border border-white/5 w-fit shadow-lg">
         <button 
-          onClick={() => setActiveTab('list')}
+          onClick={() => { resetForm(); setActiveTab('list'); }}
           className={`relative px-6 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center gap-2.5 ${activeTab === 'list' ? 'text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
         >
           {activeTab === 'list' && <motion.div layoutId="owTab" className="absolute inset-0 bg-[#1E212B] border border-white/10 rounded-xl shadow-md z-0" />}
           <List className="w-4 h-4 relative z-10"/> <span className="relative z-10">Offerwalls List</span>
         </button>
         <button 
-          onClick={() => setActiveTab('create')}
+          onClick={() => { resetForm(); setActiveTab('create'); }}
           className={`relative px-6 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center gap-2.5 ${activeTab === 'create' ? 'text-white' : 'text-[#8F95A3] hover:text-white hover:bg-white/5'}`}
         >
           {activeTab === 'create' && <motion.div layoutId="owTab" className="absolute inset-0 bg-[#1E212B] border border-white/10 rounded-xl shadow-md z-0" />}
           <PlusCircle className="w-4 h-4 relative z-10"/> <span className="relative z-10">Deploy New</span>
         </button>
+        {activeTab === 'edit' && (
+          <button className="relative px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2.5 text-amber-400 bg-amber-400/10 border border-amber-400/20 cursor-default">
+            <Edit3 className="w-4 h-4"/> <span>Update Offerwall</span>
+          </button>
+        )}
       </div>
 
       {/* --- TAB 1: LIST VIEW --- */}
@@ -337,7 +424,7 @@ export default function OfferwallManagementPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.05] text-sm">
-                  {isLoadingList ? (
+                  {isLoadingList && offerwalls.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-24 text-center">
                         <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#A66CFF]" />
@@ -377,7 +464,9 @@ export default function OfferwallManagementPage() {
                                 <span className="bg-[#A66CFF]/10 text-[#A66CFF] border border-[#A66CFF]/20 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
                                   {ow?.type || 'UNKNOWN'}
                                 </span>
-                                <span className="text-xs text-[#8F95A3] truncate max-w-[200px]">{ow?.category || 'No category'}</span>
+                                <span className="text-xs text-[#8F95A3] truncate max-w-[200px]">
+                                  {Array.isArray(ow?.category) ? ow.category.join(', ') : (ow?.category || 'No category')}
+                                </span>
                               </div>
                             </td>
 
@@ -395,6 +484,14 @@ export default function OfferwallManagementPage() {
                                   title="View Full Details"
                                 >
                                   <Eye className="w-4 h-4" />
+                                </button>
+                                {/* 🔥 NEW: EDIT BUTTON 🔥 */}
+                                <button 
+                                  onClick={() => handleEditClick(ow?._id)}
+                                  className="w-9 h-9 rounded-xl border border-amber-400/30 text-amber-400 flex items-center justify-center hover:bg-amber-400/10 transition-colors cursor-pointer"
+                                  title="Edit Offerwall"
+                                >
+                                  <Edit3 className="w-4 h-4" />
                                 </button>
                                 <button 
                                   onClick={() => handleDelete(ow?._id)}
@@ -421,13 +518,19 @@ export default function OfferwallManagementPage() {
                 </tbody>
               </table>
             </div>
+            
+            {isLoadingList && offerwalls.length > 0 && (
+               <div className="text-center py-4 bg-[#0B0D14] border-t border-white/5">
+                 <span className="text-xs text-[#A66CFF] animate-pulse flex items-center justify-center gap-2 font-bold uppercase tracking-widest"><Loader2 className="w-4 h-4 animate-spin" /> Fetching more records...</span>
+               </div>
+            )}
           </div>
         </motion.div>
       )}
 
-      {/* --- TAB 2: CREATE NEW --- */}
-      {activeTab === 'create' && (
-        <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleCreateSubmit} className="flex flex-col gap-8">
+      {/* --- TAB 2 & 3: CREATE / EDIT FORM --- */}
+      {(activeTab === 'create' || activeTab === 'edit') && (
+        <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleFormSubmit} className="flex flex-col gap-8">
           
           <AnimatePresence>
             {submitMessage && (
@@ -450,7 +553,7 @@ export default function OfferwallManagementPage() {
               <InputField label="Offerwall Title" name="title" icon={Type} required={true} placeholder="e.g. AdGate Media" value={formData.title} onChange={handleInputChange} />
               <InputField label="Offerwall URL" name="offerwallUrl" icon={LinkIcon} required={true} placeholder="https://..." value={formData.offerwallUrl} onChange={handleInputChange} />
               <InputField label="Rating (Number)" name="rating" icon={Star} type="number" placeholder="e.g. 5" value={formData.rating} onChange={handleInputChange} />
-              <InputField label="Offerwall Type" name="type" icon={Layers} placeholder="e.g. surveys, apps" value={formData.type} onChange={handleInputChange} />
+              <InputField label="Offerwall Type" name="type" icon={Layers} placeholder="e.g. Offerwall, Surveywall" value={formData.type} onChange={handleInputChange} />
               <InputField label="Category" name="category" icon={Tag} placeholder="Comma separated (e.g. games, quizzes)" value={formData.category} onChange={handleInputChange} />
               <InputField label="Exclude Country Codes" name="excludeCountryCode" icon={Globe} placeholder="e.g. IN, US, UK" value={formData.excludeCountryCode} onChange={handleInputChange} />
 
@@ -476,25 +579,36 @@ export default function OfferwallManagementPage() {
               </div>
 
               <div className="md:col-span-2 flex flex-col gap-2 mt-2">
-                <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest flex items-center gap-2">
-                  Offerwall Cover Image <span className="text-rose-500">*</span>
+                <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest flex items-center justify-between">
+                  <span>Offerwall Cover Image {activeTab === 'create' && <span className="text-rose-500">*</span>}</span>
+                  {activeTab === 'edit' && <span className="text-[10px] text-[#A66CFF] font-medium lowercase normal-case">(Leave blank to keep current image)</span>}
                 </label>
-                <label className={`w-full flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${imageFile ? 'border-[#A66CFF] bg-[#A66CFF]/5' : 'border-white/10 bg-[#0B0D14] hover:border-[#A66CFF]/50 hover:bg-[#0B0D14]/80'}`}>
-                  <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                  {imageFile ? (
-                    <div className="flex flex-col items-center text-[#A66CFF]">
-                      <CheckCircle2 className="w-8 h-8 mb-2" />
-                      <span className="font-bold text-sm">{imageFile.name}</span>
-                      <span className="text-xs text-white/50 mt-1 font-mono">{(imageFile.size / 1024).toFixed(2)} KB</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center text-[#8F95A3]">
-                      <ImageIcon className="w-8 h-8 mb-3 opacity-50" />
-                      <span className="font-bold text-sm text-white">Click to upload image</span>
-                      <span className="text-xs mt-1">SVG, PNG, JPG or GIF</span>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {/* Current image preview if in edit mode */}
+                  {activeTab === 'edit' && existingImageUrl && !imageFile && (
+                    <div className="w-24 h-24 rounded-2xl bg-[#0B0D14] border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                      <img src={resolveImage(existingImageUrl)!} alt="Current" className="w-full h-full object-cover" />
                     </div>
                   )}
-                </label>
+
+                  <label className={`flex-1 w-full flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${imageFile ? 'border-[#A66CFF] bg-[#A66CFF]/5' : 'border-white/10 bg-[#0B0D14] hover:border-[#A66CFF]/50 hover:bg-[#0B0D14]/80'}`}>
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                    {imageFile ? (
+                      <div className="flex flex-col items-center text-[#A66CFF]">
+                        <CheckCircle2 className="w-8 h-8 mb-2" />
+                        <span className="font-bold text-sm">{imageFile.name}</span>
+                        <span className="text-xs text-white/50 mt-1 font-mono">{(imageFile.size / 1024).toFixed(2)} KB</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center text-[#8F95A3]">
+                        <ImageIcon className="w-8 h-8 mb-3 opacity-50" />
+                        <span className="font-bold text-sm text-white">Click to upload new image</span>
+                        <span className="text-xs mt-1">SVG, PNG, JPG or GIF</span>
+                      </div>
+                    )}
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -511,12 +625,25 @@ export default function OfferwallManagementPage() {
             </div>
           </div>
 
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end pt-4 gap-4">
+            {activeTab === 'edit' && (
+              <button 
+                type="button" 
+                onClick={() => { resetForm(); setActiveTab('list'); }}
+                className="px-6 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest text-[#8F95A3] bg-[#1A1C24] hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+              >
+                Cancel Edit
+              </button>
+            )}
             <button 
               type="submit" disabled={isSubmitting}
-              className="w-full md:w-auto px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all cursor-pointer disabled:opacity-50 bg-gradient-to-r from-[#A66CFF] to-[#7C3AED] text-white shadow-[0_0_30px_rgba(166,108,255,0.3)] hover:shadow-[0_0_40px_rgba(166,108,255,0.5)] hover:-translate-y-1"
+              className={`w-full md:w-auto px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all cursor-pointer disabled:opacity-50 ${activeTab === 'edit' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)]' : 'bg-gradient-to-r from-[#A66CFF] to-[#7C3AED] text-white shadow-[0_0_30px_rgba(166,108,255,0.3)] hover:shadow-[0_0_40px_rgba(166,108,255,0.5)]'} hover:-translate-y-1`}
             >
-              {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" /> Deploying...</> : <><Layers className="w-5 h-5" /> Deploy Offerwall</>}
+              {isSubmitting ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> {activeTab === 'edit' ? 'Updating...' : 'Deploying...'}</>
+              ) : (
+                <><Layers className="w-5 h-5" /> {activeTab === 'edit' ? 'Update Offerwall' : 'Deploy Offerwall'}</>
+              )}
             </button>
           </div>
         </motion.form>
@@ -586,12 +713,12 @@ export default function OfferwallManagementPage() {
 
                       <div className="bg-[#0B0D14] p-4 rounded-xl border border-white/5 flex flex-col gap-1">
                         <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-widest">Category</span>
-                        <span className="text-sm font-medium text-white">{viewData?.category || 'N/A'}</span>
+                        <span className="text-sm font-medium text-white">{Array.isArray(viewData?.category) ? viewData.category.join(', ') : (viewData?.category || 'N/A')}</span>
                       </div>
                       
                       <div className="bg-[#0B0D14] p-4 rounded-xl border border-white/5 flex flex-col gap-1 md:col-span-2">
                         <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-widest">Excluded Countries</span>
-                        <span className="text-sm font-medium text-rose-400">{viewData?.excludeCountryCode || 'None'}</span>
+                        <span className="text-sm font-medium text-rose-400">{Array.isArray(viewData?.excludeCountryCode) ? viewData.excludeCountryCode.join(', ') : (viewData?.excludeCountryCode || 'None')}</span>
                       </div>
 
                     </div>
@@ -607,17 +734,17 @@ export default function OfferwallManagementPage() {
                          <div className="flex flex-col gap-1 text-center">
                            <Monitor className="w-5 h-5 mx-auto mb-1 text-blue-400" />
                            <span className="text-[10px] text-gray-400 uppercase font-bold">Web</span>
-                           <span className={`text-xs font-black ${String(viewData?.web) === 'true' ? 'text-emerald-400' : 'text-rose-400'}`}>{String(viewData?.web) === 'true' ? 'ENABLED' : 'DISABLED'}</span>
+                           <span className={`text-xs font-black ${String(viewData?.platforms?.web) === 'true' ? 'text-emerald-400' : 'text-rose-400'}`}>{String(viewData?.platforms?.web) === 'true' ? 'ENABLED' : 'DISABLED'}</span>
                          </div>
                          <div className="flex flex-col gap-1 text-center">
                            <Smartphone className="w-5 h-5 mx-auto mb-1 text-[#00E57A]" />
                            <span className="text-[10px] text-gray-400 uppercase font-bold">Android</span>
-                           <span className={`text-xs font-black ${String(viewData?.android) === 'true' ? 'text-emerald-400' : 'text-rose-400'}`}>{String(viewData?.android) === 'true' ? 'ENABLED' : 'DISABLED'}</span>
+                           <span className={`text-xs font-black ${String(viewData?.platforms?.android) === 'true' ? 'text-emerald-400' : 'text-rose-400'}`}>{String(viewData?.platforms?.android) === 'true' ? 'ENABLED' : 'DISABLED'}</span>
                          </div>
                          <div className="flex flex-col gap-1 text-center">
                            <Apple className="w-5 h-5 mx-auto mb-1 text-white" />
                            <span className="text-[10px] text-gray-400 uppercase font-bold">iOS</span>
-                           <span className={`text-xs font-black ${String(viewData?.ios) === 'true' ? 'text-emerald-400' : 'text-rose-400'}`}>{String(viewData?.ios) === 'true' ? 'ENABLED' : 'DISABLED'}</span>
+                           <span className={`text-xs font-black ${String(viewData?.platforms?.ios) === 'true' ? 'text-emerald-400' : 'text-rose-400'}`}>{String(viewData?.platforms?.ios) === 'true' ? 'ENABLED' : 'DISABLED'}</span>
                          </div>
                        </div>
                     </div>
