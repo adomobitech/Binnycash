@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Trophy, Bell, Loader2, Crown, Calendar, Clock, Gift, Users, 
-  DollarSign, CheckCircle2, AlertOctagon, Ban, User, Info, X
+  DollarSign, CheckCircle2, AlertOctagon, Ban, User, Info, X, Zap, Target
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -36,7 +36,6 @@ const resolveImage = (imgSrc: string | null | undefined) => {
   return imgSrc.startsWith('/') ? `https://api.binnycash.com${imgSrc}` : `https://api.binnycash.com/${imgSrc}`;
 };
 
-// Helper for initial letter fallback
 const getInitial = (name?: string) => (name ? name.charAt(0).toUpperCase() : 'U');
 
 // --- CUSTOM COUNTDOWN HOOK ---
@@ -70,124 +69,96 @@ function useCountdown(targetDateStr: string | null | undefined) {
   return timeLeft;
 }
 
-const getPrizeForRank = (data: any, rank: number) => {
-  if (!data?.contest?.prizes) return 0;
-  const prizeObj = data.contest.prizes.find((p: any) => rank >= p.startRank && rank <= p.endRank);
-  return prizeObj ? prizeObj.Cash : 0;
-};
+// ==========================================
+// REUSABLE TIMELINE COMPONENT (UPGRADED UI)
+// ==========================================
+function TimelineInfo({ start, end }: { start: string, end: string }) {
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return 'TBD';
+    return new Date(dateStr).toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
+  };
+
+  return (
+    <div className="flex justify-between items-center text-sm border border-white/5 py-4 mb-8 px-6 bg-white/[0.02] rounded-2xl shadow-inner relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/50" />
+      <div className="absolute top-0 right-0 w-1 h-full bg-rose-500/50" />
+      
+      <div className="flex flex-col flex-1">
+        <span className="text-[10px] text-[#8F95A3] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5" /> Starts On
+        </span>
+        <span className="text-emerald-400 font-black text-xs sm:text-sm tracking-wide">{formatDate(start)}</span>
+      </div>
+      <div className="w-px h-10 bg-white/10 mx-4" />
+      <div className="flex flex-col flex-1 items-end text-right">
+        <span className="text-[10px] text-[#8F95A3] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5" /> Ends On
+        </span>
+        <span className="text-rose-400 font-black text-xs sm:text-sm tracking-wide">{formatDate(end)}</span>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// REUSABLE YOUR STATS GRID COMPONENT (UPGRADED UI)
+// ==========================================
+function UserStatsGrid({ data }: { data: any }) {
+  const { currency, totalUsers, currentUserRank, userEarnings, myPrize } = data;
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+      <div className="bg-[#161821]/80 backdrop-blur-md border border-white/5 p-5 rounded-2xl shadow-lg flex flex-col items-center justify-center relative overflow-hidden group hover:border-white/10 transition-all">
+        <Users className="absolute -right-2 -bottom-2 w-12 h-12 text-white/[0.03] group-hover:scale-110 transition-transform" />
+        <span className="text-[10px] text-[#8F95A3] font-black uppercase tracking-widest mb-1.5">Participants</span>
+        <span className="text-xl sm:text-2xl font-black text-white">{totalUsers || 0}</span>
+      </div>
+      <div className="bg-[#161821]/80 backdrop-blur-md border border-white/5 p-5 rounded-2xl shadow-lg flex flex-col items-center justify-center relative overflow-hidden group hover:border-[#00E57A]/30 transition-all">
+        <Target className="absolute -right-2 -bottom-2 w-12 h-12 text-[#00E57A]/5 group-hover:scale-110 transition-transform" />
+        <span className="text-[10px] text-[#8F95A3] font-black uppercase tracking-widest mb-1.5">Your Rank</span>
+        <span className="text-xl sm:text-2xl font-black text-[#00E57A] drop-shadow-[0_0_10px_rgba(0,229,122,0.3)]">{currentUserRank ? `#${currentUserRank}` : '--'}</span>
+      </div>
+      <div className="bg-[#161821]/80 backdrop-blur-md border border-white/5 p-5 rounded-2xl shadow-lg flex flex-col items-center justify-center relative overflow-hidden group hover:border-white/10 transition-all">
+        <Zap className="absolute -right-2 -bottom-2 w-12 h-12 text-white/[0.03] group-hover:scale-110 transition-transform" />
+        <span className="text-[10px] text-[#8F95A3] font-black uppercase tracking-widest mb-1.5">Your Earnings</span>
+        <span className="text-xl sm:text-2xl font-black text-white">{formatPrice(userEarnings, currency)}</span>
+      </div>
+      <div className="bg-[#161821]/80 backdrop-blur-md border border-white/5 p-5 rounded-2xl shadow-lg flex flex-col items-center justify-center relative overflow-hidden group hover:border-[#FFC94A]/30 transition-all">
+        <Gift className="absolute -right-2 -bottom-2 w-12 h-12 text-[#FFC94A]/5 group-hover:scale-110 transition-transform" />
+        <span className="text-[10px] text-[#8F95A3] font-black uppercase tracking-widest mb-1.5">Est. Reward</span>
+        <span className="text-xl sm:text-2xl font-black text-[#FFC94A] drop-shadow-[0_0_10px_rgba(255,201,74,0.3)]">{formatPrice(myPrize, currency)}</span>
+      </div>
+    </div>
+  );
+}
 
 // ==========================================
 // ELIGIBILITY NOTICE / STATUS COMPONENT
 // ==========================================
 function EligibilityNotice({ data }: { data: any }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
-
   const message = data.rankMessage;
-  const isEligible = data.eligibility?.isEligible ?? true;
-
   if (!message) return null;
 
   return (
-    <>
-      {isEligible ? (
-        <div className="mb-6 flex items-center gap-3 px-4 py-3.5 rounded-xl border bg-[#00E57A]/10 border-[#00E57A]/20 shadow-[0_0_15px_rgba(0,229,122,0.05)]">
-           <Trophy className="w-5 h-5 text-[#00E57A] shrink-0" />
-           <span className="text-[13px] font-bold text-[#00E57A]">
-              {message}
-           </span>
-        </div>
-      ) : (
-        <div className="mb-6 flex flex-col gap-3 p-4 rounded-xl border bg-[#F59E0B]/10 border-[#F59E0B]/20 shadow-[0_0_15px_rgba(245,158,11,0.05)]">
-          <div className="flex items-start gap-3">
-             <AlertOctagon className="w-5 h-5 text-[#F59E0B] shrink-0 mt-0.5" />
-             <span className="text-[13px] font-bold text-[#F59E0B] leading-relaxed">
-                {message}
-             </span>
-          </div>
-          <div className="pl-8">
-            <button 
-              onClick={() => setIsOpen(true)} 
-              className="px-5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm bg-[#F59E0B]/20 text-[#F59E0B] hover:bg-[#F59E0B]/30"
-            >
-              See Requirements
-            </button>
-          </div>
-        </div>
-      )}
-
-      <AnimatePresence>
-        {isOpen && !isEligible && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#08070D]/80 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }} 
-              animate={{ scale: 1, opacity: 1, y: 0 }} 
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
-              className="bg-[#12141D] border border-white/10 rounded-[28px] p-6 sm:p-8 max-w-md w-full shadow-2xl relative"
-            >
-              <button 
-                onClick={() => setIsOpen(false)} 
-                className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#8F95A3] hover:text-white transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-[#F59E0B]/20">
-                  <AlertOctagon className="w-6 h-6 text-[#F59E0B]" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-white tracking-tight">Eligibility Details</h3>
-                  <p className="text-xs font-bold mt-0.5 text-[#F59E0B]">
-                    Requirements not met yet
-                  </p>
-                </div>
-              </div>
-
-              {data.eligibility?.messages && data.eligibility.messages.length > 0 && (
-                <div className="flex flex-col gap-3 mb-8 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
-                  {data.eligibility.messages.map((msgItem: any, i: number) => {
-                    let text = typeof msgItem === 'string' ? msgItem : msgItem.text;
-                    let isCompleted = (typeof msgItem === 'object' && msgItem.isCompleted) || text.includes('✅');
-                    text = text.replace('✅', '').trim();
-
-                    return (
-                      <div key={i} className={`flex items-start gap-3 px-4 py-3.5 rounded-xl border transition-colors ${isCompleted ? 'bg-[#00E57A]/5 border-[#00E57A]/20 shadow-inner' : 'bg-black/20 border-white/5'}`}>
-                        {isCompleted ? (
-                          <CheckCircle2 className="w-4 h-4 text-[#00E57A] shrink-0 mt-0.5 drop-shadow-md" />
-                        ) : (
-                          <div className="w-4 h-4 rounded-full border border-[#F59E0B]/40 flex items-center justify-center shrink-0 mt-0.5">
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]/40" />
-                          </div>
-                        )}
-                        <span className={`text-xs font-bold leading-relaxed ${isCompleted ? 'text-[#00E57A]' : 'text-[#F59E0B]/80'}`}>
-                          {text}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <button 
-                onClick={() => router.push('/dashboard')} 
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-[#A66CFF] to-[#8B5CF6] text-white font-black text-sm shadow-[0_4px_25px_rgba(166,108,255,0.4)] hover:shadow-[0_4px_30px_rgba(166,108,255,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Earn Now
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </>
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+      className="mb-8 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border bg-gradient-to-r from-[#A66CFF]/10 via-[#A66CFF]/5 to-[#A66CFF]/10 border-[#A66CFF]/20 shadow-[0_0_20px_rgba(166,108,255,0.1)] relative overflow-hidden"
+    >
+       <div className="absolute left-0 top-0 w-1 h-full bg-[#A66CFF]" />
+       <Info className="w-5 h-5 text-[#A66CFF] shrink-0" />
+       <span className="text-sm font-bold text-[#e9d5ff] tracking-wide">
+          {message}
+       </span>
+    </motion.div>
   );
 }
 
-
 // ==========================================
-// REUSABLE TOP 3 PODIUM + RANK TABLE COMPONENT
+// REUSABLE TOP 3 PODIUM + RANK TABLE (UPGRADED UI)
 // ==========================================
+// 🔥 Added isEnded prop definition to fix the TypeScript Error 🔥
 function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: boolean }) {
   const { currency, winners } = data;
 
@@ -206,101 +177,125 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
 
   return (
     <>
-      <div className="flex justify-between items-center mb-4 px-1 mt-6">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-[#FFC94A]"/> Top Winners
+      <div className="flex justify-center items-center mb-10 mt-10">
+        <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-widest drop-shadow-md">
+          <Trophy className="w-6 h-6 text-[#FFC94A]"/> Top Winners
         </h3>
       </div>
       
-      <div className="flex items-end justify-center gap-2 sm:gap-4 h-[160px] mb-8 mt-6">
+      {/* --- GLOWING 3D PODIUM --- */}
+      <div className="flex items-end justify-center gap-3 sm:gap-6 h-[240px] mb-16 relative">
         
-        {/* 2ND RANK (LEFT) */}
-        <div className="w-[30%] bg-[#1A1C25] rounded-t-2xl flex flex-col items-center relative h-[82%] border border-white/5 border-b-0 pb-3">
-           <div className="absolute -top-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#2A2C38] border-[3px] border-[#E2E8F0] overflow-hidden flex items-center justify-center shadow-md">
-             {getImg(top2) ? <img src={getImg(top2)!} className="w-full h-full object-cover" alt=""/> : <span className="text-xl font-black text-[#E2E8F0]">{getInitial(top2?.userName || top2?.name)}</span>}
+        {/* 2ND RANK (SILVER) */}
+        <motion.div 
+          initial={{ height: 0, opacity: 0 }} animate={{ height: '75%', opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-[30%] max-w-[150px] bg-gradient-to-t from-slate-400/20 via-slate-400/5 to-transparent rounded-t-3xl flex flex-col items-center relative border-t-[3px] border-slate-300/50 backdrop-blur-sm"
+        >
+           <div className="absolute -top-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#1A1C25] border-4 border-slate-300 overflow-hidden flex items-center justify-center shadow-[0_0_20px_rgba(203,213,225,0.4)] z-10">
+             {getImg(top2) ? <img src={getImg(top2)!} className="w-full h-full object-cover" alt=""/> : <span className="text-2xl font-black text-slate-300">{getInitial(top2?.userName || top2?.name)}</span>}
            </div>
-           <div className="w-5 h-5 rounded-full bg-[#E2E8F0] text-black text-[10px] font-black absolute -top-8 flex items-center justify-center shadow">2</div>
-           <span className="text-xs font-bold text-white mt-auto truncate w-full text-center px-1">{top2?.userName || top2?.name || '---'}</span>
-           {top2?.totalReward !== undefined || top2?.score !== undefined ? (
-             <span className="text-[11px] text-[#00E57A] font-bold my-0.5">{formatPrice(top2?.score || top2?.totalReward || 0, currency)}</span>
-           ) : null}
-           <span className="text-[10px] text-[#FFC94A] font-black bg-[#FFC94A]/10 px-2 py-0.5 rounded mt-1">
-             {formatPrice(top2?.prize || getPrizeForRank(data, 2), currency)}
-           </span>
-        </div>
+           <div className="w-6 h-6 rounded-full bg-slate-300 text-black text-xs font-black absolute -top-12 flex items-center justify-center shadow-lg z-20">2</div>
+           
+           <div className="mt-14 flex flex-col items-center w-full px-2">
+             <span className="text-sm font-bold text-white truncate w-full text-center">{top2?.userName || top2?.name || '---'}</span>
+             <span className="text-xs text-[#00E57A] font-black my-1">{top2?.earnings !== undefined ? formatPrice(top2.earnings, currency) : '---'}</span>
+             <span className="text-[11px] text-black font-black bg-slate-300 px-3 py-1 rounded-full mt-1 shadow-md">
+               {formatPrice(top2?.reward || 0, currency)}
+             </span>
+           </div>
+        </motion.div>
         
-        {/* 1ST RANK (CENTER) */}
-        <div className="w-[36%] bg-gradient-to-t from-[#A66CFF]/20 via-[#1A1C25] to-[#252136] rounded-t-2xl flex flex-col items-center relative h-full border border-[#FFC94A]/40 border-b-0 pb-3 shadow-[0_-5px_25px_rgba(255,201,74,0.15)]">
-           <Crown className="w-7 h-7 text-[#FFC94A] absolute -top-11 z-10 drop-shadow-[0_2px_8px_rgba(255,201,74,0.6)]" fill="#FFC94A" />
-           <div className="absolute -top-7 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#2A2C38] border-[3px] border-[#FFC94A] overflow-hidden flex items-center justify-center shadow-lg">
-             {getImg(top1) ? <img src={getImg(top1)!} className="w-full h-full object-cover" alt=""/> : <span className="text-2xl font-black text-[#FFC94A]">{getInitial(top1?.userName || top1?.name)}</span>}
+        {/* 1ST RANK (GOLD) */}
+        <motion.div 
+          initial={{ height: 0, opacity: 0 }} animate={{ height: '100%', opacity: 1 }} transition={{ duration: 0.6, type: 'spring' }}
+          className="w-[35%] max-w-[180px] bg-gradient-to-t from-[#FFC94A]/30 via-[#FFC94A]/10 to-transparent rounded-t-3xl flex flex-col items-center relative border-t-[4px] border-[#FFC94A] backdrop-blur-sm shadow-[0_-15px_40px_rgba(255,201,74,0.15)] z-10"
+        >
+           <Crown className="w-10 h-10 text-[#FFC94A] absolute -top-16 z-20 drop-shadow-[0_0_15px_rgba(255,201,74,0.8)]" fill="#FFC94A" />
+           <div className="absolute -top-10 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#1A1C25] border-4 border-[#FFC94A] overflow-hidden flex items-center justify-center shadow-[0_0_30px_rgba(255,201,74,0.5)] z-10">
+             {getImg(top1) ? <img src={getImg(top1)!} className="w-full h-full object-cover" alt=""/> : <span className="text-3xl font-black text-[#FFC94A]">{getInitial(top1?.userName || top1?.name)}</span>}
            </div>
-           <div className="w-6 h-6 rounded-full bg-[#FFC94A] text-black text-[11px] font-black absolute -top-9 flex items-center justify-center z-10 shadow-md">1</div>
-           <span className="text-sm font-black text-white mt-auto truncate w-full text-center px-1">{top1?.userName || top1?.name || '---'}</span>
-           {top1?.totalReward !== undefined || top1?.score !== undefined ? (
-             <span className="text-xs text-[#00E57A] font-black my-0.5">{formatPrice(top1?.score || top1?.totalReward || 0, currency)}</span>
-           ) : null}
-           <span className="text-[11px] text-[#FFC94A] font-black bg-[#FFC94A]/20 border border-[#FFC94A]/30 px-2.5 py-0.5 rounded mt-1">
-             {formatPrice(top1?.prize || getPrizeForRank(data, 1), currency)}
-           </span>
-        </div>
+           <div className="w-8 h-8 rounded-full bg-[#FFC94A] text-black text-sm font-black absolute -top-12 flex items-center justify-center z-20 shadow-lg border-2 border-[#1A1C25]">1</div>
+           
+           <div className="mt-16 flex flex-col items-center w-full px-2">
+             <span className="text-base font-black text-white truncate w-full text-center drop-shadow-md">{top1?.userName || top1?.name || '---'}</span>
+             <span className="text-sm text-[#00E57A] font-black my-1">{top1?.earnings !== undefined ? formatPrice(top1.earnings, currency) : '---'}</span>
+             <span className="text-xs text-black font-black bg-gradient-to-r from-[#FFC94A] to-[#F59E0B] px-4 py-1.5 rounded-full mt-1 shadow-lg shadow-amber-500/40">
+               {formatPrice(top1?.reward || 0, currency)}
+             </span>
+           </div>
+        </motion.div>
 
-        {/* 3RD RANK (RIGHT) */}
-        <div className="w-[30%] bg-[#1A1C25] rounded-t-2xl flex flex-col items-center relative h-[72%] border border-white/5 border-b-0 pb-3">
-           <div className="absolute -top-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#2A2C38] border-[3px] border-[#CD7F32] overflow-hidden flex items-center justify-center shadow-md">
-             {getImg(top3) ? <img src={getImg(top3)!} className="w-full h-full object-cover" alt=""/> : <span className="text-xl font-black text-[#CD7F32]">{getInitial(top3?.userName || top3?.name)}</span>}
+        {/* 3RD RANK (BRONZE) */}
+        <motion.div 
+          initial={{ height: 0, opacity: 0 }} animate={{ height: '65%', opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }}
+          className="w-[30%] max-w-[150px] bg-gradient-to-t from-orange-500/20 via-orange-500/5 to-transparent rounded-t-3xl flex flex-col items-center relative border-t-[3px] border-orange-400/60 backdrop-blur-sm"
+        >
+           <div className="absolute -top-8 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#1A1C25] border-4 border-orange-400 overflow-hidden flex items-center justify-center shadow-[0_0_20px_rgba(249,115,22,0.4)] z-10">
+             {getImg(top3) ? <img src={getImg(top3)!} className="w-full h-full object-cover" alt=""/> : <span className="text-2xl font-black text-orange-400">{getInitial(top3?.userName || top3?.name)}</span>}
            </div>
-           <div className="w-5 h-5 rounded-full bg-[#CD7F32] text-black text-[10px] font-black absolute -top-8 flex items-center justify-center shadow">3</div>
-           <span className="text-xs font-bold text-white mt-auto truncate w-full text-center px-1">{top3?.userName || top3?.name || '---'}</span>
-           {top3?.totalReward !== undefined || top3?.score !== undefined ? (
-             <span className="text-[11px] text-[#00E57A] font-bold my-0.5">{formatPrice(top3?.score || top3?.totalReward || 0, currency)}</span>
-           ) : null}
-           <span className="text-[10px] text-[#FFC94A] font-black bg-[#FFC94A]/10 px-2 py-0.5 rounded mt-1">
-             {formatPrice(top3?.prize || getPrizeForRank(data, 3), currency)}
-           </span>
-        </div>
+           <div className="w-6 h-6 rounded-full bg-orange-400 text-black text-xs font-black absolute -top-10 flex items-center justify-center shadow-lg z-20">3</div>
+           
+           <div className="mt-12 flex flex-col items-center w-full px-2">
+             <span className="text-sm font-bold text-white truncate w-full text-center">{top3?.userName || top3?.name || '---'}</span>
+             <span className="text-xs text-[#00E57A] font-black my-1">{top3?.earnings !== undefined ? formatPrice(top3.earnings, currency) : '---'}</span>
+             <span className="text-[11px] text-black font-black bg-orange-400 px-3 py-1 rounded-full mt-1 shadow-md">
+               {formatPrice(top3?.reward || 0, currency)}
+             </span>
+           </div>
+        </motion.div>
       </div>
 
       <EligibilityNotice data={data} />
 
-      <h3 className="text-sm font-bold text-white mb-3 px-1">Global Standings</h3>
-      <div className="bg-[#0B0C10] rounded-xl border border-white/5 overflow-hidden mb-6">
+      {/* --- GLOBAL STANDINGS MODERN LIST --- */}
+      <h3 className="text-base font-black text-white mb-4 px-2 uppercase tracking-widest">Global Standings</h3>
+      <div className="flex flex-col gap-2 mb-6">
         
-        <div className="grid grid-cols-[50px_1fr_90px_90px] sm:grid-cols-[60px_1fr_100px_100px] gap-2 px-4 py-3 text-[10px] font-bold text-[#8F95A3] uppercase tracking-wider bg-white/[0.02] border-b border-white/5">
-          <div>RANK</div>
-          <div>USER</div>
+        <div className="grid grid-cols-[60px_1fr_90px_90px] sm:grid-cols-[80px_1fr_120px_120px] gap-4 px-6 py-3 text-[10px] font-black text-[#8F95A3] uppercase tracking-widest bg-white/[0.02] rounded-xl border border-white/5">
+          <div className="text-center">RANK</div>
+          <div>PLAYER</div>
           <div className="text-right">SCORE</div>
           <div className="text-right">REWARD</div>
         </div>
         
-        <div className="flex flex-col max-h-[300px] overflow-y-auto custom-scrollbar">
+        <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
           {tableUsers.length === 0 ? (
-            <div className="text-center py-8 text-sm text-[#8F95A3]">No players ranked yet.</div>
+            <div className="text-center py-12 bg-white/[0.02] border border-white/5 rounded-2xl text-sm text-[#8F95A3]">No players ranked yet. Be the first!</div>
           ) : (
-            tableUsers.map((u: any, i: number) => (
-              <div 
-                key={i} 
-                className={`grid grid-cols-[50px_1fr_90px_90px] sm:grid-cols-[60px_1fr_100px_100px] gap-2 px-4 py-3.5 items-center text-xs border-b border-white/5 last:border-0 ${String(u.userId) === String(getUserId()) ? 'bg-[#A66CFF]/15 border-l-2 border-l-[#A66CFF]' : 'hover:bg-white/[0.02]'}`}
-              >
-                <div className="text-[#8F95A3] font-bold">#{u.rank}</div>
-                <div className="flex items-center gap-2.5 truncate pr-2">
-                  <div className="w-7 h-7 rounded-full bg-[#2A2C38] overflow-hidden shrink-0 flex items-center justify-center border border-white/10">
-                    {getImg(u) ? (
-                      <img src={getImg(u)!} className="w-full h-full object-cover" alt=""/>
-                    ) : (
-                      <span className="text-white text-[10px] font-black">{getInitial(u.userName || u.name)}</span>
-                    )}
+            tableUsers.map((u: any, i: number) => {
+              const isMe = String(u.userId) === String(getUserId());
+              return (
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                  key={i} 
+                  className={`grid grid-cols-[60px_1fr_90px_90px] sm:grid-cols-[80px_1fr_120px_120px] gap-4 px-6 py-4 items-center text-sm rounded-2xl border transition-all ${
+                    isMe 
+                      ? 'bg-gradient-to-r from-[#A66CFF]/20 to-transparent border-[#A66CFF]/40 shadow-[0_0_15px_rgba(166,108,255,0.1)]' 
+                      : 'bg-[#161821] border-white/5 hover:bg-[#1A1C25] hover:border-white/10'
+                  }`}
+                >
+                  <div className={`font-black text-center ${i < 3 ? 'text-white' : 'text-[#8F95A3]'}`}>#{u.rank}</div>
+                  <div className="flex items-center gap-3 sm:gap-4 truncate pr-2">
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#2A2C38] overflow-hidden shrink-0 flex items-center justify-center border ${isMe ? 'border-[#A66CFF]' : 'border-white/10'}`}>
+                      {getImg(u) ? (
+                        <img src={getImg(u)!} className="w-full h-full object-cover" alt=""/>
+                      ) : (
+                        <span className="text-white text-xs font-black">{getInitial(u.userName || u.name)}</span>
+                      )}
+                    </div>
+                    <span className={`truncate font-bold text-sm sm:text-base ${isMe ? 'text-white' : 'text-gray-300'}`}>
+                      {u.userName || u.name || 'Anonymous'} {isMe && <span className="text-[10px] bg-[#A66CFF] text-white px-2 py-0.5 rounded-full ml-2 align-middle">YOU</span>}
+                    </span>
                   </div>
-                  <span className="truncate font-bold text-white text-xs">{u.userName || u.name || 'Anonymous'}</span>
-                </div>
-                <div className="text-right text-[#00E57A] font-bold">
-                  {formatPrice(u.score || u.totalReward || 0, currency)}
-                </div>
-                <div className="text-right text-[#FFC94A] font-bold">
-                  {formatPrice(u.prize || getPrizeForRank(data, u.rank), currency)}
-                </div>
-              </div>
-            ))
+                  <div className="text-right text-[#00E57A] font-black tracking-wide">
+                    {formatPrice(u.earnings || u.score || 0, currency)}
+                  </div>
+                  <div className="text-right text-[#FFC94A] font-black tracking-wide bg-[#FFC94A]/10 px-3 py-1 rounded-lg w-fit ml-auto">
+                    {formatPrice(u.reward || u.prize || 0, currency)}
+                  </div>
+                </motion.div>
+              );
+            })
           )}
         </div>
       </div>
@@ -312,70 +307,29 @@ function LeaderboardDisplay({ data, isEnded = false }: { data: any, isEnded?: bo
 // 1. UPCOMING CONTENT
 // ==========================================
 function UpcomingContent({ data }: { data: any }) {
-  const { currency, contest } = data;
+  const { contest } = data;
   const timer = useCountdown(contest?.startDate);
 
   return (
     <>
-      <div className="bg-[#0B0C10] rounded-2xl p-4 border border-white/5 flex flex-col items-center mb-6">
-        <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-widest mb-3 flex items-center gap-1.5"><Clock className="w-4 h-4"/> Starts In</span>
-        <div className="flex items-center gap-5 text-center">
-          <div><div className="text-3xl font-black text-white">{String(timer.days).padStart(2, '0')}</div><div className="text-[10px] mt-1 text-[#8F95A3]">Days</div></div>
-          <div className="text-xl font-bold text-white/20 mb-3">:</div>
-          <div><div className="text-3xl font-black text-white">{String(timer.hours).padStart(2, '0')}</div><div className="text-[10px] mt-1 text-[#8F95A3]">Hours</div></div>
-          <div className="text-xl font-bold text-white/20 mb-3">:</div>
-          <div><div className="text-3xl font-black text-white">{String(timer.mins).padStart(2, '0')}</div><div className="text-[10px] mt-1 text-[#8F95A3]">Mins</div></div>
-          <div className="text-xl font-bold text-white/20 mb-3">:</div>
-          <div><div className="text-3xl font-black text-[#3B82F6]">{String(timer.secs).padStart(2, '0')}</div><div className="text-[10px] mt-1 text-[#8F95A3]">Secs</div></div>
+      <TimelineInfo start={contest?.startDate} end={contest?.endDate} />
+
+      <div className="bg-gradient-to-b from-[#1A1C25] to-[#12141D] rounded-3xl p-8 border border-white/5 flex flex-col items-center mb-8 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-[#3B82F6] to-transparent opacity-50" />
+        <span className="text-xs text-[#8F95A3] font-black uppercase tracking-widest mb-6 flex items-center gap-2"><Clock className="w-5 h-5 text-[#3B82F6]"/> Contest Starts In</span>
+        <div className="flex items-center gap-4 sm:gap-8 text-center">
+          <div className="flex flex-col items-center"><div className="text-4xl sm:text-5xl font-black text-white drop-shadow-lg">{String(timer.days).padStart(2, '0')}</div><div className="text-xs mt-2 text-[#8F95A3] font-bold uppercase tracking-wider">Days</div></div>
+          <div className="text-2xl font-black text-white/20 mb-6">:</div>
+          <div className="flex flex-col items-center"><div className="text-4xl sm:text-5xl font-black text-white drop-shadow-lg">{String(timer.hours).padStart(2, '0')}</div><div className="text-xs mt-2 text-[#8F95A3] font-bold uppercase tracking-wider">Hours</div></div>
+          <div className="text-2xl font-black text-white/20 mb-6">:</div>
+          <div className="flex flex-col items-center"><div className="text-4xl sm:text-5xl font-black text-white drop-shadow-lg">{String(timer.mins).padStart(2, '0')}</div><div className="text-xs mt-2 text-[#8F95A3] font-bold uppercase tracking-wider">Mins</div></div>
+          <div className="text-2xl font-black text-white/20 mb-6">:</div>
+          <div className="flex flex-col items-center"><div className="text-4xl sm:text-5xl font-black text-[#3B82F6] drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]">{String(timer.secs).padStart(2, '0')}</div><div className="text-xs mt-2 text-[#8F95A3] font-bold uppercase tracking-wider">Secs</div></div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-[#0B0C10] rounded-xl p-4 flex items-center gap-4 border border-white/5">
-          <div className="w-10 h-10 rounded-full bg-[#A66CFF]/10 flex items-center justify-center shrink-0">
-            <Gift className="w-5 h-5 text-[#A66CFF]" />
-          </div>
-          <div>
-            <div className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-0.5">Prize Pool</div>
-            <div className="text-lg font-black text-white">{formatPrice(contest?.totalPrizePool || 0, currency)}</div>
-          </div>
-        </div>
-        <div className="bg-[#0B0C10] rounded-xl p-4 flex items-center gap-4 border border-white/5">
-          <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5 text-[#8F95A3]" />
-          </div>
-          <div>
-            <div className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-0.5">Participants</div>
-            <div className="text-lg font-black text-white">{data.totalUsers || 0} <span className="text-[10px] text-[#8F95A3] font-medium">Joined</span></div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center text-sm border-y border-white/5 py-4 mb-6 px-2">
-        <div className="flex flex-col">
-          <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1"><Calendar className="w-3.5 h-3.5 inline mr-1"/> Starts On</span>
-          <span className="text-white font-bold">{contest?.startDate ? new Date(contest.startDate).toLocaleDateString() : 'TBD'}</span>
-        </div>
-        <div className="w-px h-8 bg-white/10" />
-        <div className="flex flex-col">
-          <span className="text-[10px] text-[#8F95A3] font-bold uppercase tracking-wider mb-1"><Calendar className="w-3.5 h-3.5 inline mr-1"/> Ends On</span>
-          <span className="text-white font-bold">{contest?.endDate ? new Date(contest.endDate).toLocaleDateString() : 'TBD'}</span>
-        </div>
-        <div className="w-px h-8 bg-white/10" />
-        <div className="flex flex-col items-end">
-          <span className="text-[10px] text-[#FFC94A] font-bold uppercase tracking-wider mb-1"><Trophy className="w-3.5 h-3.5 inline mr-1"/> Top Prize</span>
-          <span className="text-[#FFC94A] font-black">{formatPrice(getPrizeForRank(data, 1), currency)}</span>
-        </div>
-      </div>
-
-      <div className="flex-1 flex flex-col justify-center items-center py-10 text-center bg-[#0B0C10] rounded-xl border border-dashed border-white/10 mb-6">
-        <Clock className="w-8 h-8 text-[#8F95A3] mb-3 opacity-50" />
-        <span className="text-sm font-bold text-white mb-1">No rankings yet</span>
-        <span className="text-xs text-[#8F95A3]">This contest hasn't started.</span>
-      </div>
-
-      <button className="w-full py-4 rounded-xl bg-gradient-to-r from-[#A66CFF] to-[#8B5CF6] text-white font-bold text-sm shadow-md hover:opacity-90 transition-opacity flex justify-center items-center gap-2 mt-auto cursor-pointer">
-        <Bell className="w-4 h-4" /> Notify Me
+      <button className="w-full py-5 rounded-2xl bg-gradient-to-r from-[#3B82F6] to-[#2563EB] text-white font-black text-sm uppercase tracking-widest shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] transition-all flex justify-center items-center gap-2 hover:scale-[1.02] cursor-pointer">
+        <Bell className="w-5 h-5" /> Remind Me
       </button>
     </>
   );
@@ -385,30 +339,12 @@ function UpcomingContent({ data }: { data: any }) {
 // 2. ACTIVE CONTENT
 // ==========================================
 function ActiveContent({ data }: { data: any }) {
-  const { currency, contest, currentUserRank, userEarnings } = data;
-
+  const { contest } = data;
   return (
     <>
-      <div className="grid grid-cols-4 gap-2 mb-6 bg-[#0B0C10] p-4 rounded-xl border border-white/5 text-center">
-        <div className="border-r border-white/5">
-          <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Prize Pool</span>
-          <span className="text-sm sm:text-base font-black text-[#A66CFF]">{formatPrice(contest?.totalPrizePool || 0, currency)}</span>
-        </div>
-        <div className="border-r border-white/5">
-          <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Participants</span>
-          <span className="text-sm sm:text-base font-black text-white">{data.totalUsers || 0}</span>
-        </div>
-        <div className="border-r border-white/5">
-          <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Your Rank</span>
-          <span className="text-sm sm:text-base font-black text-[#00E57A]">{currentUserRank ? `#${currentUserRank}` : '--'}</span>
-        </div>
-        <div>
-          <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Earnings</span>
-          <span className="text-sm sm:text-base font-black text-white">{formatPrice(userEarnings, currency)}</span>
-        </div>
-      </div>
-
-      <LeaderboardDisplay data={data} isEnded={false} />
+      <TimelineInfo start={contest?.startDate} end={contest?.endDate} />
+      <UserStatsGrid data={data} />
+      <LeaderboardDisplay data={data} />
     </>
   );
 }
@@ -417,124 +353,56 @@ function ActiveContent({ data }: { data: any }) {
 // 3. ENDED CONTENT
 // ==========================================
 function EndedContent({ data }: { data: any }) {
-  const { currency, contest } = data;
-
+  const { contest } = data;
   return (
     <>
-      <div className="grid grid-cols-3 gap-3 mb-6 bg-[#0B0C10] p-4 rounded-xl border border-white/5 text-center">
-        <div className="border-r border-white/5">
-          <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Prize Pool</span>
-          <span className="text-base font-black text-[#A66CFF]">{formatPrice(contest?.totalPrizePool || 0, currency)}</span>
-        </div>
-        <div className="border-r border-white/5">
-          <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Participants</span>
-          <span className="text-base font-black text-white">{data.totalUsers || 0}</span>
-        </div>
-        <div>
-          <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Total Payout</span>
-          <span className="text-base font-black text-[#00E57A]">{formatPrice(contest?.totalPrizePool || 0, currency)}</span>
-        </div>
-      </div>
-
+      <TimelineInfo start={contest?.startDate} end={contest?.endDate} />
+      <UserStatsGrid data={data} />
       <LeaderboardDisplay data={data} isEnded={true} />
     </>
   );
 }
 
 // ==========================================
-// 4. FINALIZED CONTENT
-// ==========================================
-function FinalizedContent({ data }: { data: any }) {
-  const { currency, contest, myPrize } = data;
-
-  return (
-    <>
-      <div className="grid grid-cols-3 gap-3 mb-6 bg-[#0B0C10] p-4 rounded-xl border border-white/5 text-center">
-        <div className="border-r border-white/5">
-          <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Prize Pool</span>
-          <span className="text-base font-black text-[#A66CFF]">{formatPrice(contest?.totalPrizePool || 0, currency)}</span>
-        </div>
-        <div className="border-r border-white/5">
-          <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Total Paid</span>
-          <span className="text-base font-black text-[#00E57A]">{formatPrice(contest?.totalPrizePool || 0, currency)}</span>
-        </div>
-        <div>
-          <span className="text-[10px] text-[#8F95A3] font-bold block uppercase tracking-wider mb-1">Participants</span>
-          <span className="text-base font-black text-white">{data.totalUsers || 0}</span>
-        </div>
-      </div>
-
-      <div className="flex-1 flex flex-col gap-6 mb-6">
-        <div className="bg-[#10B981]/10 border border-[#10B981]/20 rounded-xl p-5 flex items-center gap-4">
-           <CheckCircle2 className="w-6 h-6 text-[#10B981] shrink-0" />
-           <div>
-             <h4 className="text-white font-bold text-sm mb-0.5">Rewards Distributed!</h4>
-             <p className="text-xs text-[#8F95A3]">All eligible rewards have been sent to winners.</p>
-           </div>
-        </div>
-
-        <div className="bg-[#0B0C10] border border-white/5 rounded-xl p-8 flex flex-col items-center justify-center text-center">
-          <span className="text-xs text-[#8F95A3] font-bold uppercase tracking-wider mb-2">Your Reward</span>
-          <div className="text-5xl font-black text-[#00E57A] mb-4">{formatPrice(myPrize, currency)}</div>
-          <span className="text-xs font-bold text-[#10B981] bg-[#10B981]/10 px-3 py-1 rounded flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4"/> Paid Successfully
-          </span>
-        </div>
-      </div>
-
-      <button className="w-full py-4 rounded-xl bg-gradient-to-r from-[#A66CFF] to-[#7C3AED] text-white font-bold text-sm shadow-md hover:opacity-90 transition-opacity mt-auto cursor-pointer">
-        View Payout Details
-      </button>
-    </>
-  );
-}
-
-// ==========================================
-// 5. CANCELLED CONTENT
+// 4. CANCELLED CONTENT
 // ==========================================
 function CancelledContent() {
   return (
     <>
-      <div className="bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl p-5 flex flex-col gap-2 mb-6">
+      <div className="bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-2xl p-6 flex flex-col gap-2 mb-8 shadow-inner">
          <div className="flex items-center gap-3">
-           <AlertOctagon className="w-5 h-5 text-[#EF4444]" />
-           <h4 className="text-[#EF4444] font-bold text-sm">Contest Cancelled</h4>
+           <AlertOctagon className="w-6 h-6 text-[#EF4444]" />
+           <h4 className="text-[#EF4444] font-black text-base uppercase tracking-wider">Contest Cancelled</h4>
          </div>
-         <p className="text-xs text-[#8F95A3]">Unfortunately, this contest has been cancelled.</p>
+         <p className="text-sm text-rose-200/70">Unfortunately, this contest has been cancelled by the administration.</p>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center py-12 border border-dashed border-white/10 rounded-xl bg-[#0B0C10] mb-6">
-        <Ban className="w-8 h-8 text-[#8F95A3] opacity-30 mb-3" />
-        <span className="text-sm font-bold text-white mb-1">No leaderboard available</span>
-        <span className="text-xs text-[#8F95A3]">This contest is cancelled.</span>
+      <div className="flex-1 flex flex-col items-center justify-center py-20 border-2 border-dashed border-white/5 rounded-3xl bg-white/[0.01] mb-8">
+        <Ban className="w-12 h-12 text-[#8F95A3] opacity-30 mb-4" />
+        <span className="text-lg font-black text-white mb-1">No Leaderboard Available</span>
+        <span className="text-sm text-[#8F95A3]">Check back for future contests.</span>
       </div>
-
-      <button className="w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-sm transition-colors mt-auto cursor-pointer">
-        Return to Dashboard
-      </button>
     </>
   );
 }
 
 // ==========================================
-// 6. INACTIVE CONTENT
+// 5. INACTIVE CONTENT
 // ==========================================
 function InactiveContent() {
   return (
-    <>
-      <div className="flex-1 flex flex-col items-center justify-center py-16 text-center bg-[#0B0C10] rounded-xl border border-white/5 mb-6">
-        <div className="relative mb-6">
-          <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
-            <Calendar className="w-8 h-8 text-[#8F95A3] opacity-50" />
-          </div>
-          <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#12141D] border border-white/10 flex items-center justify-center">
-            <Clock className="w-4 h-4 text-[#8F95A3]" />
-          </div>
+    <div className="flex-1 flex flex-col items-center justify-center py-24 text-center bg-gradient-to-b from-white/[0.02] to-transparent rounded-3xl border border-white/5 mb-6 shadow-inner">
+      <div className="relative mb-8">
+        <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center border border-white/10 shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+          <Trophy className="w-10 h-10 text-[#8F95A3] opacity-40" />
         </div>
-        <h3 className="text-xl font-black text-white mb-2">Check back later!</h3>
-        <p className="text-sm text-[#8F95A3] max-w-[80%] mx-auto">We are preparing something exciting for you.</p>
+        <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-[#08090E] border border-white/10 flex items-center justify-center shadow-lg">
+          <Clock className="w-5 h-5 text-[#A66CFF]" />
+        </div>
       </div>
-    </>
+      <h3 className="text-2xl font-black text-white mb-3 tracking-wide">No Active Contest</h3>
+      <p className="text-base text-[#8F95A3] max-w-[80%] mx-auto leading-relaxed">We are preparing something massive. Check back soon for the next prize pool!</p>
+    </div>
   );
 }
 
@@ -544,64 +412,62 @@ function InactiveContent() {
 function ContestCard({ state, title, contestName, description, children }: { state: string, title: string, contestName?: string, description?: string, children: React.ReactNode }) {
   const getBadgeStyle = () => {
     switch (state) {
-      case 'UPCOMING': return 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/20';
-      case 'ACTIVE': return 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20';
-      case 'ENDED': return 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20';
-      case 'FINALIZED': return 'bg-[#A66CFF]/10 text-[#A66CFF] border-[#A66CFF]/20';
-      case 'CANCELLED': return 'bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20';
-      case 'INACTIVE': return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
-      default: return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+      case 'UPCOMING': return 'bg-[#3B82F6] text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]';
+      case 'ACTIVE': return 'bg-[#10B981] text-black shadow-[0_0_15px_rgba(16,185,129,0.5)]';
+      case 'ENDED': return 'bg-[#F59E0B] text-black shadow-[0_0_15px_rgba(245,158,11,0.5)]';
+      case 'CANCELLED': return 'bg-[#EF4444] text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]';
+      default: return 'bg-gray-600 text-white shadow-md';
     }
   };
 
   const getTrophyColor = () => {
     switch (state) {
       case 'UPCOMING': return { bg: 'from-[#3B82F6]/20 to-transparent', icon: 'text-[#3B82F6]', fill: '#3B82F6' };
-      case 'ACTIVE': return { bg: 'from-[#F59E0B]/20 to-[#F59E0B]/5', icon: 'text-[#F59E0B]', fill: '#F59E0B' };
+      case 'ACTIVE': return { bg: 'from-[#10B981]/20 to-[#10B981]/5', icon: 'text-[#10B981]', fill: '#10B981' };
       case 'ENDED': return { bg: 'from-[#F59E0B]/20 to-transparent', icon: 'text-[#F59E0B]', fill: '#F59E0B' };
-      case 'FINALIZED': return { bg: 'from-[#A66CFF]/20 to-[#A66CFF]/5', icon: 'text-[#A66CFF]', fill: '#A66CFF' };
       case 'CANCELLED': return { bg: 'from-[#EF4444]/20 to-transparent', icon: 'text-[#EF4444]', fill: '#EF4444' };
-      case 'INACTIVE': return { bg: 'from-gray-500/20 to-transparent', icon: 'text-gray-500', fill: '#6B7280' };
-      default: return { bg: '', icon: '', fill: '' };
+      default: return { bg: 'from-gray-500/20 to-transparent', icon: 'text-gray-500', fill: '#6B7280' };
     }
   };
 
   const trophyStyle = getTrophyColor();
 
   return (
-    <div className="bg-[#12141D] border border-white/5 rounded-[28px] p-6 sm:p-8 shadow-xl flex flex-col hover:border-white/10 transition-colors relative overflow-hidden group min-h-[600px]">
-      <div className="text-[14px] font-black tracking-wider uppercase mb-6 text-[#8F95A3]">
+    <div className="bg-[#12141D]/90 backdrop-blur-xl border border-white/10 rounded-[32px] p-6 sm:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.4)] flex flex-col relative overflow-hidden min-h-[600px]">
+      
+      {/* Decorative background flare */}
+      {state === 'ACTIVE' && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-[100px] bg-[#10B981]/20 blur-[80px] pointer-events-none" />}
+      
+      <div className="text-sm font-black tracking-widest uppercase mb-8 text-[#8F95A3] relative z-10 border-b border-white/5 pb-4">
         {title}
       </div>
 
-      <div className="flex gap-5 mb-8 relative z-10">
-        <div className={`w-20 h-20 rounded-[20px] bg-gradient-to-b ${trophyStyle.bg} border border-white/5 flex items-center justify-center shrink-0 shadow-lg relative`}>
-          {state === 'CANCELLED' ? (
-            <Ban className={`w-10 h-10 ${trophyStyle.icon}`} />
-          ) : (
-            <Trophy className={`w-10 h-10 ${trophyStyle.icon}`} fill={trophyStyle.fill} />
-          )}
-          {state === 'ACTIVE' && <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#10B981] rounded-full border-[3px] border-[#12141D] animate-pulse" />}
-        </div>
-        
-        <div className="flex-1 flex flex-col justify-center min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded border ${getBadgeStyle()}`}>
-              {state === 'ACTIVE' ? 'ACTIVE' : state}
-            </span>
-          </div>
-          <h2 className="text-[20px] font-black text-white leading-tight mb-1 truncate">
-            {state === 'INACTIVE' ? 'No Active Contest' : (contestName || 'Contest')} <Trophy className="w-4 h-4 inline text-[#FFC94A] ml-1 mb-1" fill="#FFC94A"/>
-          </h2>
-          <p className="text-xs text-[#8F95A3] line-clamp-2">
-            {state === 'INACTIVE' || state === 'CANCELLED' ? (
-              state === 'CANCELLED' ? 'This contest has been cancelled.' : 'There is no active contest at the moment.'
+      {state !== 'INACTIVE' && (
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-10 relative z-10 text-center sm:text-left">
+          <div className={`w-24 h-24 rounded-3xl bg-gradient-to-b ${trophyStyle.bg} border border-white/10 flex items-center justify-center shrink-0 shadow-2xl relative`}>
+            {state === 'CANCELLED' ? (
+              <Ban className={`w-12 h-12 ${trophyStyle.icon}`} />
             ) : (
-              description || 'Compete now and climb to the top!'
+              <Trophy className={`w-12 h-12 ${trophyStyle.icon} drop-shadow-[0_0_15px_${trophyStyle.fill}]`} fill={trophyStyle.fill} />
             )}
-          </p>
+            {state === 'ACTIVE' && <div className="absolute -top-2 -right-2 w-6 h-6 bg-[#10B981] rounded-full border-[4px] border-[#12141D] shadow-[0_0_15px_#10B981] animate-pulse" />}
+          </div>
+          
+          <div className="flex-1 flex flex-col justify-center">
+            <div className="flex items-center justify-center sm:justify-start gap-3 mb-2">
+              <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${getBadgeStyle()}`}>
+                {state}
+              </span>
+            </div>
+            <h2 className="text-3xl font-black text-white leading-tight mb-2 drop-shadow-md">
+              {contestName || 'Contest'}
+            </h2>
+            <p className="text-sm text-[#8F95A3] line-clamp-2 max-w-lg">
+              {state === 'CANCELLED' ? 'This contest has been cancelled.' : (description || 'Compete now and climb to the top!')}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
       
       <div className="flex-1 flex flex-col relative z-10">
         {children}
@@ -623,24 +489,21 @@ export default function LeaderboardPage() {
     const fetchLeaderboard = async () => {
       setIsLoading(true);
       const token = localStorage.getItem('token') || '';
-      const userId = getUserId();
 
       try {
-        const url = `https://api.binnycash.com/api/user/userViewLeaderboard?leaderboardType=${contestType}&page=1&limit=50${userId ? `&userId=${userId}` : ''}`;
+        const url = `https://api.binnycash.com/api/user/userViewLeaderboard?leaderboardType=${contestType}`;
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
         const json = await res.json();
 
-        // Handle success
         if (json.code === 200 && json.data) {
-          setContestData(json.data);
+          if (!json.data.leaderboard) {
+            setContestData({ isEmpty: true, message: "No leaderboard found." });
+          } else {
+            setContestData(json.data);
+          }
         } 
-        // Handle explicit 404 from your API payload or an empty array
-        else if (json.code === 404 || (Array.isArray(json.data) && json.data.length === 0)) {
-          setContestData({ isEmpty: true, message: json.message });
-        } 
-        // Fallback for any other weird state
         else {
-          setContestData(null);
+          setContestData({ isEmpty: true, message: json.message || "Failed to load leaderboard." });
         }
       } catch (error) {
         setContestData({ isEmpty: true });
@@ -652,91 +515,50 @@ export default function LeaderboardPage() {
     fetchLeaderboard();
   }, [contestType]);
 
-  const currentStatus = (contestData?.contest?.status || (isLoading ? '' : 'INACTIVE')).toUpperCase();
+  const currentStatus = (contestData?.leaderboard?.status || (isLoading ? '' : 'INACTIVE')).toUpperCase();
 
-  const safeWinners = Array.isArray(contestData) 
-    ? contestData 
-    : Array.isArray(contestData?.topUsers) 
-      ? contestData.topUsers 
-      : Array.isArray(contestData?.winners) 
-        ? contestData.winners 
-        : [];
+  const safeWinners = Array.isArray(contestData?.leaderboardUsers) ? contestData.leaderboardUsers : [];
 
   const cData = {
-    contest: contestData?.contest,
-    totalUsers: contestData?.participantCount || contestData?.totalUsers || 0,
+    contest: contestData?.leaderboard,
+    totalUsers: contestData?.pagination?.total || safeWinners.length || 0,
     winners: safeWinners,
-    currentUserRank: contestData?.currentUserRank?.rank,
-    myPrize: contestData?.currentUserRank?.prize || contestData?.myPrize || 0,
-    userEarnings: contestData?.userEligibility?.contestEarnings || contestData?.currentUserRank?.totalReward || 0,
-    eligibility: contestData?.eligibility || null,
-    rankMessage: contestData?.leaderboardStatus || contestData?.rankMessage || '',
-    myProfilePic: contestData?.currentUserRank?.image || null,
+    currentUserRank: contestData?.yourstatus?.rank,
+    myPrize: contestData?.yourstatus?.reward || 0,
+    userEarnings: contestData?.yourstatus?.earnings || 0,
+    rankMessage: contestData?.yourstatus?.rankMessage || '',
+    myProfilePic: null, 
     currency
   };
 
   const renderContestBlock = () => {
     if (isLoading) return null;
     
-    // 🔥 HANDLE EMPTY STATE SAFELY
     if (contestData?.isEmpty) {
       return (
-        <div className="bg-[#12141D] border border-white/5 rounded-[28px] p-6 sm:p-12 shadow-xl flex flex-col items-center justify-center min-h-[400px]">
-          <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
-            <Trophy className="w-8 h-8 text-[#8F95A3] opacity-50" />
-          </div>
-          <h2 className="text-2xl font-black text-white mb-2">No Leaderboard Found</h2>
-          <p className="text-[#8F95A3] text-sm text-center">There are currently no rankings for the {contestType} leaderboard.</p>
-        </div>
+        <ContestCard state="INACTIVE" title={`${contestType} CONTEST`}>
+          <InactiveContent />
+        </ContestCard>
       );
     }
 
-    // Force ACTIVE status if the API returns winners array directly without contest info
     let resolvedStatus = currentStatus;
-    if (resolvedStatus === 'INACTIVE' && safeWinners.length > 0) {
-      resolvedStatus = 'ACTIVE';
-    }
+    if (resolvedStatus === 'INACTIVE' && safeWinners.length > 0) resolvedStatus = 'ACTIVE';
 
-    const cName = contestData?.contest?.name || contestData?.contest?.contestName;
-    const cDesc = contestData?.contest?.description;
+    const cName = contestData?.leaderboard?.leaderboardName || 'Leaderboard';
+    const cDesc = contestData?.leaderboard?.description;
 
     switch (resolvedStatus) {
       case 'UPCOMING':
-        return (
-          <ContestCard state="UPCOMING" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}>
-            <UpcomingContent data={cData} />
-          </ContestCard>
-        );
+        return <ContestCard state="UPCOMING" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}><UpcomingContent data={cData} /></ContestCard>;
       case 'ACTIVE':
-        return (
-          <ContestCard state="ACTIVE" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}>
-            <ActiveContent data={cData} />
-          </ContestCard>
-        );
+        return <ContestCard state="ACTIVE" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}><ActiveContent data={cData} /></ContestCard>;
       case 'ENDED':
-        return (
-          <ContestCard state="ENDED" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}>
-            <EndedContent data={cData} />
-          </ContestCard>
-        );
-      case 'FINALIZED':
-        return (
-          <ContestCard state="FINALIZED" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}>
-            <FinalizedContent data={cData} />
-          </ContestCard>
-        );
+        return <ContestCard state="ENDED" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}><EndedContent data={cData} /></ContestCard>;
       case 'CANCELLED':
-        return (
-          <ContestCard state="CANCELLED" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}>
-            <CancelledContent />
-          </ContestCard>
-        );
+        return <ContestCard state="CANCELLED" title={`${contestType} CONTEST`} contestName={cName} description={cDesc}><CancelledContent /></ContestCard>;
       default:
-        return (
-          <ContestCard state="INACTIVE" title={`${contestType} CONTEST`}>
-            <InactiveContent />
-          </ContestCard>
-        );
+        return <ContestCard state="INACTIVE" title={`${contestType} CONTEST`}><InactiveContent /></ContestCard>;
     }
   };
 
@@ -748,7 +570,6 @@ export default function LeaderboardPage() {
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(166,108,255,0.3); border-radius: 10px; }
       `}</style>
 
-      {/* Background Glows */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
         <div className="absolute top-0 left-1/4 w-[500px] h-[400px] bg-[#A66CFF]/10 blur-[120px] rounded-full" />
         <div className="absolute bottom-0 right-1/4 w-[400px] h-[300px] bg-[#FFC94A]/5 blur-[100px] rounded-full" />
@@ -756,47 +577,50 @@ export default function LeaderboardPage() {
 
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
         
-        {/* --- PAGE HEADER & TOGGLE --- */}
         <div className="flex flex-col items-center justify-center text-center mb-12">
-          <h1 className="text-[32px] sm:text-[40px] font-black text-white mb-2 tracking-tight">Leaderboard</h1>
-          <p className="text-[#8F95A3] text-sm font-medium mb-8">Compete with others, climb the ranks, and win big prizes.</p>
+          <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-[#A66CFF] to-[#7C3AED] flex items-center justify-center shadow-[0_10px_30px_rgba(166,108,255,0.4)] mb-6">
+            <Trophy className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-[36px] sm:text-[48px] font-black text-white mb-3 tracking-tight drop-shadow-md">Global Leaderboard</h1>
+          <p className="text-[#8F95A3] text-base font-medium mb-10 max-w-lg mx-auto">Dominate the rankings, prove your skills, and earn massive rewards every single day.</p>
           
-          <div className="bg-[#12141D] border border-white/5 p-1.5 rounded-2xl flex items-center shadow-lg relative">
+          <div className="bg-[#12141D]/80 backdrop-blur-xl border border-white/10 p-2 rounded-2xl flex items-center shadow-2xl relative w-fit mx-auto">
             <div 
-              className="absolute h-[calc(100%-12px)] top-[6px] rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#A66CFF] shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all duration-300 ease-out"
+              className="absolute h-[calc(100%-16px)] top-[8px] rounded-xl bg-[#A66CFF] shadow-[0_0_15px_rgba(166,108,255,0.5)] transition-all duration-300 ease-out"
               style={{
-                width: 'calc(50% - 6px)',
-                left: contestType === 'DAILY' ? '6px' : 'calc(50%)'
+                width: 'calc(50% - 8px)',
+                left: contestType === 'DAILY' ? '8px' : 'calc(50%)'
               }}
             />
             <button 
               onClick={() => setContestType('DAILY')}
-              className={`relative z-10 w-32 sm:w-40 py-2.5 text-sm font-bold transition-colors ${contestType === 'DAILY' ? 'text-white' : 'text-[#8F95A3] hover:text-white'}`}
+              className={`relative z-10 w-36 sm:w-48 py-3 text-sm font-black uppercase tracking-wider transition-colors ${contestType === 'DAILY' ? 'text-white' : 'text-[#8F95A3] hover:text-white'}`}
             >
-              Daily
+              Daily Race
             </button>
             <button 
               onClick={() => setContestType('MONTHLY')}
-              className={`relative z-10 w-32 sm:w-40 py-2.5 text-sm font-bold transition-colors ${contestType === 'MONTHLY' ? 'text-white' : 'text-[#8F95A3] hover:text-white'}`}
+              className={`relative z-10 w-36 sm:w-48 py-3 text-sm font-black uppercase tracking-wider transition-colors ${contestType === 'MONTHLY' ? 'text-white' : 'text-[#8F95A3] hover:text-white'}`}
             >
-              Monthly
+              Monthly Epic
             </button>
           </div>
         </div>
 
         <AnimatePresence mode="wait">
           {isLoading ? (
-            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-32">
-              <Loader2 className="w-10 h-10 text-[#A66CFF] animate-spin mb-4" />
-              <p className="text-[#8F95A3] font-medium">Loading Leaderboard...</p>
+            <motion.div key="loading" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="flex flex-col items-center justify-center py-32 bg-[#12141D]/50 border border-white/5 rounded-[32px] max-w-[900px] mx-auto backdrop-blur-md">
+              <div className="w-16 h-16 relative flex items-center justify-center mb-6">
+                <div className="absolute inset-0 rounded-full border-4 border-white/10 border-t-[#A66CFF] animate-spin"></div>
+                <Trophy className="w-6 h-6 text-[#A66CFF]" />
+              </div>
+              <p className="text-white font-black tracking-widest uppercase text-sm">Loading Standings...</p>
             </motion.div>
           ) : (
-            <motion.div key={contestType + currentStatus} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-              
-              <div className="max-w-[850px] mx-auto w-full">
+            <motion.div key={contestType + currentStatus} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} transition={{ duration: 0.4, ease: "easeOut" }}>
+              <div className="max-w-[900px] mx-auto w-full">
                 {renderContestBlock()}
               </div>
-
             </motion.div>
           )}
         </AnimatePresence>

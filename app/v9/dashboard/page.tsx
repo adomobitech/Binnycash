@@ -3,26 +3,21 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  TrendingUp, Users, DollarSign, Activity, BarChart3, 
-  PieChart, ArrowUpRight, ShieldAlert, RefreshCw, Award, 
-  ArrowDownRight
+  TrendingUp, Users, DollarSign, Activity, RefreshCw, 
+  ArrowUpRight, ArrowDownRight, ShieldAlert, Rocket, CreditCard
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
+import { motion } from 'framer-motion';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const currency = useCurrency();
   
   const [isLoading, setIsLoading] = useState(true);
-  const [overview, setOverview] = useState<any>(null);
-  const [revenueStats, setRevenueStats] = useState<any>(null);
-  const [clickStats, setClickStats] = useState<any>(null);
-  const [weeklyRevenue, setWeeklyRevenue] = useState<any[]>([]);
-  const [withdrawMethodDist, setWithdrawMethodDist] = useState<any[]>([]);
-  const [topEarners, setTopEarners] = useState<any[]>([]);
+  const [dashboardData, setDashboardData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAdminData = async () => {
+  const fetchAdminDashboard = async () => {
     setIsLoading(true);
     setError(null);
 
@@ -33,255 +28,206 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json'
-    };
-
-    const baseUrl = 'https://api.binnycash.com/api/admin';
-
     try {
-      const responses = await Promise.allSettled([
-        fetch(`${baseUrl}/dashboard/overview`, { headers }).then(res => res.json()),
-        fetch(`${baseUrl}/adminRevenueStats`, { headers }).then(res => res.json()),
-        fetch(`${baseUrl}/adminClickCompleteStats`, { headers }).then(res => res.json()),
-        fetch(`${baseUrl}/adminWeeklyRevenue`, { headers }).then(res => res.json()),
-        fetch(`${baseUrl}/adminWithdrawMethodDistribution`, { headers }).then(res => res.json()),
-        fetch(`${baseUrl}/adminTopEarners`, { headers }).then(res => res.json()),
-      ]);
+      const res = await fetch(`https://api.binnycash.com/api/admin/dashboard`, {
+        method: 'GET',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      const json = await res.json();
 
-      if (responses[0].status === 'fulfilled') setOverview(responses[0].value?.data || responses[0].value);
-      if (responses[1].status === 'fulfilled') setRevenueStats(responses[1].value?.data || responses[1].value);
-      if (responses[2].status === 'fulfilled') setClickStats(responses[2].value?.data || responses[2].value);
-      if (responses[3].status === 'fulfilled') setWeeklyRevenue(responses[3].value?.data || responses[3].value || []);
-      if (responses[4].status === 'fulfilled') setWithdrawMethodDist(responses[4].value?.data || responses[4].value || []);
-      if (responses[5].status === 'fulfilled') setTopEarners(responses[5].value?.data || responses[5].value || []);
-
+      if (res.ok && json && (json.code === 200 || json.type === 'success')) {
+        setDashboardData(json.data);
+      } else {
+        setError(json?.message || "Failed to load dashboard metrics.");
+      }
     } catch (err: any) {
-      setError("Failed to load dashboard metrics. Please check connection or token.");
+      setError("Network error while connecting to server. Please check your token or internet.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAdminData();
+    fetchAdminDashboard();
   }, [router]);
 
+  // Helper for trend indicators based on "lastMonth" comparison (if we had specific target logics)
+  // For now, we will simply format the raw data received.
+  
+  const renderTrend = (today: number, lastMonth: number, isCurrency: boolean = false) => {
+    const diff = today - lastMonth;
+    if (diff === 0) return null;
+    const isUp = diff > 0;
+    return (
+      <div className={`flex items-center gap-1 text-[11px] font-bold mt-1.5 ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+        {isUp ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+        <span>{isUp ? '+' : ''}{isCurrency ? formatPrice(diff, currency) : diff} vs last month</span>
+      </div>
+    );
+  };
+
   return (
-    <div className="flex flex-col gap-6 text-white w-full max-w-[1600px] mx-auto pb-10">
+    <div className="flex flex-col gap-6 text-white w-full max-w-[1400px] mx-auto pb-10 font-sans relative">
       
       {/* BREADCRUMBS & TITLE */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2 text-xs text-gray-400 font-medium">
-          <span>Dashboard</span>
-          <span>›</span>
-          <span className="text-white">Overview</span>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/10 pb-5 gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-white flex items-center gap-3 tracking-tight">
+             <Rocket className="w-8 h-8 text-[#A66CFF]" /> 
+             Admin Dashboard
+          </h1>
+          <p className="text-sm text-[#8F95A3] mt-2">
+            Real-time analytics, revenue tracking, and network performance overview.
+          </p>
         </div>
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-2xl font-bold text-white mt-1">Dashboard Overview</h1>
-            <p className="text-sm text-gray-400 mt-1">Real-time system analytics and network performance.</p>
-          </div>
-          <button 
-            onClick={fetchAdminData}
-            disabled={isLoading}
-            className="flex items-center gap-2 bg-[#12141C] hover:bg-white/5 border border-white/10 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 text-[#7C3AED] ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh Data
-          </button>
-        </div>
+
+        <button 
+          onClick={fetchAdminDashboard}
+          disabled={isLoading}
+          className="flex items-center gap-2 bg-[#12141C] hover:bg-white/5 border border-white/10 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 text-[#A66CFF] ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh Stats
+        </button>
       </div>
 
       {error && (
-        <div className="w-full bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-center gap-3">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="w-full bg-rose-500/10 border border-rose-500/30 text-rose-400 p-4 rounded-xl flex items-center gap-3 shadow-sm">
           <ShieldAlert className="w-5 h-5 shrink-0" />
           <span className="text-sm font-bold">{error}</span>
-        </div>
+        </motion.div>
       )}
 
-      {/* STATS OVERVIEW CARDS (Dark Theme Match) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* STATS OVERVIEW CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         
-        {/* Total Revenue */}
-        <div className="bg-[#12141C] border border-white/5 rounded-xl p-5 flex items-start gap-4 shadow-sm hover:border-white/10 transition-colors">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-emerald-500/20 text-emerald-400">
-            <DollarSign className="w-5 h-5" />
+        {/* TOTAL USERS CARD */}
+        <div className="bg-[#12141C] border border-white/5 rounded-3xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-[#3B82F6]/30 transition-all">
+          <div className="absolute -right-4 -top-4 w-20 h-20 bg-[#3B82F6]/10 rounded-full blur-[20px] pointer-events-none group-hover:bg-[#3B82F6]/20 transition-all" />
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Users</span>
+            <div className="w-8 h-8 rounded-full bg-[#3B82F6]/10 flex items-center justify-center border border-[#3B82F6]/20 text-[#3B82F6]">
+              <Users className="w-4 h-4" />
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-xs text-gray-400 font-medium">Total Revenue</span>
-            <span className="text-xl font-bold text-white mt-0.5">
-              {isLoading ? '...' : formatPrice(Number(revenueStats?.totalRevenue || overview?.totalRevenue || 0), currency)}
-            </span>
-            <span className="text-[10px] font-medium mt-1 text-emerald-400 flex items-center gap-1">
-              <ArrowUpRight className="w-3 h-3" /> +12.4% from last week
-            </span>
-          </div>
-        </div>
-
-        {/* Completed Clicks */}
-        <div className="bg-[#12141C] border border-white/5 rounded-xl p-5 flex items-start gap-4 shadow-sm hover:border-white/10 transition-colors">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#7C3AED]/20 text-[#7C3AED]">
-            <Activity className="w-5 h-5" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs text-gray-400 font-medium">Completed Clicks</span>
-            <span className="text-xl font-bold text-white mt-0.5">
-              {isLoading ? '...' : (clickStats?.totalClicks || overview?.totalClicks || 0)}
-            </span>
-            <span className="text-[10px] font-medium mt-1 text-gray-400">
-              Conversion: {clickStats?.conversionRate || '84.2%'}
-            </span>
+          <div className="relative z-10">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black text-white">
+                {isLoading ? '...' : (dashboardData?.users?.total || 0)}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-[11px] font-bold text-emerald-400">
+                {isLoading ? '...' : (dashboardData?.users?.active || 0)} Active
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Total Users */}
-        <div className="bg-[#12141C] border border-white/5 rounded-2xl p-5 flex items-start gap-4 shadow-sm hover:border-white/10 transition-colors">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-blue-500/20 text-blue-400">
-            <Users className="w-5 h-5" />
+        {/* TOTAL REVENUE CARD */}
+        <div className="bg-[#12141C] border border-white/5 rounded-3xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-emerald-500/30 transition-all">
+          <div className="absolute -right-4 -top-4 w-20 h-20 bg-emerald-500/10 rounded-full blur-[20px] pointer-events-none group-hover:bg-emerald-500/20 transition-all" />
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Revenue</span>
+            <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400">
+              <DollarSign className="w-4 h-4" />
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-xs text-gray-400 font-medium">Total Users</span>
-            <span className="text-xl font-bold text-white mt-0.5">
-              {isLoading ? '...' : (overview?.totalUsers || 0)}
-            </span>
-            <span className="text-[10px] font-medium mt-1 text-blue-400 flex items-center gap-1">
-              <ArrowUpRight className="w-3 h-3" /> Active signups tracked
-            </span>
+          <div className="relative z-10">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black text-white">
+                {isLoading ? '...' : formatPrice(Number(dashboardData?.revenue?.total || 0), currency)}
+              </span>
+            </div>
+            <div className="flex gap-4 mt-2">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Today: <span className="text-emerald-400 ml-0.5">{formatPrice(Number(dashboardData?.revenue?.today || 0), currency)}</span></span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Month: <span className="text-emerald-400 ml-0.5">{formatPrice(Number(dashboardData?.revenue?.thisMonth || 0), currency)}</span></span>
+            </div>
           </div>
         </div>
 
-        {/* Pending Withdrawals */}
-        <div className="bg-[#12141C] border border-white/5 rounded-2xl p-5 flex items-start gap-4 shadow-sm hover:border-white/10 transition-colors">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-amber-500/20 text-amber-400">
-            <TrendingUp className="w-5 h-5" />
+        {/* PAYOUT CARD */}
+        <div className="bg-[#12141C] border border-white/5 rounded-3xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-amber-500/30 transition-all">
+          <div className="absolute -right-4 -top-4 w-20 h-20 bg-amber-500/10 rounded-full blur-[20px] pointer-events-none group-hover:bg-amber-500/20 transition-all" />
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Payouts</span>
+            <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20 text-amber-500">
+              <CreditCard className="w-4 h-4" />
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-xs text-gray-400 font-medium">Pending Withdrawals</span>
-            <span className="text-xl font-bold text-white mt-0.5">
-              {isLoading ? '...' : formatPrice(Number(overview?.pendingWithdrawals || 0), currency)}
-            </span>
-            <span className="text-[10px] font-medium mt-1 text-amber-400">Requires manual audit</span>
+          <div className="relative z-10">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black text-white">
+                {isLoading ? '...' : formatPrice(Number(dashboardData?.payout?.total || 0), currency)}
+              </span>
+            </div>
+            <div className="flex gap-4 mt-2">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Today: <span className="text-amber-400 ml-0.5">{formatPrice(Number(dashboardData?.payout?.today || 0), currency)}</span></span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Month: <span className="text-amber-400 ml-0.5">{formatPrice(Number(dashboardData?.payout?.thisMonth || 0), currency)}</span></span>
+            </div>
           </div>
         </div>
+
+        {/* NET PROFIT CARD */}
+        <div className="bg-[#12141C] border border-white/5 rounded-3xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-[#A66CFF]/30 transition-all">
+          <div className="absolute -right-4 -top-4 w-20 h-20 bg-[#A66CFF]/10 rounded-full blur-[20px] pointer-events-none group-hover:bg-[#A66CFF]/20 transition-all" />
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Net Profit</span>
+            <div className="w-8 h-8 rounded-full bg-[#A66CFF]/10 flex items-center justify-center border border-[#A66CFF]/20 text-[#A66CFF]">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-baseline gap-2">
+              <span className={`text-3xl font-black ${Number(dashboardData?.profit?.total || 0) < 0 ? 'text-rose-400' : 'text-white'}`}>
+                {isLoading ? '...' : formatPrice(Number(dashboardData?.profit?.total || 0), currency)}
+              </span>
+            </div>
+            <div className="flex gap-4 mt-2">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Today: <span className="text-[#A66CFF] ml-0.5">{formatPrice(Number(dashboardData?.profit?.today || 0), currency)}</span></span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Month: <span className="text-[#A66CFF] ml-0.5">{formatPrice(Number(dashboardData?.profit?.thisMonth || 0), currency)}</span></span>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* MIDDLE SECTION: GRAPHS & DISTRIBUTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Earnings Graph */}
-        <div className="lg:col-span-2 bg-[#12141C] border border-white/5 rounded-xl p-6 flex flex-col gap-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-white font-bold text-base">Weekly & Daily Earnings</h3>
-              <p className="text-xs text-gray-400">Performance graphs across network providers</p>
+      {/* DETAILED MONTH COMPARISON PANEL */}
+      <div className="bg-[#12141C] border border-white/5 rounded-3xl p-6 shadow-xl mt-2">
+        <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-4">
+          <Activity className="w-5 h-5 text-gray-400" />
+          <h2 className="text-sm font-bold text-white uppercase tracking-widest">Monthly Comparison Summary</h2>
+        </div>
+
+        {isLoading ? (
+          <div className="py-12 flex items-center justify-center text-gray-500 font-bold text-sm animate-pulse">Loading detailed comparison...</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+            <div className="flex flex-col gap-2 pt-4 sm:pt-0 sm:pr-6">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Last Month Revenue</span>
+              <span className="text-2xl font-black text-emerald-400">{formatPrice(Number(dashboardData?.revenue?.lastMonth || 0), currency)}</span>
+              {renderTrend(Number(dashboardData?.revenue?.thisMonth || 0), Number(dashboardData?.revenue?.lastMonth || 0), true)}
             </div>
-            <BarChart3 className="w-5 h-5 text-[#7C3AED]" />
-          </div>
-
-          <div className="w-full h-[260px] bg-[#161821] rounded-xl border border-white/5 flex items-center justify-center p-4">
-            {isLoading ? (
-              <div className="text-xs text-gray-400 animate-pulse">Loading earnings graphs...</div>
-            ) : (
-              <div className="w-full h-full flex items-end justify-between gap-2 pt-6 px-2">
-                {(weeklyRevenue.length > 0 ? weeklyRevenue : [40, 65, 30, 85, 55, 95, 75]).map((val: any, idx: number) => {
-                  const heightPercent = typeof val === 'number' ? val : (val?.amount || 50);
-                  return (
-                    <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group relative">
-                      <div 
-                        style={{ height: `${Math.min(Math.max(heightPercent, 15), 100)}%` }} 
-                        className="w-full bg-gradient-to-t from-[#7C3AED]/40 to-[#7C3AED] rounded-t-lg transition-all duration-300 group-hover:brightness-125"
-                      />
-                      <span className="text-[10px] text-gray-500">D{idx + 1}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Traffic & Payouts Methods */}
-        <div className="bg-[#12141C] border border-white/5 rounded-xl p-6 flex flex-col gap-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-white font-bold text-base">Traffic & Payouts</h3>
-              <p className="text-xs text-gray-400">Source breakdown & methods</p>
+            
+            <div className="flex flex-col gap-2 pt-4 sm:pt-0 sm:px-6">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Last Month Payouts</span>
+              <span className="text-2xl font-black text-amber-400">{formatPrice(Number(dashboardData?.payout?.lastMonth || 0), currency)}</span>
+              {renderTrend(Number(dashboardData?.payout?.thisMonth || 0), Number(dashboardData?.payout?.lastMonth || 0), true)}
             </div>
-            <PieChart className="w-5 h-5 text-[#7C3AED]" />
+            
+            <div className="flex flex-col gap-2 pt-4 sm:pt-0 sm:pl-6">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Last Month Profit</span>
+              <span className={`text-2xl font-black ${Number(dashboardData?.profit?.lastMonth || 0) < 0 ? 'text-rose-400' : 'text-[#A66CFF]'}`}>
+                {formatPrice(Number(dashboardData?.profit?.lastMonth || 0), currency)}
+              </span>
+              {renderTrend(Number(dashboardData?.profit?.thisMonth || 0), Number(dashboardData?.profit?.lastMonth || 0), true)}
+            </div>
           </div>
-
-          <div className="flex flex-col gap-3 mt-2">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Withdrawal Methods</span>
-            {isLoading ? (
-              <div className="text-xs text-gray-400 animate-pulse">Loading distribution...</div>
-            ) : (
-              (withdrawMethodDist.length > 0 ? withdrawMethodDist : [
-                { method: 'UPI / Paytm', percentage: 65 },
-                { method: 'Bank Transfer', percentage: 25 },
-                { method: 'Crypto / Gift Card', percentage: 10 }
-              ]).map((item: any, idx: number) => (
-                <div key={idx} className="flex flex-col gap-1.5 bg-[#161821] p-3.5 rounded-xl border border-white/5">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-white">{item.method || item.name || `Method ${idx+1}`}</span>
-                    <span className="text-[#7C3AED]">{item.percentage || item.share || '50'}%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#7C3AED] rounded-full" style={{ width: `${item.percentage || 50}%` }} />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* BOTTOM SECTION: TOP EARNERS LEADERBOARD */}
-      <div className="bg-[#12141C] border border-white/5 rounded-xl p-6 flex flex-col gap-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-white font-bold text-base flex items-center gap-2">
-              <Award className="w-5 h-5 text-amber-400" /> Top Earners Leaderboard
-            </h3>
-            <p className="text-xs text-gray-400">Users with the highest accumulated rewards across platforms</p>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-white/10 text-gray-400 text-xs font-semibold bg-[#161821]">
-                <th className="py-3.5 px-4">Rank</th>
-                <th className="py-3.5 px-4">User Name / ID</th>
-                <th className="py-3.5 px-4">Completed Offers</th>
-                <th className="py-3.5 px-4 text-right">Total Earned</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 text-sm">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={4} className="py-8 text-center text-gray-500 animate-pulse">Loading top earners...</td>
-                </tr>
-              ) : topEarners.length > 0 ? (
-                topEarners.map((user: any, idx: number) => (
-                  <tr key={user._id || idx} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-[#7C3AED]">#{idx + 1}</td>
-                    <td className="py-3.5 px-4 font-medium text-white">{user.name || user.username || user.email || `User ${idx+1}`}</td>
-                    <td className="py-3.5 px-4 text-gray-400">{user.completedOffers || user.offersCount || 0} tasks</td>
-                    <td className="py-3.5 px-4 text-right font-bold text-emerald-400">
-                      {formatPrice(Number(user.totalEarned || user.earnings || 0), currency)}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="py-8 text-center text-gray-500">No top earners data found.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        )}
       </div>
 
     </div>

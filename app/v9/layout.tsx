@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Users, ShieldCheck, Share2, Ticket, 
   RefreshCcw, Layers, Gift, LogOut, Menu, X, 
-  Moon, Sun, Bell, ListOrdered, Settings,
+  ListOrdered, Settings,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -111,24 +111,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                <Menu className="w-5 h-5" />
              </button>
           </div>
-
-          <div className="flex items-center gap-5">
-            {/* THEME TOGGLE */}
-            <button 
-              onClick={() => setIsDarkMode(!isDarkMode)} 
-              className={`transition-colors flex items-center justify-center w-8 h-8 rounded-full border ${isDarkMode ? 'text-gray-400 hover:text-white bg-white/5 border-white/10' : 'text-gray-600 hover:text-gray-900 bg-gray-100 border-gray-200'}`}
-            >
-               {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-            
-            {/* NOTIFICATION BELL */}
-            <div className="relative">
-                <button className={`transition-colors flex items-center justify-center w-8 h-8 rounded-full border ${isDarkMode ? 'text-gray-400 hover:text-white bg-white/5 border-white/10' : 'text-gray-600 hover:text-gray-900 bg-gray-100 border-gray-200'}`}>
-                  <Bell className="w-4 h-4" />
-                  <span className={`absolute -top-1 -right-1 bg-[#7C3AED] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 ${isDarkMode ? 'border-[#0B0D14]' : 'border-white'}`}>12</span>
-                </button>
-            </div>
-          </div>
+          {/* Day/Night aur Notifications remove kar diye gaye hain */}
         </header>
 
         {/* PAGE CONTENT */}

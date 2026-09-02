@@ -1,14 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Trophy, Save, Loader2, Plus, Trash2, CalendarDays, 
   Settings, Globe, Users, DollarSign, Activity, 
   CheckCircle2, AlertCircle, FileText, Target, List, PlaySquare, 
-  RefreshCcw, Edit3, ShieldAlert, Eye, Medal, UserMinus, UserCheck, X
+  RefreshCcw, Edit3, ShieldAlert, Eye, Medal, UserMinus, UserCheck, X, Search
 } from 'lucide-react';
+
+// --- UTILITY: Get Admin ID ---
+function getAdminId(): string {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem('adminId') || localStorage.getItem('admin_id') || localStorage.getItem('userId') || '';
+}
 
 export default function AdminLeaderboardPage() {
   const router = useRouter();
@@ -69,7 +75,6 @@ export default function AdminLeaderboardPage() {
     }
   }, [activeTab]);
 
-  // 🔥 DELETE LEADERBOARD (Only INACTIVE or UPCOMING)
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this leaderboard? This action cannot be undone.")) return;
     const token = localStorage.getItem('admin_token');
@@ -90,7 +95,6 @@ export default function AdminLeaderboardPage() {
     }
   };
 
-  // 🔥 QUICK STATUS UPDATE (PATCH)
   const handleStatusChange = async (id: string, newStatus: string) => {
     setStatusUpdatingId(id);
     const token = localStorage.getItem('admin_token');
@@ -98,14 +102,11 @@ export default function AdminLeaderboardPage() {
     try {
       const res = await fetch(`https://api.binnycash.com/api/admin/leaderboards/${id}/status`, {
         method: 'PATCH',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
-        fetchLeaderboards(); // Refresh list to reflect changes
+        fetchLeaderboards(); 
       } else {
         const json = await res.json();
         alert(json?.message || "Failed to update status.");
@@ -117,9 +118,6 @@ export default function AdminLeaderboardPage() {
     }
   };
 
-  // ==========================================
-  // WINNERS MODAL LOGIC (GET)
-  // ==========================================
   const [isWinnersModalOpen, setIsWinnersModalOpen] = useState(false);
   const [winnersList, setWinnersList] = useState<any[]>([]);
   const [isWinnersLoading, setIsWinnersLoading] = useState(false);
@@ -153,23 +151,88 @@ export default function AdminLeaderboardPage() {
     }
   };
 
-
   // ==========================================
   // 2. CREATE / EDIT LEADERBOARD STATES
   // ==========================================
   const [formData, setFormData] = useState({
     leaderboardName: '', description: '', leaderboardType: 'DAILY', status: 'INACTIVE', startDate: '', endDate: '',   
   });
-  const [targeting, setTargeting] = useState({ countries: 'All', excludeCountries: '', excludeUsers: '' });
+  const [targeting, setTargeting] = useState({ countries: 'ALL', excludeCountries: '', excludeUsers: '' });
   const [prizes, setPrizes] = useState([{ startRank: 1, endRank: 1, Cash: 0 }]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' | 'warning' } | null>(null);
 
-  // Quick User Exclusion (PATCH) State
+  // 🔥 USER FETCHING LOGIC (For Searchable Dropdowns) 🔥
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const userSearchRef = useRef<HTMLDivElement>(null);
+
+  // Quick exclusion search states
+  const [quickSearchTerm, setQuickSearchTerm] = useState('');
   const [quickUserId, setQuickUserId] = useState('');
+  const [isQuickDropdownOpen, setIsQuickDropdownOpen] = useState(false);
+  const quickSearchRef = useRef<HTMLDivElement>(null);
   const [isQuickPatching, setIsQuickPatching] = useState(false);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const token = localStorage.getItem('admin_token');
+      const adminId = getAdminId();
+      if (!token || !adminId) return;
+      try {
+        const res = await fetch(`https://api.binnycash.com/api/admin/userList?adminId=${encodeURIComponent(adminId)}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const json = await res.json();
+        if (res.ok && json.data) {
+          const list = Array.isArray(json.data) ? json.data : (json.data.users || json.data.list || []);
+          setAllUsers(list);
+        }
+      } catch (e) { console.error("Failed to fetch users", e); }
+    };
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userSearchRef.current && !userSearchRef.current.contains(event.target as Node)) setIsUserDropdownOpen(false);
+      if (quickSearchRef.current && !quickSearchRef.current.contains(event.target as Node)) setIsQuickDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filter Logic
+  const getFilteredUsers = (term: string) => {
+    if (!term) return allUsers.slice(0, 50); // Show max 50 default
+    const q = term.toLowerCase();
+    return allUsers.filter(u => {
+      const name = String(u.name || u.userName || '').toLowerCase();
+      const email = String(u.email || '').toLowerCase();
+      const id = String(u.id || u._id || u.userId || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || id.includes(q);
+    }).slice(0, 50);
+  };
+
+  const handleAddUserToExclusion = (userId: string) => {
+    const currentList = targeting.excludeUsers.split(',').map(s => s.trim()).filter(Boolean);
+    if (!currentList.includes(userId)) {
+      currentList.push(userId);
+      setTargeting({ ...targeting, excludeUsers: currentList.join(', ') });
+    }
+    setUserSearchTerm('');
+    setIsUserDropdownOpen(false);
+  };
+
+  const handleRemoveUserFromExclusion = (userId: string) => {
+    if (isReadOnly) return;
+    const currentList = targeting.excludeUsers.split(',').map(s => s.trim()).filter(Boolean);
+    setTargeting({ ...targeting, excludeUsers: currentList.filter(id => id !== userId).join(', ') });
+  };
+
 
   // Formatting helpers
   const apiDateToDatetimeLocal = (apiDate: string) => {
@@ -218,7 +281,8 @@ export default function AdminLeaderboardPage() {
     setIsFetchingDetails(true);
     setMessage(null);
     setIsReadOnly(false);
-    setQuickUserId(''); // Reset quick widget
+    setQuickUserId(''); 
+    setQuickSearchTerm('');
 
     const token = localStorage.getItem('admin_token');
     try {
@@ -240,7 +304,7 @@ export default function AdminLeaderboardPage() {
 
         const safeJoin = (val: any) => Array.isArray(val) ? val.join(', ') : (typeof val === 'string' ? val : '');
         setTargeting({
-          countries: safeJoin(lb.countries) || 'All',
+          countries: safeJoin(lb.countries) || 'ALL',
           excludeCountries: safeJoin(lb.excludeCountries),
           excludeUsers: safeJoin(lb.excludeUsers)
         });
@@ -286,6 +350,7 @@ export default function AdminLeaderboardPage() {
       if (res.ok) {
         setMessage({ text: `User ${action}d successfully!`, type: 'success' });
         setQuickUserId('');
+        setQuickSearchTerm('');
         // Re-fetch details to sync view
         handleEditClick(editingId);
       } else {
@@ -325,12 +390,14 @@ export default function AdminLeaderboardPage() {
   };
   const resetForm = () => {
     setFormData({ leaderboardName: '', description: '', leaderboardType: 'DAILY', status: 'INACTIVE', startDate: '', endDate: '' });
-    setTargeting({ countries: 'All', excludeCountries: '', excludeUsers: '' });
+    setTargeting({ countries: 'ALL', excludeCountries: '', excludeUsers: '' });
     setPrizes([{ startRank: 1, endRank: 1, Cash: 0 }]);
     setEditingId(null);
     setIsReadOnly(false);
     setMessage(null);
     setQuickUserId('');
+    setUserSearchTerm('');
+    setQuickSearchTerm('');
   };
 
   // --- SUBMIT (POST or PUT) ---
@@ -341,15 +408,27 @@ export default function AdminLeaderboardPage() {
     setMessage(null);
     const token = localStorage.getItem('admin_token');
     
-    const countriesArray = targeting.countries.split(',').map(s => s.trim()).filter(Boolean);
-    const excludeCountriesArray = targeting.excludeCountries.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    // Formatting targeting payloads safely
+    const countriesArray = targeting.countries.split(',').map(s => {
+       const val = s.trim();
+       if (val.toUpperCase() === 'ALL') return 'All';
+       return val;
+    }).filter(Boolean);
+    
+    const excludeCountriesArray = targeting.excludeCountries.split(',').map(s => s.trim()).filter(Boolean);
     const excludeUsersArray = targeting.excludeUsers.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n));
     const formattedPrizes = prizes.map(p => ({ startRank: Number(p.startRank), endRank: Number(p.endRank), Cash: Number(p.Cash) }));
 
     const payload = {
-      leaderboardName: formData.leaderboardName, description: formData.description, leaderboardType: formData.leaderboardType,
-      status: formData.status, startDate: formatForApi(formData.startDate), endDate: formatForApi(formData.endDate),
-      countries: countriesArray.length > 0 ? countriesArray : ["All"], excludeCountries: excludeCountriesArray, excludeUsers: excludeUsersArray,
+      leaderboardName: formData.leaderboardName, 
+      description: formData.description, 
+      leaderboardType: formData.leaderboardType,
+      status: formData.status, 
+      startDate: formatForApi(formData.startDate), 
+      endDate: formatForApi(formData.endDate),
+      countries: countriesArray.length > 0 ? countriesArray : ["All"], 
+      excludeCountries: excludeCountriesArray, 
+      excludeUsers: excludeUsersArray,
       prizes: formattedPrizes
     };
 
@@ -475,7 +554,6 @@ export default function AdminLeaderboardPage() {
                               </span>
                             </td>
                             
-                            {/* 🔥 QUICK STATUS DROPODOWN 🔥 */}
                             <td className="py-4 px-4 text-center">
                               <div className="relative inline-block mt-0.5">
                                 {statusUpdatingId === lbId ? (
@@ -526,17 +604,14 @@ export default function AdminLeaderboardPage() {
                             </td>
                             <td className="py-4 px-4 text-right">
                               <div className="flex items-center justify-end gap-2 mt-2">
-                                {/* Winners Button (Only if ENDED) */}
                                 {lb.status === 'ENDED' && (
                                   <button onClick={() => handleViewWinners(lbId)} title="View Winners" className="w-8 h-8 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20 flex items-center justify-center transition-colors cursor-pointer">
                                     <Medal className="w-4 h-4" />
                                   </button>
                                 )}
-                                {/* View/Edit Button */}
                                 <button onClick={() => handleEditClick(lbId)} title="View / Edit" className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-white border border-white/10 flex items-center justify-center transition-colors cursor-pointer">
                                   {lb.status === 'INACTIVE' || lb.status === 'UPCOMING' ? <Edit3 className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-[#A66CFF]" />}
                                 </button>
-                                {/* Delete Button (Only if INACTIVE or UPCOMING) */}
                                 {(lb.status === 'INACTIVE' || lb.status === 'UPCOMING') && (
                                   <button onClick={() => handleDelete(lbId)} title="Delete Leaderboard" className="w-8 h-8 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 flex items-center justify-center transition-colors cursor-pointer">
                                     <Trash2 className="w-4 h-4" />
@@ -649,49 +724,162 @@ export default function AdminLeaderboardPage() {
                   <div className="bg-[#12141C] border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl">
                     <h2 className="text-lg font-black text-white mb-6 flex items-center gap-2 border-b border-white/5 pb-4"><Target className="w-5 h-5 text-blue-400" /> Targeting & Restrictions</h2>
                     <div className="grid grid-cols-1 gap-6">
+                      
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest">Allowed Countries</label>
                         <div className="relative">
                           <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                          <input type="text" name="countries" value={targeting.countries} onChange={handleTargetingChange} placeholder="e.g. All OR US, UK, IN" disabled={isReadOnly} className="w-full bg-[#0B0D14] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white focus:outline-none focus:border-[#A66CFF] uppercase disabled:opacity-60" />
+                          <input type="text" name="countries" value={targeting.countries} onChange={handleTargetingChange} placeholder="E.G. ALL OR US, UK, IN" disabled={isReadOnly} className="w-full bg-[#0B0D14] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white focus:outline-none focus:border-[#A66CFF] disabled:opacity-60" />
                         </div>
                       </div>
+                      
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest">Exclude Countries</label>
                         <div className="relative">
                           <Activity className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                          <input type="text" name="excludeCountries" value={targeting.excludeCountries} onChange={handleTargetingChange} placeholder="e.g. PK, BD" disabled={isReadOnly} className="w-full bg-[#0B0D14] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white focus:outline-none focus:border-[#A66CFF] uppercase disabled:opacity-60" />
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2 border-b border-white/5 pb-6">
-                        <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest">Exclude Specific Users (Bulk via PUT)</label>
-                        <div className="relative">
-                          <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                          <input type="text" name="excludeUsers" value={targeting.excludeUsers} onChange={handleTargetingChange} placeholder="e.g. 101, 102" disabled={isReadOnly} className="w-full bg-[#0B0D14] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white focus:outline-none focus:border-[#A66CFF] disabled:opacity-60" />
+                          <input type="text" name="excludeCountries" value={targeting.excludeCountries} onChange={handleTargetingChange} placeholder="e.g. PK, BD" disabled={isReadOnly} className="w-full bg-[#0B0D14] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white focus:outline-none focus:border-[#A66CFF] disabled:opacity-60" />
                         </div>
                       </div>
 
-                      {/* 🔥 QUICK USER EXCLUSION (PATCH) 🔥 */}
+                      {/* 🔥 EXCLUDE USERS - UI FIXED 🔥 */}
+                      <div className="flex flex-col gap-2 border-b border-white/5 pb-6 relative" ref={userSearchRef}>
+                        <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest">Exclude Specific Users</label>
+                        
+                        {/* Display currently selected users as chips */}
+                        {targeting.excludeUsers && (
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {targeting.excludeUsers.split(',').map(s => s.trim()).filter(Boolean).map(idStr => {
+                              const u = allUsers.find(u => String(u.id || u._id || u.userId) === idStr);
+                              return (
+                                <span key={idStr} className="bg-white/10 border border-white/20 text-white text-[11px] px-2 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
+                                  {u ? <><span className="font-bold text-[#A66CFF]">{u.name || u.userName}</span> <span className="opacity-50">({idStr})</span></> : `ID: ${idStr}`}
+                                  {!isReadOnly && (
+                                    <X className="w-3 h-3 ml-1 cursor-pointer hover:text-rose-400 transition-colors" onClick={() => handleRemoveUserFromExclusion(idStr)} />
+                                  )}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Search Input for Main List */}
+                        {!isReadOnly && (
+                          <div className="relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                            <input 
+                              type="text" 
+                              value={userSearchTerm} 
+                              onChange={(e) => {
+                                setUserSearchTerm(e.target.value);
+                                setIsUserDropdownOpen(true);
+                              }}
+                              onFocus={() => setIsUserDropdownOpen(true)}
+                              placeholder="Search user by name, email or ID to add..." 
+                              className="w-full bg-[#0B0D14] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white focus:outline-none focus:border-[#8B5CF6]/30 transition-colors shadow-inner relative z-[10]" 
+                            />
+                            
+                            {/* Search Dropdown with refined UI */}
+                            <AnimatePresence>
+                              {isUserDropdownOpen && (
+                                <motion.div 
+                                  initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                                  className="absolute left-0 top-[calc(100%+8px)] w-full max-h-[260px] overflow-y-auto overflow-x-hidden custom-scrollbar bg-[#1A1C24] border border-[#8B5CF6]/30 rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.6)] z-[999] flex flex-col py-1"
+                                >
+                                  {getFilteredUsers(userSearchTerm).length > 0 ? getFilteredUsers(userSearchTerm).map((u, i) => {
+                                    const uId = String(u.id || u._id || u.userId);
+                                    return (
+                                      <div 
+                                        key={i} 
+                                        onClick={() => handleAddUserToExclusion(uId)} 
+                                        className="px-4 py-3 hover:bg-[#8B5CF6]/10 cursor-pointer flex items-center justify-between border-b border-white/5 last:border-b-0 transition-colors"
+                                      >
+                                        <div className="flex flex-col">
+                                          <span className="text-sm font-bold text-white">{u.name || u.userName || 'Unknown'}</span>
+                                          <span className="text-[11px] text-gray-400 mt-0.5">{u.email || 'No email'}</span>
+                                        </div>
+                                        <span className="text-[11px] font-black text-[#A66CFF] tracking-wider uppercase">ID: {uId}</span>
+                                      </div>
+                                    )
+                                  }) : (
+                                    <div className="p-4 text-center text-gray-500 text-sm">No users found</div>
+                                  )}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 🔥 QUICK USER EXCLUSION (PATCH) UI FIXED 🔥 */}
                       {activeTab === 'edit' && (
-                        <div className="flex flex-col gap-3 pt-2">
+                        <div className="flex flex-col gap-3 pt-2 relative" ref={quickSearchRef}>
                           <label className="text-xs font-bold text-[#A66CFF] uppercase tracking-widest flex items-center gap-2">
                             <Users className="w-4 h-4" /> Quick Manage User Exclusion (Live)
                           </label>
-                          <div className="flex gap-2">
-                            <input 
-                              type="number" value={quickUserId} onChange={(e) => setQuickUserId(e.target.value)} placeholder="User ID (e.g. 45)" 
-                              className="w-[120px] bg-[#0B0D14] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#A66CFF]" 
-                            />
-                            <button type="button" onClick={() => handleQuickExclusion('exclude')} disabled={!quickUserId || isQuickPatching} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                          <div className="flex gap-2 relative">
+                            
+                            <div className="relative flex-1">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                              <input 
+                                type="text" 
+                                value={quickSearchTerm} 
+                                onChange={(e) => {
+                                  setQuickSearchTerm(e.target.value);
+                                  const exact = allUsers.find(u => String(u.id||u._id) === e.target.value || u.email === e.target.value);
+                                  if(exact) setQuickUserId(String(exact.id || exact._id));
+                                  else setQuickUserId('');
+                                  setIsQuickDropdownOpen(true);
+                                }} 
+                                onFocus={() => setIsQuickDropdownOpen(true)}
+                                placeholder="Search user to manage..." 
+                                className="w-full bg-[#0B0D14] border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#8B5CF6]/30 relative z-[10]" 
+                              />
+                              
+                              {/* Quick Search Dropdown with refined UI */}
+                              <AnimatePresence>
+                                {isQuickDropdownOpen && (
+                                  <motion.div 
+                                    initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                                    className="absolute left-0 top-[calc(100%+8px)] w-full max-w-[320px] max-h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar bg-[#1A1C24] border border-[#8B5CF6]/30 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[200] flex flex-col py-1"
+                                  >
+                                    {getFilteredUsers(quickSearchTerm).length > 0 ? getFilteredUsers(quickSearchTerm).map((u, i) => {
+                                      const uId = String(u.id || u._id || u.userId);
+                                      return (
+                                        <div 
+                                          key={i} 
+                                          onClick={() => {
+                                            setQuickUserId(uId);
+                                            setQuickSearchTerm(`${u.name || u.userName} (${uId})`);
+                                            setIsQuickDropdownOpen(false);
+                                          }} 
+                                          className="px-4 py-3 hover:bg-[#8B5CF6]/10 cursor-pointer flex items-center justify-between border-b border-white/5 last:border-b-0 transition-colors"
+                                        >
+                                          <div className="flex flex-col">
+                                            <span className="text-sm font-bold text-white">{u.name || u.userName || 'Unknown'}</span>
+                                            <span className="text-[11px] text-[#8F95A3] mt-0.5">{u.email || 'No email'}</span>
+                                          </div>
+                                          <span className="text-[11px] font-black text-[#A66CFF] tracking-wider uppercase">ID: {uId}</span>
+                                        </div>
+                                      )
+                                    }) : (
+                                      <div className="p-4 text-center text-gray-500 text-sm">No users found</div>
+                                    )}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+
+                            <button type="button" onClick={() => handleQuickExclusion('exclude')} disabled={!quickUserId || isQuickPatching} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0">
                               {isQuickPatching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserMinus className="w-3.5 h-3.5" />} Exclude
                             </button>
-                            <button type="button" onClick={() => handleQuickExclusion('include')} disabled={!quickUserId || isQuickPatching} className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                            <button type="button" onClick={() => handleQuickExclusion('include')} disabled={!quickUserId || isQuickPatching} className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0">
                               {isQuickPatching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />} Include
                             </button>
                           </div>
                           <span className="text-[10px] text-gray-500 italic">This patches the live leaderboard instantly without clicking "Save".</span>
                         </div>
                       )}
+
                     </div>
                   </div>
                 </div>
@@ -702,7 +890,7 @@ export default function AdminLeaderboardPage() {
                     <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-6">
                       <h2 className="text-lg font-black text-white flex items-center gap-2"><DollarSign className="w-5 h-5 text-emerald-400" /> Prize Distribution</h2>
                       {!isReadOnly && (
-                        <button type="button" onClick={handleAddPrize} className="bg-white/5 hover:bg-white/10 text-emerald-400 border border-emerald-400/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Add Tier</button>
+                        <button type="button" onClick={handleAddPrize} className="bg-white/5 hover:bg-white/10 text-emerald-400 border border-emerald-400/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Add Prize</button>
                       )}
                     </div>
                     <div className="flex flex-col gap-4 overflow-y-auto custom-scrollbar flex-1 pb-4">

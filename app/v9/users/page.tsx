@@ -7,7 +7,7 @@ import {
   Users, UserCheck, UserX, FileText, FileClock, 
   Search, Eye, ChevronLeft, ChevronRight, X, Loader2, Mail, MapPin, Phone, ShieldCheck,
   Gift, Share2, History, MonitorSmartphone, Wallet, AlertCircle, Clock, Info, ShieldAlert, Layers, Star, SlidersHorizontal, PlusCircle, MinusCircle, DollarSign, CheckCircle2, XCircle,
-  AlertOctagon // 🔥 Imported AlertOctagon for Warning Button
+  AlertOctagon, TrendingUp, RefreshCw
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -22,10 +22,15 @@ export default function AdminUsersPage() {
   const currency = useCurrency();
   
   const [users, setUsers] = useState<any[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Client-Side Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 50;
+
   // Profile View States
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
@@ -42,7 +47,7 @@ export default function AdminUsersPage() {
   const [isSubmittingAdjust, setIsSubmittingAdjust] = useState(false);
   const [adjustMessage, setAdjustMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
-  // --- 🔥 WARNING MODAL STATES 🔥 ---
+  // --- WARNING MODAL STATES ---
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [selectedUserForWarning, setSelectedUserForWarning] = useState<any>(null);
   const [warningTitle, setWarningTitle] = useState('');
@@ -50,52 +55,77 @@ export default function AdminUsersPage() {
   const [isSubmittingWarning, setIsSubmittingWarning] = useState(false);
   const [warningMessage, setWarningMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
-  const fetchUsers = async () => {
+  // 🔥 FETCH DATA LOOP & DASHBOARD API 🔥
+  const fetchAllData = async () => {
     setIsLoading(true);
     setErrorMsg(null);
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
     const adminId = getAdminId();
     
-    if (!token) {
+    if (!token || !adminId) {
       router.push('/v9/login');
       return;
     }
 
-    if (!adminId) {
-      setErrorMsg("Admin session incomplete (missing adminId). Please log in again.");
-      setIsLoading(false);
-      return;
-    }
-
+    // 1. Fetch Dashboard Stats (4 Columns)
     try {
-      const res = await fetch(`https://api.binnycash.com/api/admin/userList?adminId=${encodeURIComponent(adminId)}&page=1&limit=50`, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
+      const dashRes = await fetch(`https://api.binnycash.com/api/admin/dashboard`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
-      
-      const json = await res.json().catch(() => null);
-      const list = Array.isArray(json?.data) ? json.data : [];
-
-      if (!res.ok || json?.code !== 200 || list.length === 0) {
-        setErrorMsg(json?.message || "Server returned empty list or error.");
-        setUsers([]);
-      } else {
-        setUsers(list);
+      const dashJson = await dashRes.json();
+      if (dashRes.ok && dashJson.data) {
+        setDashboardStats(dashJson.data);
       }
-    } catch (err: any) {
-      console.error("Failed to load users from API:", err);
-      setErrorMsg("Network or Server error.");
-      setUsers([]);
-    } finally {
-      setIsLoading(false);
+    } catch (err) {
+      console.error("Dashboard stats fetch error:", err);
     }
+
+    // 2. Loop until all users are fetched
+    let pageNum = 1;
+    let hasMore = true;
+    let accumulatedUsers: any[] = [];
+
+    while (hasMore && pageNum <= 100) { // Max 100 pages safety net
+      try {
+        const res = await fetch(`https://api.binnycash.com/api/admin/userList?adminId=${encodeURIComponent(adminId)}&page=${pageNum}&limit=50`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+        });
+        
+        const json = await res.json().catch(() => null);
+        let list = [];
+        if (Array.isArray(json?.data)) {
+          list = json.data;
+        } else if (json?.data?.users && Array.isArray(json.data.users)) {
+          list = json.data.users;
+        }
+
+        if (list && list.length > 0) {
+          accumulatedUsers = [...accumulatedUsers, ...list];
+          setUsers(accumulatedUsers); // Progressive render
+          pageNum++;
+          if (list.length < 50) {
+            hasMore = false; // Reached the end
+          }
+        } else {
+          hasMore = false; // Empty result
+        }
+      } catch (err: any) {
+        console.error("Failed to load users page:", pageNum, err);
+        hasMore = false;
+        if (accumulatedUsers.length === 0) setErrorMsg("Network error while fetching users.");
+      }
+    }
+    setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchAllData();
   }, [router]);
+
+  // Reset page to 1 when searching
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   // GET USER DETAILED PROFILE API
   const handleViewProfile = async (numericId: string | number) => {
@@ -109,10 +139,7 @@ export default function AdminUsersPage() {
     try {
       const res = await fetch(`https://api.binnycash.com/api/admin/detail/${encodeURIComponent(numericId)}`, {
         method: 'GET',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
       
       const json = await res.json();
@@ -161,7 +188,15 @@ export default function AdminUsersPage() {
       const json = await res.json();
       if (res.ok || json?.code === 200) {
         setAdjustMessage({ text: json.message || "Balance updated successfully!", type: 'success' });
-        fetchUsers(); // Refresh list background
+        // Update local state to reflect change without re-fetching all pages
+        setUsers(users.map(u => {
+          if (u.id === selectedUserForAdjust.id || u._id === selectedUserForAdjust._id) {
+            const currentBal = Number(u.availableBalance || 0);
+            const adjustAmount = Number(amountInput);
+            return { ...u, availableBalance: actionStatus === '1' ? currentBal + adjustAmount : Math.max(0, currentBal - adjustAmount) };
+          }
+          return u;
+        }));
         setTimeout(() => {
           setIsAdjustModalOpen(false);
           setAdjustMessage(null);
@@ -184,7 +219,7 @@ export default function AdminUsersPage() {
     setIsAdjustModalOpen(true);
   };
 
-  // 🔥 HANDLE SEND WARNING SUBMIT (PUT) 🔥
+  // HANDLE SEND WARNING SUBMIT (PUT)
   const openWarningModal = (user: any) => {
     setSelectedUserForWarning(user);
     setWarningTitle('');
@@ -233,34 +268,53 @@ export default function AdminUsersPage() {
     }
   };
 
+  // Search & Pagination Logic
   const safeUsers = Array.isArray(users) ? users : [];
   const filteredUsers = safeUsers.filter(u => {
     const name = u?.userName || u?.name || '';
     const email = u?.email || '';
+    const idStr = String(u?.id || u?._id || '');
     const query = searchQuery.toLowerCase();
-    return name.toLowerCase().includes(query) || email.toLowerCase().includes(query);
+    return name.toLowerCase().includes(query) || email.toLowerCase().includes(query) || idStr.includes(query);
   });
 
-  const totalUsersCount = safeUsers.length;
-  const activeUsersCount = safeUsers.filter(u => u?.status === 'ACTIVE').length;
-  const deletedUsersCount = safeUsers.filter(u => u?.status === 'DELETE').length;
-  
-  const kycSubmittedCount = safeUsers.filter(u => {
-    const s = String(u?.documents?.status || '').toLowerCase();
-    return ['approved', 'submitted', 'pending', 'under_review', 'rejected', 'reupload_required'].includes(s);
-  }).length;
-  
-  const kycPendingCount = safeUsers.filter(u => {
-    const s = String(u?.documents?.status || '').toLowerCase();
-    return ['submitted', 'pending', 'under_review'].includes(s);
-  }).length;
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage) || 1;
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * usersPerPage, currentPage * usersPerPage);
 
+  // 🔥 TOP OVERVIEW CARDS (Mapped from Dashboard API) 🔥
   const overviewStats = [
-    { title: "Total Users", value: totalUsersCount, trend: "Live Count", trendColor: "text-emerald-400", icon: Users, bgColor: "bg-[#7C3AED]/20", iconColor: "text-[#7C3AED]" },
-    { title: "Active Users", value: activeUsersCount, trend: "Operational", trendColor: "text-emerald-400", icon: UserCheck, bgColor: "bg-emerald-500/20", iconColor: "text-emerald-400" },
-    { title: "Deleted Users", value: deletedUsersCount, trend: "Marked Delete", trendColor: "text-red-400", icon: UserX, bgColor: "bg-red-500/20", iconColor: "text-red-400" },
-    { title: "KYC Documents", value: kycSubmittedCount, trend: "Total Submissions", trendColor: "text-blue-400", icon: FileText, bgColor: "bg-blue-500/20", iconColor: "text-blue-400" },
-    { title: "KYC Pending Review", value: kycPendingCount, trend: "Awaiting Action", trendColor: "text-amber-400", icon: FileClock, bgColor: "bg-amber-500/20", iconColor: "text-amber-400" },
+    { 
+      title: "Total Users", 
+      value: dashboardStats?.users?.total || 0, 
+      subValue: `${dashboardStats?.users?.active || 0} Active`,
+      icon: Users, 
+      bgColor: "bg-blue-500/20", 
+      iconColor: "text-blue-400" 
+    },
+    { 
+      title: "Total Revenue", 
+      value: formatPrice(Number(dashboardStats?.revenue?.total || 0), currency), 
+      subValue: `Month: ${formatPrice(Number(dashboardStats?.revenue?.thisMonth || 0), currency)}`,
+      icon: DollarSign, 
+      bgColor: "bg-emerald-500/20", 
+      iconColor: "text-emerald-400" 
+    },
+    { 
+      title: "Total Payouts", 
+      value: formatPrice(Number(dashboardStats?.payout?.total || 0), currency), 
+      subValue: `Month: ${formatPrice(Number(dashboardStats?.payout?.thisMonth || 0), currency)}`,
+      icon: Wallet, 
+      bgColor: "bg-amber-500/20", 
+      iconColor: "text-amber-400" 
+    },
+    { 
+      title: "Net Profit", 
+      value: formatPrice(Number(dashboardStats?.profit?.total || 0), currency), 
+      subValue: `Month: ${formatPrice(Number(dashboardStats?.profit?.thisMonth || 0), currency)}`,
+      icon: TrendingUp, 
+      bgColor: "bg-[#7C3AED]/20", 
+      iconColor: "text-[#7C3AED]" 
+    },
   ];
 
   const getStatusColor = (status: string) => status === 'ACTIVE' ? 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10' : 'text-red-400 border-red-400/20 bg-red-400/10';
@@ -295,12 +349,12 @@ export default function AdminUsersPage() {
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-2xl font-bold text-white mt-1">User List</h1>
-            <p className="text-sm text-gray-400 mt-1">Manage all registered users on the platform.</p>
-          </div>
+            <h1 className="text-2xl font-bold text-white mt-1">User List & Directory</h1>
+           </div>
           <div className="flex items-center gap-3">
-             <button onClick={fetchUsers} className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer shadow-sm">
-               Refresh Data
+             <button onClick={fetchAllData} disabled={isLoading} className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer shadow-sm">
+               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+               Refresh
              </button>
           </div>
         </div>
@@ -313,18 +367,19 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* STATS OVERVIEW CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* 🔥 NEW 4 COLUMN STATS OVERVIEW CARDS 🔥 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {overviewStats.map((stat, idx) => {
           const Icon = stat.icon;
           return (
-            <div key={idx} className="bg-[#12141C] border border-white/5 rounded-xl p-4 flex items-start gap-4 shadow-sm hover:border-white/10 transition-colors">
+            <div key={idx} className="bg-[#12141C] border border-white/5 rounded-xl p-5 flex items-start gap-4 shadow-sm hover:border-white/10 transition-colors">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${stat.bgColor} ${stat.iconColor}`}>
                 <Icon className="w-5 h-5" />
               </div>
               <div className="flex flex-col">
                 <span className="text-xs text-gray-400 font-medium">{stat.title}</span>
                 <span className="text-xl font-bold text-white mt-0.5">{isLoading ? '...' : stat.value}</span>
+                <span className={`text-[10px] font-medium mt-1 ${stat.iconColor}`}>{stat.subValue}</span>
               </div>
             </div>
           );
@@ -339,7 +394,7 @@ export default function AdminUsersPage() {
              type="text" 
              value={searchQuery}
              onChange={(e) => setSearchQuery(e.target.value)}
-             placeholder="Search by username or email..." 
+             placeholder="Search by username, ID or email..." 
              className="w-full bg-transparent border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7C3AED] transition-colors"
            />
         </div>
@@ -347,7 +402,7 @@ export default function AdminUsersPage() {
 
       {/* DATA TABLE */}
       <div className="bg-[#12141C] border border-white/5 rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-h-[400px]">
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
               <tr className="border-b border-white/10 text-gray-400 text-xs font-semibold bg-[#161821]">
@@ -362,34 +417,34 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-sm">
-              {isLoading ? (
+              {isLoading && users.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-500 font-medium">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#7C3AED]" /> Loading users database...
+                  <td colSpan={8} className="py-20 text-center text-gray-500 font-medium">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-[#7C3AED]" /> Loading full user database...
                   </td>
                 </tr>
-              ) : filteredUsers.length > 0 ? (
-                filteredUsers.map((u: any, idx: number) => {
+              ) : paginatedUsers.length > 0 ? (
+                paginatedUsers.map((u: any, idx: number) => {
                   const avatarUrl = resolveImage(u?.image);
                   const userName = u?.userName || u?.name || 'Unnamed User';
                   const firstLetter = userName.charAt(0).toUpperCase();
-                  const displayId = u?.id || idx + 1;
+                  const displayId = u?.id || u?._id || idx + 1;
                   const joinedDate = u?.createdAt ? new Date(u.createdAt) : null;
                   
                   const docStatus = u?.documents?.status || 'not_submited';
-                  const hasImageError = imageErrors[u?._id];
+                  const hasImageError = imageErrors[u?._id || u?.id];
                   const countryDisplay = (u?.countryCode || u?.country || 'IN').substring(0, 2).toUpperCase();
 
                   return (
-                    <tr key={u?._id || idx} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="py-3 px-5 text-gray-400 font-mono">{displayId}</td>
+                    <tr key={u?._id || u?.id || idx} className="hover:bg-white/[0.02] transition-colors group">
+                      <td className="py-3 px-5 text-gray-400 font-mono text-xs">{displayId}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           {avatarUrl && !hasImageError ? (
                             <img 
                               src={avatarUrl} 
                               alt="avatar" 
-                              onError={() => setImageErrors(prev => ({ ...prev, [u._id]: true }))}
+                              onError={() => setImageErrors(prev => ({ ...prev, [u?._id || u?.id]: true }))}
                               className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0" 
                             />
                           ) : (
@@ -434,7 +489,7 @@ export default function AdminUsersPage() {
                       <td className="py-3 px-4">
                          <div className="flex items-center justify-center gap-2">
                             <button 
-                              onClick={() => handleViewProfile(u?.id)}
+                              onClick={() => handleViewProfile(u?.id || u?._id)}
                               className="w-8 h-8 rounded-lg bg-[#7C3AED]/10 hover:bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/20 flex items-center justify-center transition-colors cursor-pointer"
                               title="View Full Profile Details"
                             >
@@ -449,7 +504,6 @@ export default function AdminUsersPage() {
                               <SlidersHorizontal className="w-4 h-4" /> 
                             </button>
 
-                            {/* 🔥 NEW WARNING ACTION BUTTON 🔥 */}
                             <button 
                               onClick={() => openWarningModal(u)}
                               className="w-8 h-8 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 flex items-center justify-center transition-colors cursor-pointer"
@@ -464,20 +518,41 @@ export default function AdminUsersPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-500">No users found in database.</td>
+                  <td colSpan={8} className="py-12 text-center text-gray-500">
+                    {searchQuery ? 'No matching users found.' : 'No users found in database.'}
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
         
-        {/* PAGINATION FOOTER */}
+        {/* CLIENT SIDE PAGINATION FOOTER */}
         <div className="flex items-center justify-between p-4 border-t border-white/5 bg-[#12141C]">
-           <span className="text-sm text-gray-400">Showing {filteredUsers.length} total users</span>
+           <span className="text-sm text-gray-400">
+             Showing {filteredUsers.length > 0 ? (currentPage - 1) * usersPerPage + 1 : 0} - {Math.min(currentPage * usersPerPage, filteredUsers.length)} of <span className="font-bold text-white">{filteredUsers.length}</span> total users
+             {isLoading && <span className="text-[#A66CFF] ml-2 animate-pulse">(fetching more...)</span>}
+           </span>
            <div className="flex items-center gap-2">
-              <button className="w-8 h-8 rounded border border-white/10 flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 disabled:opacity-50 cursor-pointer"><ChevronLeft className="w-4 h-4" /></button>
-              <button className="w-8 h-8 rounded bg-[#7C3AED] text-white flex items-center justify-center font-medium text-sm cursor-pointer">1</button>
-              <button className="w-8 h-8 rounded border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                disabled={currentPage === 1} 
+                className="w-8 h-8 rounded border border-white/10 flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 disabled:opacity-50 cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              
+              <div className="px-3 h-8 rounded bg-[#7C3AED] text-white flex items-center justify-center font-medium text-sm cursor-default">
+                Page {currentPage} of {totalPages}
+              </div>
+              
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                disabled={currentPage === totalPages} 
+                className="w-8 h-8 rounded border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-50 cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
            </div>
         </div>
       </div>
