@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Ticket, Plus, Search, RefreshCcw, Loader2, X, AlertCircle, 
   Save, CheckCircle2, ShieldCheck, Clock, Settings, Zap, 
-  Activity, Users, Calendar, Edit2, Trash2, History, LayoutDashboard, ChevronLeft, ChevronRight, DollarSign
+  Activity, Users, Calendar, Edit2, Trash2, History, LayoutDashboard, ChevronLeft, ChevronRight, DollarSign, Layers
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -25,6 +26,9 @@ export default function AdminPromosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // 🔥 CUSTOM DELETE MODAL STATE 🔥
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
 
   // --- REDEMPTION LOGS STATES ---
@@ -38,27 +42,22 @@ export default function AdminPromosPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [editingPromoId, setEditingPromoId] = useState<string | null>(null);
+  const [submitMessage, setSubmitMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
-  // Form State
   const initialFormState = {
     code: '',
     name: '',
-    campaignName: '',
     description: '',
     source: 'Website',
-    rewardType: 'CASH',
+    rewardType: 'COINS',
     amount: '',
     startDate: '',
     endDate: '',
     maxUsage: '',
-    perUserLimit: '1',
     newUsersOnly: false,
     kycRequired: false,
     minAccountAgeDays: '0',
     minEarnings: '0',
-    deviceLimit: '1',
-    checkReferralAbuse: true,
-    blockVpnProxy: true,
     status: 'ACTIVE'
   };
 
@@ -75,38 +74,22 @@ export default function AdminPromosPage() {
     }
   };
 
-  // 🔥 1 & 8. Fetch Dashboard AND Analytics Stats Together 🔥
+  // --- Fetch Dashboard Stats ---
   const fetchDashboardStats = async () => {
     setIsDashboardLoading(true);
     const token = localStorage.getItem('admin_token');
     
     try {
-      // Parallel fetch for both APIs to ensure we get all data instantly
-      const [dashRes, analyticsRes] = await Promise.all([
-        fetch(`https://api.binnycash.com/api/admin/bonusDashboard`, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-        }),
-        fetch(`https://api.binnycash.com/api/admin/bonusAnalytics`, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-        })
-      ]);
+      const res = await fetch(`https://api.binnycash.com/api/admin/bonusDashboard`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+      });
 
-      const dashJson = await dashRes.json().catch(() => null);
-      const analyticsJson = await analyticsRes.json().catch(() => null);
+      const json = await res.json().catch(() => null);
 
-      let mergedStats = {};
-      
-      if (dashRes.ok && dashJson?.code === 200 && dashJson?.data) {
-        mergedStats = { ...mergedStats, ...dashJson.data };
+      if (res.ok && json?.code === 200 && json?.data) {
+        setDashboardStats(json.data);
       }
-      
-      if (analyticsRes.ok && analyticsJson?.code === 200 && analyticsJson?.data) {
-        mergedStats = { ...mergedStats, ...analyticsJson.data };
-      }
-
-      setDashboardStats(mergedStats);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     } finally {
@@ -114,7 +97,7 @@ export default function AdminPromosPage() {
     }
   };
 
-  // 🔥 2. Fetch Promos List 🔥
+  // --- Fetch Promos List ---
   const fetchPromos = async () => {
     setIsLoading(true);
     setErrorMsg(null);
@@ -125,21 +108,36 @@ export default function AdminPromosPage() {
       return;
     }
 
-    try {
-      const res = await fetch(`https://api.binnycash.com/api/admin/bonuscodeList`, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
-      const json = await res.json().catch(() => null);
+    let pageNum = 1;
+    let hasMore = true;
+    let accumulatedList: any[] = [];
 
-      if (res.ok && json?.code === 200 && json?.data) {
-        setPromos(Array.isArray(json.data) ? json.data : []);
-      } else {
-        setErrorMsg(json?.message || "Failed to load promo codes.");
-        setPromos([]);
+    try {
+      while (hasMore && pageNum <= 100) { 
+        const res = await fetch(`https://api.binnycash.com/api/admin/bonuscodeList?page=${pageNum}`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+        });
+        const json = await res.json().catch(() => null);
+
+        if (res.ok && json?.code === 200) {
+          const list = Array.isArray(json.data) ? json.data : (Array.isArray(json.data?.list) ? json.data.list : []);
+          
+          if (list && list.length > 0) {
+            accumulatedList = [...accumulatedList, ...list];
+            pageNum++;
+            const totalPages = json.data?.pagination?.pages || 1;
+            if (pageNum > totalPages) hasMore = false;
+          } else {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+          if (accumulatedList.length === 0) setErrorMsg(json?.message || "Failed to load promo codes.");
+        }
       }
+      setPromos(accumulatedList);
     } catch (err) {
-      console.error("Promos fetch error:", err);
       setErrorMsg("Network error while fetching promo codes.");
       setPromos([]);
     } finally {
@@ -147,7 +145,7 @@ export default function AdminPromosPage() {
     }
   };
 
-  // 🔥 3. Fetch Redemption Logs 🔥
+  // --- Fetch Redemption Logs ---
   const fetchLogs = async (page = 1) => {
     setIsLogsLoading(true);
     const token = localStorage.getItem('admin_token');
@@ -165,7 +163,6 @@ export default function AdminPromosPage() {
         setLogs([]);
       }
     } catch (err) {
-      console.error("Logs fetch error:", err);
       setLogs([]);
     } finally {
       setIsLogsLoading(false);
@@ -189,44 +186,48 @@ export default function AdminPromosPage() {
     else fetchLogs(logsPage);
   };
 
-  // 🔥 4. DELETE Promo Code 🔥
-  const handleDeletePromo = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this promo code? This action cannot be undone.")) return;
+  // 🔥 CUSTOM DELETE LOGIC 🔥
+  const confirmDeletePromo = async () => {
+    if (!deleteConfirmId) return;
     
-    setIsDeletingId(id);
+    setIsDeletingId(deleteConfirmId);
     const token = localStorage.getItem('admin_token');
     
     try {
-      const res = await fetch(`https://api.binnycash.com/api/admin/deleteBonusCode/${id}`, {
+      const res = await fetch(`https://api.binnycash.com/api/admin/deleteBonusCode/${deleteConfirmId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
       const json = await res.json();
       
       if (res.ok && (json.code === 200 || json.type === 'success')) {
-        setPromos(prev => prev.filter(p => (p._id || p.id) !== id));
+        setPromos(prev => prev.filter(p => (p._id || p.id) !== deleteConfirmId));
         fetchDashboardStats(); 
+        setDeleteConfirmId(null);
       } else {
-        alert(json.message || "Failed to delete promo code.");
+        setErrorMsg(json.message || "Failed to delete promo code.");
+        setDeleteConfirmId(null);
       }
     } catch (err) {
-      alert("Network Error while deleting promo code.");
+      setErrorMsg("Network Error while deleting promo code.");
+      setDeleteConfirmId(null);
     } finally {
       setIsDeletingId(null);
     }
   };
 
-  // Open Create Modal
   const openCreateModal = () => {
     setEditingPromoId(null);
     setFormData(initialFormState);
+    setSubmitMessage(null);
     setIsModalOpen(true);
   };
 
-  // 🔥 5. Fetch Details for Update Modal 🔥
+  // --- Fetch Details for Update Modal ---
   const openEditModal = async (promoId: string) => {
     setEditingPromoId(promoId);
     setFormData(initialFormState);
+    setSubmitMessage(null);
     setIsModalOpen(true);
     setIsFetchingDetails(true);
     
@@ -244,76 +245,66 @@ export default function AdminPromosPage() {
         setFormData({
           code: p.code || '',
           name: p.name || '',
-          campaignName: p.campaignName || '',
           description: p.description || '',
           source: p.source || 'Website',
-          rewardType: p.rewardType || 'CASH',
-          amount: p.amount?.toString() || '',
+          rewardType: p.rewardType || 'COINS',
+          amount: p.amount?.toString() || '0',
           startDate: formatForInput(p.startDate),
           endDate: formatForInput(p.endDate),
-          maxUsage: p.maxUsage?.toString() || '',
-          perUserLimit: p.perUserLimit?.toString() || '1',
+          maxUsage: p.maxUsage?.toString() || '1',
           newUsersOnly: p.newUsersOnly || false,
           kycRequired: p.kycRequired || false,
           minAccountAgeDays: p.minAccountAgeDays?.toString() || '0',
           minEarnings: p.minEarnings?.toString() || '0',
-          deviceLimit: p.deviceLimit?.toString() || '1',
-          checkReferralAbuse: p.checkReferralAbuse !== false,
-          blockVpnProxy: p.blockVpnProxy !== false,
           status: p.status || 'ACTIVE'
         });
       } else {
-        alert(json.message || "Failed to fetch promo details.");
+        setErrorMsg(json.message || "Failed to fetch promo details.");
         setIsModalOpen(false);
       }
     } catch (err) {
-      alert("Network Error while fetching promo details.");
+      setErrorMsg("Network Error while fetching promo details.");
       setIsModalOpen(false);
     } finally {
       setIsFetchingDetails(false);
     }
   };
 
-  // 🔥 6 & 7. Submit Form (POST for Create, PUT for Update) 🔥
+  // --- Form Submit ---
   const handleSavePromo = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // 🔥 Custom validation messages inside the modal 🔥
     if (!formData.maxUsage) {
-      alert("Max Usage is a required field.");
+      setSubmitMessage({ text: "Max Usage is a required field.", type: 'error' });
       return;
     }
-    
     if (!editingPromoId && !formData.code) {
-      alert("Promo Code string is required.");
+      setSubmitMessage({ text: "Promo Code string is required.", type: 'error' });
       return;
     }
 
     setIsCreating(true);
+    setSubmitMessage(null);
     const token = localStorage.getItem('admin_token');
 
-    const fd = new FormData();
+    const fd = new URLSearchParams();
     if (!editingPromoId) fd.append('code', formData.code); 
     
     fd.append('name', formData.name);
-    fd.append('campaignName', formData.campaignName);
     fd.append('description', formData.description);
     fd.append('source', formData.source);
     fd.append('rewardType', formData.rewardType);
-    fd.append('amount', formData.amount.toString());
+    fd.append('amount', formData.amount || '0');
     
     if (formData.startDate) fd.append('startDate', new Date(formData.startDate).toISOString());
     if (formData.endDate) fd.append('endDate', new Date(formData.endDate).toISOString());
     
-    fd.append('maxUsage', formData.maxUsage.toString());
-    fd.append('perUserLimit', formData.perUserLimit.toString());
-    fd.append('minAccountAgeDays', formData.minAccountAgeDays.toString());
-    fd.append('minEarnings', formData.minEarnings.toString());
-    fd.append('deviceLimit', formData.deviceLimit.toString());
-    
+    fd.append('maxUsage', formData.maxUsage || '1');
     fd.append('newUsersOnly', formData.newUsersOnly ? 'true' : 'false');
     fd.append('kycRequired', formData.kycRequired ? 'true' : 'false');
-    fd.append('checkReferralAbuse', formData.checkReferralAbuse ? 'true' : 'false');
-    fd.append('blockVpnProxy', formData.blockVpnProxy ? 'true' : 'false');
+    fd.append('minAccountAgeDays', formData.minAccountAgeDays || '0');
+    fd.append('minEarnings', formData.minEarnings || '0');
 
     if (editingPromoId) {
       fd.append('status', formData.status);
@@ -328,21 +319,28 @@ export default function AdminPromosPage() {
     try {
       const res = await fetch(url, {
         method: method,
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
         body: fd
       });
       
       const json = await res.json();
-      if (res.ok && (json.code === 200 || json.type === 'success')) {
-        setIsModalOpen(false);
-        setFormData(initialFormState);
-        fetchPromos(); 
-        fetchDashboardStats();
+      if (res.ok && (json.code === 200 || json.code === 201 || json.type === 'success')) {
+        setSubmitMessage({ text: json.message || `Promo code ${editingPromoId ? 'updated' : 'created'} successfully!`, type: 'success' });
+        setTimeout(() => {
+          setIsModalOpen(false);
+          setFormData(initialFormState);
+          fetchPromos(); 
+          fetchDashboardStats();
+          setSubmitMessage(null);
+        }, 1200);
       } else {
-        alert(json.message || `Failed to ${editingPromoId ? 'update' : 'create'} promo code.`);
+        setSubmitMessage({ text: json.message || `Failed to ${editingPromoId ? 'update' : 'create'} promo code.`, type: 'error' });
       }
     } catch (err) {
-      alert(`Network Error while ${editingPromoId ? 'updating' : 'creating'} promo code.`);
+      setSubmitMessage({ text: `Network Error while ${editingPromoId ? 'updating' : 'creating'} promo code.`, type: 'error' });
     } finally {
       setIsCreating(false);
     }
@@ -357,7 +355,7 @@ export default function AdminPromosPage() {
   });
 
   return (
-    <div className="flex flex-col gap-6 text-white w-full max-w-[1600px] mx-auto pb-10 font-sans">
+    <div className="flex flex-col gap-6 text-white w-full max-w-[1600px] mx-auto pb-10 font-sans relative">
       
       {/* --- HEADER --- */}
       <div className="flex justify-between items-end">
@@ -384,31 +382,43 @@ export default function AdminPromosPage() {
         </div>
       </div>
 
-      {errorMsg && (
-        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <span className="text-sm font-bold">{errorMsg}</span>
-        </div>
-      )}
+      {/* --- CUSTOM GLOBAL ERROR BANNER --- */}
+      <AnimatePresence>
+        {errorMsg && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+            className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl flex items-center justify-between gap-3 shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span className="text-sm font-bold">{errorMsg}</span>
+            </div>
+            <button onClick={() => setErrorMsg(null)} className="p-1 hover:bg-rose-500/20 rounded-lg transition-colors cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* --- DASHBOARD STATS GRID --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
-          { title: "Total Active Codes", value: dashboardStats?.activeCodes || 0, icon: Ticket, color: "text-[#7C3AED]", bg: "bg-[#7C3AED]/10", border: "border-[#7C3AED]/20" },
-          { title: "Total Redemptions", value: dashboardStats?.totalRedeemed || 0, icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-          { title: "Total Cash Distributed", value: formatPrice(dashboardStats?.totalCashDistributed || 0, currency), icon: DollarSign, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-          { title: "Total Coins Distributed", value: dashboardStats?.totalCoinsDistributed || 0, icon: Zap, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" }
+          { title: "Total Codes", value: dashboardStats?.totalBonusCodes || 0, icon: Layers, color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
+          { title: "Active Codes", value: dashboardStats?.activeBonusCodes || 0, icon: Ticket, color: "text-[#7C3AED]", bg: "bg-[#7C3AED]/10", border: "border-[#7C3AED]/20" },
+          { title: "Redemptions", value: dashboardStats?.totalRedemptions || 0, icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+          { title: "Cash Disbursed", value: formatPrice(dashboardStats?.cashDistributed || 0, currency), icon: DollarSign, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+          { title: "Coins Disbursed", value: dashboardStats?.coinsDistributed || 0, icon: Zap, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" }
         ].map((stat, idx) => {
           const Icon = stat.icon;
           return (
-            <div key={idx} className="bg-[#12141C] border border-white/5 rounded-2xl p-5 shadow-sm hover:border-white/10 transition-all flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${stat.bg} ${stat.border}`}>
-                <Icon className={`w-6 h-6 ${stat.color}`} />
+            <div key={idx} className="bg-[#12141C] border border-white/5 rounded-xl p-4 shadow-sm hover:border-white/10 transition-all flex flex-col xl:flex-row items-start xl:items-center gap-3 xl:gap-4">
+              <div className={`w-10 h-10 xl:w-12 xl:h-12 rounded-xl flex items-center justify-center shrink-0 border ${stat.bg} ${stat.border}`}>
+                <Icon className={`w-5 h-5 xl:w-6 xl:h-6 ${stat.color}`} />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">{stat.title}</span>
-                <span className="text-2xl font-black text-white mt-1">
-                  {isDashboardLoading ? <Loader2 className="w-5 h-5 animate-spin text-gray-500 mt-1" /> : stat.value}
+                <span className="text-[9px] xl:text-[10px] text-gray-400 font-bold uppercase tracking-wider leading-tight">{stat.title}</span>
+                <span className="text-lg xl:text-2xl font-black text-white mt-0.5">
+                  {isDashboardLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500 mt-1" /> : stat.value}
                 </span>
               </div>
             </div>
@@ -456,7 +466,7 @@ export default function AdminPromosPage() {
                 <thead>
                   <tr className="border-b border-white/10 text-gray-400 text-xs font-bold uppercase tracking-wider bg-[#161821]">
                     <th className="py-4 px-5">Promo Code</th>
-                    <th className="py-4 px-4">Campaign</th>
+                    <th className="py-4 px-4">Info & Source</th>
                     <th className="py-4 px-4 text-center">Reward</th>
                     <th className="py-4 px-4 text-center">Usage</th>
                     <th className="py-4 px-4 text-right">Validity</th>
@@ -490,7 +500,7 @@ export default function AdminPromosPage() {
                           </td>
                           <td className="py-4 px-4">
                             <div className="flex flex-col">
-                              <span className="text-white font-medium">{p?.campaignName || 'General'}</span>
+                              <span className="text-white font-medium max-w-[150px] truncate" title={p?.description}>{p?.description || '---'}</span>
                               <span className="text-[10px] text-gray-500 uppercase">{p?.source || 'Website'}</span>
                             </div>
                           </td>
@@ -503,7 +513,7 @@ export default function AdminPromosPage() {
                             </div>
                           </td>
                           <td className="py-4 px-4 text-center">
-                            <span className="text-gray-300 font-bold">{p?.usedCount || 0}</span>
+                            <span className="text-gray-300 font-bold">{p?.totalRedeemedUsers || p?.usedCount || 0}</span>
                             <span className="text-gray-600 mx-1">/</span>
                             <span className="text-white font-bold">{p?.maxUsage || '∞'}</span>
                           </td>
@@ -528,12 +538,11 @@ export default function AdminPromosPage() {
                                 <Edit2 className="w-4 h-4" />
                               </button>
                               <button 
-                                onClick={() => handleDeletePromo(promoId)}
-                                disabled={isDeletingId === promoId}
-                                className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 hover:text-white hover:bg-rose-500/20 transition-colors flex items-center justify-center cursor-pointer disabled:opacity-50"
+                                onClick={() => setDeleteConfirmId(promoId)}
+                                className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 hover:text-white hover:bg-rose-500/20 transition-colors flex items-center justify-center cursor-pointer"
                                 title="Delete Promo"
                               >
-                                {isDeletingId === promoId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
@@ -652,6 +661,19 @@ export default function AdminPromosPage() {
               ) : (
                 <form id="promoForm" onSubmit={handleSavePromo} className="flex flex-col gap-8">
                   
+                  <AnimatePresence>
+                    {submitMessage && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                        className={`p-4 rounded-xl flex items-center gap-3 shadow-md border ${submitMessage.type === 'success' ? 'bg-[#00E57A]/10 border-[#00E57A]/30 text-[#00E57A]' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}`}
+                      >
+                        {submitMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
+                        <span className="font-bold text-sm tracking-wide">{submitMessage.text}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* --- BASIC DETAILS --- */}
                   <div className="bg-[#12141C] border border-white/5 rounded-2xl p-5">
                     <h4 className="text-sm font-black text-white flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
                       <Activity className="w-4 h-4 text-[#8B5CF6]" /> Basic Details
@@ -686,29 +708,15 @@ export default function AdminPromosPage() {
                         </div>
                       )}
 
-                      {!editingPromoId && (
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Display Name</label>
-                          <input type="text" placeholder="Summer Bonus" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
-                        </div>
-                      )}
-
-                      {editingPromoId && (
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Display Name</label>
-                          <input type="text" placeholder="Summer Bonus" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
-                        </div>
-                      )}
-
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Campaign Name</label>
-                        <input type="text" placeholder="August Campaign" value={formData.campaignName} onChange={(e) => setFormData({...formData, campaignName: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
+                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Display Name</label>
+                        <input type="text" placeholder="e.g. Summer Bonus" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
                       </div>
 
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Traffic Source</label>
                         <select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]">
-                          {['Instagram', 'Telegram', 'Discord', 'Website', 'Email', 'YouTube', 'Twitter', 'Facebook', 'LinkedIn', 'TikTok', 'Reddit', 'Snapchat', 'WhatsApp', 'Pinterest', 'Twitch', 'Push Notification', 'Partner', 'Influencer', 'Signup', 'Other'].map(s => (
+                          {['Website', 'Instagram', 'Telegram', 'Discord', 'Email', 'YouTube', 'Twitter', 'Facebook', 'Influencer', 'Signup', 'Other'].map(s => (
                             <option key={s} value={s}>{s}</option>
                           ))}
                         </select>
@@ -716,11 +724,12 @@ export default function AdminPromosPage() {
 
                       <div className="md:col-span-2 flex flex-col gap-1.5">
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Description</label>
-                        <input type="text" placeholder="Internal notes about this promo code..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
+                        <input type="text" placeholder="Promo code description..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
                       </div>
                     </div>
                   </div>
 
+                  {/* --- REWARD & DURATION --- */}
                   <div className="bg-[#12141C] border border-white/5 rounded-2xl p-5">
                     <h4 className="text-sm font-black text-white flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
                       <Zap className="w-4 h-4 text-emerald-400" /> Reward & Duration
@@ -729,41 +738,34 @@ export default function AdminPromosPage() {
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Reward Type</label>
                         <select value={formData.rewardType} onChange={(e) => setFormData({...formData, rewardType: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]">
-                          <option value="CASH">Cash (USD)</option>
-                          <option value="COINS">Coins</option>
+                          <option value="COINS">COINS</option>
+                          <option value="CASH">CASH</option>
                         </select>
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Amount <span className="text-gray-500 lowercase">(100 coins = $1)</span></label>
-                        <input type="number" step="any" required placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
+                        <input type="number" step="any" placeholder="0" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Start Date <span className="text-gray-500 lowercase">(Optional)</span></label>
-                        <input type="datetime-local" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
+                        <input type="datetime-local" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6] [color-scheme:dark]" />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">End Date <span className="text-gray-500 lowercase">(Optional)</span></label>
-                        <input type="datetime-local" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
+                        <input type="datetime-local" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6] [color-scheme:dark]" />
                       </div>
                     </div>
                   </div>
 
+                  {/* --- USAGE LIMITS --- */}
                   <div className="bg-[#12141C] border border-white/5 rounded-2xl p-5">
                     <h4 className="text-sm font-black text-white flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
                       <ShieldCheck className="w-4 h-4 text-amber-400" /> Usage Limits & Security
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Max Total Uses <span className="text-rose-500">*</span></label>
-                        <input type="number" required placeholder="e.g. 1000" value={formData.maxUsage} onChange={(e) => setFormData({...formData, maxUsage: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Per User Limit</label>
-                        <input type="number" min="1" value={formData.perUserLimit} onChange={(e) => setFormData({...formData, perUserLimit: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Per Device Limit</label>
-                        <input type="number" min="1" value={formData.deviceLimit} onChange={(e) => setFormData({...formData, deviceLimit: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
+                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Max Redemptions <span className="text-rose-500">*</span></label>
+                        <input type="number" required placeholder="e.g. 1" value={formData.maxUsage} onChange={(e) => setFormData({...formData, maxUsage: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#8B5CF6]" />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Min. Account Age (Days)</label>
@@ -783,14 +785,6 @@ export default function AdminPromosPage() {
                       <label className="flex items-center gap-3 bg-[#0B0E14] border border-white/5 p-3 rounded-xl cursor-pointer hover:border-white/10 transition-colors">
                         <input type="checkbox" checked={formData.kycRequired} onChange={(e) => setFormData({...formData, kycRequired: e.target.checked})} className="w-5 h-5 accent-[#8B5CF6] rounded bg-[#12141C] border-white/10" />
                         <span className="text-sm text-gray-300 font-medium">KYC Required</span>
-                      </label>
-                      <label className="flex items-center gap-3 bg-[#0B0E14] border border-white/5 p-3 rounded-xl cursor-pointer hover:border-white/10 transition-colors">
-                        <input type="checkbox" checked={formData.checkReferralAbuse} onChange={(e) => setFormData({...formData, checkReferralAbuse: e.target.checked})} className="w-5 h-5 accent-[#8B5CF6] rounded bg-[#12141C] border-white/10" />
-                        <span className="text-sm text-gray-300 font-medium">Check Referral Abuse</span>
-                      </label>
-                      <label className="flex items-center gap-3 bg-[#0B0E14] border border-white/5 p-3 rounded-xl cursor-pointer hover:border-white/10 transition-colors">
-                        <input type="checkbox" checked={formData.blockVpnProxy} onChange={(e) => setFormData({...formData, blockVpnProxy: e.target.checked})} className="w-5 h-5 accent-[#8B5CF6] rounded bg-[#12141C] border-white/10" />
-                        <span className="text-sm text-gray-300 font-medium">Block VPN/Proxy IPs</span>
                       </label>
                     </div>
                   </div>
@@ -821,6 +815,46 @@ export default function AdminPromosPage() {
           </div>
         </div>
       )}
+
+      {/* --- 🔥 CUSTOM DELETE CONFIRMATION MODAL 🔥 --- */}
+      <AnimatePresence>
+        {deleteConfirmId && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#050409]/90 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-[#12141C] border border-white/10 w-full max-w-md rounded-[32px] p-8 shadow-2xl flex flex-col items-center text-center"
+            >
+              <div className="w-20 h-20 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-6 shadow-inner">
+                <AlertCircle className="w-10 h-10 text-rose-500" />
+              </div>
+              <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Delete Promo Code?</h3>
+              <p className="text-sm text-[#8F95A3] mb-8 leading-relaxed">
+                This action cannot be undone. Are you sure you want to permanently delete this promo code from the system?
+              </p>
+              
+              <div className="flex w-full gap-4">
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  disabled={isDeletingId === deleteConfirmId}
+                  className="flex-1 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-sm transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeletePromo}
+                  disabled={isDeletingId === deleteConfirmId}
+                  className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-black text-sm transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(244,63,94,0.4)] hover:shadow-[0_0_30px_rgba(244,63,94,0.6)] cursor-pointer disabled:opacity-50"
+                >
+                  {isDeletingId === deleteConfirmId ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                  Delete Now
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
