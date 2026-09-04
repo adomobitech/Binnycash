@@ -172,10 +172,35 @@ export default function AllOffersPage() {
     }
   }
 
+  // 🔥 ULTIMATE BULLETPROOF NETWORK FILTER LOGIC 🔥
   if (selectedNetwork !== 'All Networks') {
+    const target = selectedNetwork.toLowerCase().trim();
     processedOffers = processedOffers.filter(offer => {
-      const prov = offer.network || offer.provider || '';
-      return prov.toLowerCase() === selectedNetwork.toLowerCase();
+      // Step 1: Check standard known keys directly for speed
+      const vals = [
+        offer.network, offer.networkName, 
+        typeof offer.network === 'object' ? offer.network?.name : null,
+        offer.provider, offer.providerName,
+        typeof offer.provider === 'object' ? offer.provider?.name : null,
+        offer.postbackName, offer.offerwallName, offer.source, offer.offerwall_name
+      ];
+      
+      const directMatch = vals.some(v => {
+        if (!v || typeof v !== 'string') return false;
+        const s = v.toLowerCase().trim();
+        return s === target || s.includes(target) || target.includes(s);
+      });
+
+      if (directMatch) return true;
+
+      // Step 2: Fallback (Bulletproof method)
+      // Convert the ENTIRE offer object to a string and check if the network name exists ANYWHERE inside it.
+      try {
+        const offerString = JSON.stringify(offer).toLowerCase();
+        return offerString.includes(target);
+      } catch (e) {
+        return false;
+      }
     });
   }
 

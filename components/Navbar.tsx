@@ -168,7 +168,7 @@ export default function Navbar() {
     };
   }, []);
 
-  // 櫨 DIRECT REDIRECT FROM HOMEPAGE (No Splash Screen Conflicts) 櫨
+  // 🚀 DIRECT REDIRECT FROM HOMEPAGE (No Splash Screen Conflicts) 🚀
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && token !== 'undefined' && pathname === '/') {
@@ -325,7 +325,7 @@ export default function Navbar() {
              const parsed = JSON.parse(raw);
              const user = parsed?.data?.user || parsed?.data?.userDetails || parsed?.data || parsed?.userDetails || parsed;
              if (user && (user.userName || user.email || user.firstName)) {
-                processUser(user);
+                 processUser(user);
                 return;
              }
           }
@@ -616,7 +616,7 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0 ml-auto md:ml-0">
             
-            {/* 櫨 GET THE APP BUTTON (DESKTOP) 櫨 */}
+            {/* 🚀 GET THE APP BUTTON (DESKTOP) 🚀 */}
             <a 
               href="https://play.google.com/store/apps/details?id=com.binnycash"
               target="_blank"
@@ -877,30 +877,36 @@ export default function Navbar() {
         <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       )}
 
+      {/* 🔥 5-ITEM MOBILE BOTTOM NAVIGATION 🔥 */}
       {isLoggedIn && (
-        <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0E111E]/95 backdrop-blur-xl border-t border-white/10 z-50 flex items-center justify-around px-2 py-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-[65px]">
-          <Link href="/myoffers" className="flex flex-col items-center gap-1 p-2 w-[25%]">
+        <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0E111E]/95 backdrop-blur-xl border-t border-white/10 z-50 flex items-center justify-around px-1 py-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-[65px]">
+          <Link href="/myoffers" className="flex flex-col items-center gap-1 p-2 w-[20%]">
             <PlaySquare className={`w-5 h-5 ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>My Offers</span>
+            <span className={`text-[9px] font-bold ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Offers</span>
           </Link>
           
-          <Link href="/cashout" className="flex flex-col items-center gap-1 p-2 w-[25%]">
+          <Link href="/cashout" className="flex flex-col items-center gap-1 p-2 w-[20%]">
             <Wallet className={`w-5 h-5 ${pathname === '/cashout' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
-            <span className={`text-[10px] font-bold ${pathname === '/cashout' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Cashout</span>
+            <span className={`text-[9px] font-bold ${pathname === '/cashout' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Cashout</span>
           </Link>
 
-          <Link href="/dashboard" className="flex flex-col items-center -mt-6 p-2 w-[25%] relative group">
+          <Link href="/dashboard" className="flex flex-col items-center -mt-6 p-2 w-[20%] relative group">
             <div className="w-14 h-14 rounded-full bg-gradient-to-r from-[#A66CFF] to-[#EC4899] p-[3px] shadow-[0_4px_20px_rgba(166,108,255,0.4)] relative z-10">
               <div className="w-full h-full rounded-full bg-[#0E111E] flex items-center justify-center">
                 <Rocket className={`w-6 h-6 ${pathname === '/dashboard' ? 'text-white' : 'text-[#A66CFF]'}`} />
               </div>
             </div>
-            <span className={`text-[10px] font-bold mt-1 ${pathname === '/dashboard' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Earn</span>
+            <span className={`text-[9px] font-bold mt-1 ${pathname === '/dashboard' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Earn</span>
           </Link>
 
-          <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center gap-1 p-2 w-[25%] cursor-pointer">
+          <Link href="/leaderboard" className="flex flex-col items-center gap-1 p-2 w-[20%]">
+            <Trophy className={`w-5 h-5 ${pathname === '/leaderboard' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
+            <span className={`text-[9px] font-bold ${pathname === '/leaderboard' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Leaderboard</span>
+          </Link>
+
+          <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center gap-1 p-2 w-[20%] cursor-pointer">
             <Menu className="w-5 h-5 text-[#8D89A8]" />
-            <span className="text-[10px] font-bold text-[#8D89A8]">More</span>
+            <span className="text-[9px] font-bold text-[#8D89A8]">More</span>
           </button>
         </div>
       )}
@@ -932,10 +938,6 @@ export default function Navbar() {
                   <Flame className="w-5 h-5" />
                   <span className="text-sm font-bold">Offers</span>
                 </Link>
-                <Link href="/leaderboard" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
-                  <BarChart3 className="w-5 h-5" />
-                  <span className="text-sm font-bold">Leaderboard</span>
-                </Link>
                 <Link href="/rewards" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
                   <Gift className="w-5 h-5" />
                   <span className="text-sm font-bold">Rewards</span>
@@ -945,7 +947,7 @@ export default function Navbar() {
                   <span className="text-sm font-bold">Affiliates</span>
                 </Link>
 
-                {/* 櫨 GET THE APP BUTTON (MOBILE) 櫨 */}
+                {/* 🚀 GET THE APP BUTTON (MOBILE) 🚀 */}
                 <a 
                   href="https://play.google.com/store/apps/details?id=com.binnycash"
                   target="_blank"
