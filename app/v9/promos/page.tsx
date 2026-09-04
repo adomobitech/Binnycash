@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Ticket, Plus, Search, RefreshCcw, Loader2, X, AlertCircle, 
   Save, CheckCircle2, ShieldCheck, Clock, Settings, Zap, 
-  Activity, Users, Calendar, Edit2, Trash2, History, LayoutDashboard, ChevronLeft, ChevronRight, DollarSign, Layers
+  Activity, Users, Calendar, Edit2, Trash2, History, LayoutDashboard, ChevronLeft, ChevronRight, DollarSign, Layers, BarChart3
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -19,7 +19,7 @@ export default function AdminPromosPage() {
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
 
   // --- TABS STATE ---
-  const [activeTab, setActiveTab] = useState<'promos' | 'logs'>('promos');
+  const [activeTab, setActiveTab] = useState<'promos' | 'logs' | 'analytics'>('promos');
 
   // --- PROMOS LIST STATES ---
   const [promos, setPromos] = useState<any[]>([]);
@@ -80,16 +80,31 @@ export default function AdminPromosPage() {
     const token = localStorage.getItem('admin_token');
     
     try {
-      const res = await fetch(`https://api.binnycash.com/api/admin/bonusDashboard`, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
+      const [dashRes, analyticsRes] = await Promise.all([
+        fetch(`https://api.binnycash.com/api/admin/bonusDashboard`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+        }),
+        fetch(`https://api.binnycash.com/api/admin/bonusAnalytics`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+        })
+      ]);
 
-      const json = await res.json().catch(() => null);
+      const dashJson = await dashRes.json().catch(() => null);
+      const analyticsJson = await analyticsRes.json().catch(() => null);
 
-      if (res.ok && json?.code === 200 && json?.data) {
-        setDashboardStats(json.data);
+      let mergedStats = {};
+      
+      if (dashRes.ok && dashJson?.code === 200 && dashJson?.data) {
+        mergedStats = { ...mergedStats, ...dashJson.data };
       }
+      
+      if (analyticsRes.ok && analyticsJson?.code === 200 && analyticsJson?.data) {
+        mergedStats = { ...mergedStats, ...analyticsJson.data };
+      }
+
+      setDashboardStats(mergedStats);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     } finally {
@@ -156,13 +171,14 @@ export default function AdminPromosPage() {
       });
       const json = await res.json().catch(() => null);
       if (res.ok && json?.code === 200 && json?.data) {
-        setLogs(Array.isArray(json.data.data) ? json.data.data : []);
+        setLogs(Array.isArray(json.data.list) ? json.data.list : []);
         setLogsPage(json.data.pagination?.page || 1);
-        setLogsTotalPages(json.data.pagination?.totalPages || 1);
+        setLogsTotalPages(json.data.pagination?.pages || 1);
       } else {
         setLogs([]);
       }
     } catch (err) {
+      console.error("Logs fetch error:", err);
       setLogs([]);
     } finally {
       setIsLogsLoading(false);
@@ -183,10 +199,10 @@ export default function AdminPromosPage() {
   const refreshAll = () => {
     fetchDashboardStats();
     if (activeTab === 'promos') fetchPromos();
-    else fetchLogs(logsPage);
+    else if (activeTab === 'logs') fetchLogs(logsPage);
   };
 
-  // 🔥 CUSTOM DELETE LOGIC 🔥
+  // --- DELETE Promo Code ---
   const confirmDeletePromo = async () => {
     if (!deleteConfirmId) return;
     
@@ -274,7 +290,6 @@ export default function AdminPromosPage() {
   const handleSavePromo = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 🔥 Custom validation messages inside the modal 🔥
     if (!formData.maxUsage) {
       setSubmitMessage({ text: "Max Usage is a required field.", type: 'error' });
       return;
@@ -288,7 +303,8 @@ export default function AdminPromosPage() {
     setSubmitMessage(null);
     const token = localStorage.getItem('admin_token');
 
-    const fd = new URLSearchParams();
+    const fd = new FormData();
+    
     if (!editingPromoId) fd.append('code', formData.code); 
     
     fd.append('name', formData.name);
@@ -320,8 +336,7 @@ export default function AdminPromosPage() {
       const res = await fetch(url, {
         method: method,
         headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Authorization': `Bearer ${token}`
         },
         body: fd
       });
@@ -439,6 +454,12 @@ export default function AdminPromosPage() {
           className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === 'logs' ? 'bg-[#252836] text-white shadow-sm border border-white/10' : 'text-gray-500 hover:text-gray-300'}`}
         >
           <History className="w-4 h-4"/> Redemption History
+        </button>
+        <button 
+          onClick={() => setActiveTab('analytics')} 
+          className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === 'analytics' ? 'bg-[#252836] text-white shadow-sm border border-white/10' : 'text-gray-500 hover:text-gray-300'}`}
+        >
+          <Activity className="w-4 h-4"/> Source Analytics
         </button>
       </div>
 
@@ -601,7 +622,7 @@ export default function AdminPromosPage() {
                       </td>
                       <td className="py-4 px-4 text-right">
                         <span className="font-bold text-emerald-400">
-                          +{log?.rewardType === 'CASH' ? formatPrice(Number(log?.amount || 0), currency) : `${log?.amount || 0} Coins`}
+                          +{log?.rewardType === 'CASH' ? formatPrice(Number(log?.amount || log?.rewardValue || 0), currency) : `${log?.amount || log?.rewardValue || 0} Coins`}
                         </span>
                       </td>
                       <td className="py-4 px-5 text-right text-gray-400 text-xs">
@@ -632,6 +653,56 @@ export default function AdminPromosPage() {
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================== */}
+      {/* TAB 3: SOURCE ANALYTICS */}
+      {/* ========================================== */}
+      {activeTab === 'analytics' && (
+        <div className="bg-[#12141C] border border-white/5 rounded-xl p-6 shadow-sm min-h-[400px]">
+          <h3 className="text-sm font-black text-white mb-6 flex items-center gap-2 uppercase tracking-widest border-b border-white/5 pb-4">
+            <Activity className="w-5 h-5 text-[#A855F7]" /> Traffic Source Performance
+          </h3>
+          
+          {dashboardStats?.sourceWise && dashboardStats.sourceWise.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {dashboardStats.sourceWise.map((item: any, idx: number) => (
+                <div key={idx} className="bg-[#0B0D14] border border-white/5 rounded-xl p-4 flex flex-col gap-3 relative overflow-hidden group hover:border-white/10 transition-colors">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#A855F7] to-[#7C3AED]" />
+                  
+                  <div className="flex justify-between items-center pl-2">
+                    <span className="font-bold text-white text-sm">{item.source || 'Unknown'}</span>
+                    <span className="text-[10px] font-black text-[#A855F7] bg-[#A855F7]/10 px-2 py-0.5 rounded border border-[#A855F7]/20">{item.percentage || 0}%</span>
+                  </div>
+                  
+                  <div className="pl-2 w-full bg-[#12141C] rounded-full h-1.5 mb-1 overflow-hidden">
+                    <div className="bg-gradient-to-r from-[#A855F7] to-[#7C3AED] h-full rounded-full" style={{ width: `${item.percentage || 0}%` }} />
+                  </div>
+                  
+                  <div className="pl-2 grid grid-cols-3 gap-2 mt-1">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] text-gray-500 uppercase font-bold">Claims</span>
+                      <span className="text-sm font-black text-white">{item.claims || 0}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] text-gray-500 uppercase font-bold">Cash</span>
+                      <span className="text-sm font-black text-emerald-400">{formatPrice(item.cashDistributed || 0, currency)}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] text-gray-500 uppercase font-bold">Coins</span>
+                      <span className="text-sm font-black text-amber-400">{item.coinsDistributed || 0}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 opacity-50">
+              <BarChart3 className="w-12 h-12 text-gray-500 mb-4" />
+              <p className="text-gray-400 font-medium">No source analytics data available yet.</p>
             </div>
           )}
         </div>
