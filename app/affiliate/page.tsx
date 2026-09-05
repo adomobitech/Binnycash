@@ -267,7 +267,6 @@ export default function AffiliatePage() {
 
   return (
     <div className="min-h-screen bg-[#0B0D14] text-white relative pb-16 font-sans overflow-hidden">
-      {/* AMBIENT BACKGROUND GLOW */}
       <motion.div
         aria-hidden
         className="pointer-events-none absolute -top-40 -left-40 w-[520px] h-[520px] rounded-full bg-[#8B5CF6]/20 blur-[120px]"
@@ -285,7 +284,6 @@ export default function AffiliatePage() {
         variants={staggerContainer} initial="hidden" animate="visible"
         className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10"
       >
-        {/* HEADER */}
         <motion.div variants={fadeUp} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
             <motion.h1
@@ -306,7 +304,6 @@ export default function AffiliatePage() {
             </motion.p>
           </div>
           
-          {/* STATS GRID */}
           <div className="flex gap-4 w-full md:w-auto overflow-x-auto no-scrollbar pb-2 md:pb-0">
             {[
               { icon: Users, color: '#3B82F6', bg: 'bg-[#3B82F6]/20', text: 'Total Referrals', value: dashboardData?.totalRefer || 0 },
@@ -346,10 +343,8 @@ export default function AffiliatePage() {
           </div>
         </motion.div>
 
-        {/* MIDDLE 3 COLUMNS */}
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           
-          {/* BALANCE CARD */}
           <motion.div
             variants={fadeUp}
             whileHover={{ y: -4 }}
@@ -412,7 +407,6 @@ export default function AffiliatePage() {
             </div>
           </motion.div>
 
-          {/* REFERRAL LINK CARD */}
           <motion.div variants={fadeUp} whileHover={{ y: -4 }} className="bg-[#161821] border border-white/5 rounded-[20px] p-6 shadow-xl flex flex-col justify-between transition-shadow duration-300 hover:shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
              <div>
                 <h3 className="text-sm font-bold text-white mb-4">Referral Link</h3>
@@ -455,7 +449,6 @@ export default function AffiliatePage() {
              </div>
           </motion.div>
 
-          {/* SHARE CARD */}
           <motion.div variants={fadeUp} whileHover={{ y: -4 }} className="bg-[#161821] border border-white/5 rounded-[20px] p-6 shadow-xl relative overflow-hidden flex flex-col justify-between transition-shadow duration-300 hover:shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
              <div className="relative z-10">
                 <h3 className="text-sm font-bold text-white mb-1">Share & Earn More</h3>
@@ -494,10 +487,8 @@ export default function AffiliatePage() {
           </motion.div>
         </motion.div>
 
-        {/* PROMO BOX */}
         <motion.div variants={fadeUp} className="mb-8">
           <div className="bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] rounded-[24px] p-6 sm:p-8 relative overflow-hidden flex flex-col justify-center border border-white/10">
-            {/* floating decorative orbs */}
             <motion.div
               aria-hidden
               className="pointer-events-none absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/10"
@@ -533,7 +524,6 @@ export default function AffiliatePage() {
           </div>
         </motion.div>
 
-        {/* LEVEL STRUCTURE SECTION */}
         <motion.div variants={fadeUp} className="w-full bg-[#161821] border border-white/5 rounded-[24px] p-6 shadow-xl">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h2 className="text-lg font-black text-white flex items-center gap-2">
@@ -594,7 +584,6 @@ export default function AffiliatePage() {
                     whileHover={!isLocked ? { y: -6, transition: { duration: 0.2 } } : {}}
                     className={`relative bg-[#0B0D14] border ${borderColor} rounded-2xl p-6 flex flex-col transition-colors duration-300 ${isLocked ? 'opacity-70' : ''} ${isCurrent ? 'shadow-[0_0_0_1px_rgba(0,229,122,0.15)]' : ''}`}
                   >
-                      {/* AMBIENT PULSE FOR ACTIVE LEVEL */}
                       {isCurrent && (
                         <motion.div
                           aria-hidden
@@ -604,7 +593,6 @@ export default function AffiliatePage() {
                         />
                       )}
 
-                      {/* ACTIVE BADGE */}
                       {isCurrent && (
                         <motion.div
                           initial={{ opacity: 0, y: -6, scale: 0.9 }}
@@ -616,7 +604,6 @@ export default function AffiliatePage() {
                         </motion.div>
                       )}
                       
-                      {/* HEADER */}
                       <div className="flex justify-between items-center mb-6">
                         <div className={`flex items-center gap-2 font-black text-sm tracking-wide ${isLocked ? 'text-gray-500' : 'text-white'}`}>
                           <Medal className={`w-5 h-5 ${iconColor}`} /> Level {levelNum}
@@ -626,14 +613,12 @@ export default function AffiliatePage() {
                         </div>
                       </div>
 
-                      {/* DIVIDER */}
                       <div className="flex items-center gap-3 mb-5">
                         <div className="h-[1px] flex-1 bg-white/5"></div>
                         <span className="text-[10px] text-gray-500 font-medium">Requirements</span>
                         <div className="h-[1px] flex-1 bg-white/5"></div>
                       </div>
 
-                      {/* REQUIREMENTS LIST */}
                       <div className="flex flex-col gap-4">
                         <div>
                           <div className={`flex items-center gap-2.5 text-xs font-medium mb-1.5 ${isLocked ? 'text-gray-500' : 'text-gray-300'}`}>
@@ -697,7 +682,6 @@ export default function AffiliatePage() {
           </motion.div>
         </motion.div>
 
-        {/* BOTTOM HELP BANNER */}
         <motion.div
           variants={fadeUp}
           whileHover={{ y: -3 }}
@@ -726,7 +710,6 @@ export default function AffiliatePage() {
 
       </motion.main>
 
-      {/* --- LEARN MORE MODAL --- */}
       <AnimatePresence>
         {isLearnMoreOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

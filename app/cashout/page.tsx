@@ -832,7 +832,6 @@ export default function CashoutPage() {
           <p className="text-[#8F95A3] text-[15px] font-medium">Withdraw your earnings instantly and securely</p>
         </div>
 
-        {/* Stats Cards Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-10">
           <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
             <div className="w-11 h-11 rounded-xl bg-[#8B5CF6]/10 flex items-center justify-center mb-4 border border-[#8B5CF6]/20">
@@ -853,14 +852,11 @@ export default function CashoutPage() {
           </div>
         </div>
 
-        {/* MAIN CASHOUT CONTENT */}
         <div className="mb-10">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
-            {/* LEFT COLUMN */}
             <div className="lg:col-span-2 flex flex-col gap-6">
 
-              {/* Document Verification Section (3 Steps) */}
               <div className="bg-[#111319] border border-[#8B5CF6]/20 rounded-[20px] p-6">
                 <div className="flex items-center justify-between mb-1 gap-3">
                   <h2 className="text-lg font-bold text-white">Document Verification</h2>
@@ -870,7 +866,6 @@ export default function CashoutPage() {
                 </div>
                 <p className="text-[#8F95A3] text-xs mb-6">Submit any government issued document to enable withdrawals</p>
 
-                {/* Stepper (3 Steps) */}
                 <div className="flex items-start justify-between mb-6 px-1">
                   {kycSteps.map((step, idx) => {
                     const state = kycStepStates[idx];
@@ -931,7 +926,6 @@ export default function CashoutPage() {
                 </button>
               </div>
 
-              {/* Choose Withdrawal Method */}
               <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6">
                 <h2 className="text-lg font-bold text-white mb-1">Choose Withdrawal Method</h2>
                 <p className="text-[#8F95A3] text-sm mb-6 font-medium">Fast, secure and convenient options</p>
@@ -971,7 +965,6 @@ export default function CashoutPage() {
               </div>
             </div>
 
-            {/* RIGHT COLUMN */}
             <div className="bg-[#111319] border border-[#8B5CF6]/20 rounded-[20px] p-6 lg:sticky lg:top-6">
               <h2 className="text-lg font-bold text-white mb-5">Withdrawal Details</h2>
 
@@ -1077,7 +1070,6 @@ export default function CashoutPage() {
           </div>
         </div>
 
-        {/* Footer Features Bar */}
         <div className="bg-[#111319] border border-white/5 rounded-[20px] p-6 lg:p-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 divide-y sm:divide-y-0 sm:divide-x divide-white/5">
             {features.map((feature, index) => (
@@ -1099,7 +1091,6 @@ export default function CashoutPage() {
       <KycModal isOpen={isKycOpen} onClose={() => setIsKycOpen(false)} onSuccess={() => { setKycStatus('pending'); fetchUserData(); }} />
       <VerificationAlertModal isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} onVerifyNow={() => { setIsAlertOpen(false); setIsKycOpen(true); }} kycStatus={kycStatus} kycMessage={kycMessage} />
       
-      {/* INSUFFICIENT BALANCE MODAL */}
       <InsufficientBalanceModal 
         isOpen={isBalanceAlertOpen} 
         onClose={() => setIsBalanceAlertOpen(false)} 

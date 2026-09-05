@@ -110,7 +110,6 @@ export default function AccountStatusPage() {
         transition={{ duration: 0.5 }}
         className="max-w-4xl mx-auto space-y-6"
       >
-        {/* ── HEADER ───────────────────────────────────────────── */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: GOLD }} />
@@ -126,10 +125,8 @@ export default function AccountStatusPage() {
           </div>
         </div>
 
-        {/* ── SIGNATURE: TRUST CARD ─────────────────────────────── */}
         <TrustCard userData={userData} riskScore={riskScore} riskLevel={riskLevel} tone={tone} />
 
-        {/* ── STATEMENT: SIGNAL BREAKDOWN ──────────────────────── */}
         <div className="bg-[#0E1017] border border-white/[0.06] rounded-2xl p-6 sm:p-8">
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/[0.07]">
             <div className="flex items-center gap-2">
@@ -152,7 +149,6 @@ export default function AccountStatusPage() {
           </div>
         </div>
 
-        {/* ── NOTICE PANELS ─────────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <NoticePanel
             tone={isHealthy ? 'clear' : 'caution'}
@@ -203,7 +199,6 @@ function TrustCard({
         background: 'linear-gradient(155deg, #171B27 0%, #10121A 55%, #0B0C12 100%)',
       }}
     >
-      {/* grain */}
       <svg className="absolute inset-0 w-full h-full opacity-[0.05] pointer-events-none mix-blend-overlay">
         <filter id="grain">
           <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
@@ -211,7 +206,6 @@ function TrustCard({
         <rect width="100%" height="100%" filter="url(#grain)" />
       </svg>
 
-      {/* sheen sweep */}
       <motion.div
         className="absolute inset-y-0 w-1/2 pointer-events-none"
         style={{ background: `linear-gradient(75deg, transparent, ${GOLD}14, ${GOLD}22, ${GOLD}14, transparent)` }}
@@ -221,7 +215,6 @@ function TrustCard({
       />
 
       <div className="relative flex flex-col gap-9">
-        {/* top row: chip + wordmark */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
@@ -239,7 +232,6 @@ function TrustCard({
           <Sparkles className="w-4 h-4" style={{ color: GOLD, opacity: 0.7 }} />
         </div>
 
-        {/* score */}
         <div>
           <p className="font-tel text-[10px] tracking-[0.25em] uppercase text-[#6E7180] mb-2">
             Trust score
@@ -254,7 +246,6 @@ function TrustCard({
           </div>
         </div>
 
-        {/* bottom row: holder + status */}
         <div className="flex items-end justify-between flex-wrap gap-3 pt-4 border-t border-white/[0.08]">
           <div className="flex items-center gap-3">
             <div

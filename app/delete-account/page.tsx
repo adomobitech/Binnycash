@@ -175,7 +175,6 @@ export default function DeleteAccountPage() {
   return (
     <div className="min-h-screen bg-[#0B0D14] text-[#F5F3FF] selection:bg-[#FF5D73]/30 relative overflow-x-hidden font-sans py-12">
       
-      {/* CSS HACK: ISOLATE PAGE FROM ENTIRE WEBSITE */}
       <style dangerouslySetInnerHTML={{ __html: `
         #global-ticker-wrapper { display: none !important; }
         #main-navbar-wrapper { display: none !important; }
@@ -199,7 +198,6 @@ export default function DeleteAccountPage() {
         >
           <AnimatePresence mode="wait">
             
-            {/* STEP 1: VERIFY IDENTITY */}
             {step === 'auth' && (
               <motion.div key="auth" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="w-full">
                 <div className="bg-[#111319] border-b border-[#8B5CF6]/20 p-8 sm:p-10 flex flex-col items-center text-center relative overflow-hidden">
@@ -238,7 +236,6 @@ export default function DeleteAccountPage() {
                     </button>
                   </form>
 
-                  {/* 🔥 GOOGLE AUTH BUTTON ADDED HERE 🔥 */}
                   <div className="flex items-center gap-4 my-7">
                     <div className="flex-1 h-[1px] bg-[#1A1D24]"></div>
                     <span className="text-[10px] font-bold text-[#4B5263] tracking-widest uppercase">Or Verify With</span>
@@ -263,7 +260,6 @@ export default function DeleteAccountPage() {
               </motion.div>
             )}
 
-            {/* STEP 2: CONFIRM DELETION */}
             {step === 'confirm' && (
               <motion.div key="confirm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full">
                 <div className="bg-[#1E141A] border-b border-[#FF5D73]/20 p-8 sm:p-10 flex flex-col items-center text-center relative overflow-hidden">

@@ -35,19 +35,16 @@ export default function CookiePolicyPage() {
   return (
     <div className="min-h-screen bg-[#0B0D14] text-[#F5F3FF] selection:bg-[#A66CFF]/30 relative overflow-x-hidden font-sans pb-20">
       
-      {/* Background Glow */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[#A66CFF]/10 blur-[150px] rounded-full pointer-events-none z-0" />
 
       <main className="max-w-[1000px] mx-auto px-4 sm:px-6 py-10 relative z-10">
         
-        {/* BREADCRUMB */}
         <div className="flex items-center gap-2 text-xs font-bold text-[#8F95A3] uppercase tracking-wider mb-8">
           <Link href="/" className="hover:text-white transition-colors">Home</Link>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="text-[#A66CFF]">Cookie Policy</span>
         </div>
 
-        {/* HERO BANNER */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -68,7 +65,6 @@ export default function CookiePolicyPage() {
           </div>
         </motion.div>
 
-        {/* CONTENT CONTAINER */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -360,7 +356,6 @@ export default function CookiePolicyPage() {
             </div>
           </Section>
 
-          {/* Quick Summary Block */}
           <div className="mt-12 bg-gradient-to-br from-[#A66CFF]/10 to-transparent border border-[#A66CFF]/20 rounded-2xl p-6">
             <h3 className="text-lg font-black text-white mb-3 flex items-center gap-2">
               <Cookie className="w-5 h-5 text-[#A66CFF]" /> Quick Summary

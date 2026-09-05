@@ -7,7 +7,7 @@ import {
   Users, UserCheck, UserX, FileText, FileClock, 
   Search, Eye, ChevronLeft, ChevronRight, X, Loader2, Mail, MapPin, Phone, ShieldCheck,
   Gift, Share2, History, MonitorSmartphone, Wallet, AlertCircle, Clock, Info, ShieldAlert, Layers, Star, SlidersHorizontal, PlusCircle, MinusCircle, DollarSign, CheckCircle2, XCircle,
-  AlertOctagon, TrendingUp, RefreshCw
+  AlertOctagon, TrendingUp, RefreshCw, LogIn
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -55,6 +55,11 @@ export default function AdminUsersPage() {
   const [isSubmittingWarning, setIsSubmittingWarning] = useState(false);
   const [warningMessage, setWarningMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
+  // --- LOGIN AS USER MODAL STATES ---
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [selectedUserForLogin, setSelectedUserForLogin] = useState<any>(null);
+  const [isLoggingInUser, setIsLoggingInUser] = useState<string | null>(null);
+
   // 🔥 FETCH DATA LOOP & DASHBOARD API 🔥
   const fetchAllData = async () => {
     setIsLoading(true);
@@ -67,7 +72,6 @@ export default function AdminUsersPage() {
       return;
     }
 
-    // 1. Fetch Dashboard Stats (4 Columns)
     try {
       const dashRes = await fetch(`https://api.binnycash.com/api/admin/dashboard`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
@@ -80,12 +84,11 @@ export default function AdminUsersPage() {
       console.error("Dashboard stats fetch error:", err);
     }
 
-    // 2. Loop until all users are fetched
     let pageNum = 1;
     let hasMore = true;
     let accumulatedUsers: any[] = [];
 
-    while (hasMore && pageNum <= 100) { // Max 100 pages safety net
+    while (hasMore && pageNum <= 100) { 
       try {
         const res = await fetch(`https://api.binnycash.com/api/admin/userList?adminId=${encodeURIComponent(adminId)}&page=${pageNum}&limit=50`, {
           headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
@@ -101,13 +104,13 @@ export default function AdminUsersPage() {
 
         if (list && list.length > 0) {
           accumulatedUsers = [...accumulatedUsers, ...list];
-          setUsers(accumulatedUsers); // Progressive render
+          setUsers(accumulatedUsers); 
           pageNum++;
           if (list.length < 50) {
-            hasMore = false; // Reached the end
+            hasMore = false; 
           }
         } else {
-          hasMore = false; // Empty result
+          hasMore = false; 
         }
       } catch (err: any) {
         console.error("Failed to load users page:", pageNum, err);
@@ -122,12 +125,10 @@ export default function AdminUsersPage() {
     fetchAllData();
   }, [router]);
 
-  // Reset page to 1 when searching
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
 
-  // GET USER DETAILED PROFILE API
   const handleViewProfile = async (numericId: string | number) => {
     setIsProfileModalOpen(true);
     setIsProfileLoading(true);
@@ -156,7 +157,6 @@ export default function AdminUsersPage() {
     }
   };
 
-  // HANDLE BALANCE ADJUST SUBMIT (PATCH)
   const handleAdjustSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amountInput || Number(amountInput) <= 0) { 
@@ -173,7 +173,7 @@ export default function AdminUsersPage() {
       const fd = new URLSearchParams();
       fd.append('userId', selectedUserForAdjust?.id || selectedUserForAdjust?._id);
       fd.append('amount', amountInput);
-      fd.append('status', actionStatus); // 1 = Add, 0 = Deduct
+      fd.append('status', actionStatus); 
       fd.append('adminId', adminId); 
 
       const res = await fetch(`https://api.binnycash.com/api/admin/balance/adjust`, {
@@ -188,7 +188,6 @@ export default function AdminUsersPage() {
       const json = await res.json();
       if (res.ok || json?.code === 200) {
         setAdjustMessage({ text: json.message || "Balance updated successfully!", type: 'success' });
-        // Update local state to reflect change without re-fetching all pages
         setUsers(users.map(u => {
           if (u.id === selectedUserForAdjust.id || u._id === selectedUserForAdjust._id) {
             const currentBal = Number(u.availableBalance || 0);
@@ -219,7 +218,6 @@ export default function AdminUsersPage() {
     setIsAdjustModalOpen(true);
   };
 
-  // HANDLE SEND WARNING SUBMIT (PUT)
   const openWarningModal = (user: any) => {
     setSelectedUserForWarning(user);
     setWarningTitle('');
@@ -268,7 +266,59 @@ export default function AdminUsersPage() {
     }
   };
 
-  // Search & Pagination Logic
+  // 🔥 HANDLE LOGIN AS USER (CUSTOM MODAL IMPLEMENTATION) 🔥
+  const openLoginModal = (user: any) => {
+    setSelectedUserForLogin(user);
+    setIsLoginModalOpen(true);
+  };
+
+  const handleLoginAsUser = async () => {
+    if (!selectedUserForLogin) return;
+    const userId = selectedUserForLogin.id || selectedUserForLogin._id;
+
+    setIsLoggingInUser(userId);
+    const adminToken = localStorage.getItem('admin_token');
+    const adminId = getAdminId();
+
+    try {
+      const res = await fetch(`https://api.binnycash.com/api/admin/user_login_admin`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${adminToken}`, 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ adminId: adminId, id: userId })
+      });
+
+      const json = await res.json();
+      
+      if (res.ok && (json.code === 200 || json.type === 'success' || json.token || json.data?.token)) {
+        const userToken = json.token || json.data?.token;
+        const userDetails = json.data?.user || json.data?.userDetails || json.data || json;
+
+        if (userToken) {
+          localStorage.setItem('token', userToken);
+          localStorage.setItem('userId', userId);
+          if (userDetails) {
+            localStorage.setItem('userDetails', JSON.stringify(userDetails));
+          }
+          
+          window.open('/dashboard', '_blank'); 
+          setIsLoginModalOpen(false);
+        } else {
+          alert('Login failed: No token received from server.');
+        }
+      } else {
+        alert(json.message || 'Failed to login as user.');
+      }
+    } catch (err) {
+      console.error("Login as user error:", err);
+      alert('Network error while trying to login as user.');
+    } finally {
+      setIsLoggingInUser(null);
+    }
+  };
+
   const safeUsers = Array.isArray(users) ? users : [];
   const filteredUsers = safeUsers.filter(u => {
     const name = u?.userName || u?.name || '';
@@ -281,7 +331,6 @@ export default function AdminUsersPage() {
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage) || 1;
   const paginatedUsers = filteredUsers.slice((currentPage - 1) * usersPerPage, currentPage * usersPerPage);
 
-  // 🔥 TOP OVERVIEW CARDS (Mapped from Dashboard API) 🔥
   const overviewStats = [
     { 
       title: "Total Users", 
@@ -367,7 +416,7 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* 🔥 NEW 4 COLUMN STATS OVERVIEW CARDS 🔥 */}
+      {/* OVERVIEW CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {overviewStats.map((stat, idx) => {
           const Icon = stat.icon;
@@ -435,6 +484,8 @@ export default function AdminUsersPage() {
                   const hasImageError = imageErrors[u?._id || u?.id];
                   const countryDisplay = (u?.countryCode || u?.country || 'IN').substring(0, 2).toUpperCase();
 
+                  const isLoggingIn = isLoggingInUser === (u?.id || u?._id);
+
                   return (
                     <tr key={u?._id || u?.id || idx} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="py-3 px-5 text-gray-400 font-mono text-xs">{displayId}</td>
@@ -485,9 +536,20 @@ export default function AdminUsersPage() {
                          </div>
                       </td>
                       
-                      {/* ACTIONS COLUMN */}
+                      {/* ACTIONS COLUMN WITH LOGIN BUTTON */}
                       <td className="py-3 px-4">
                          <div className="flex items-center justify-center gap-2">
+                            
+                            {/* 🔥 LOGIN AS USER BUTTON (TRIGGERS MODAL) 🔥 */}
+                            <button 
+                              onClick={() => openLoginModal(u)}
+                              disabled={isLoggingIn}
+                              className="w-8 h-8 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50"
+                              title="Login as this User (Opens in New Tab)"
+                            >
+                              {isLoggingIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <MonitorSmartphone className="w-4 h-4" />}
+                            </button>
+
                             <button 
                               onClick={() => handleViewProfile(u?.id || u?._id)}
                               className="w-8 h-8 rounded-lg bg-[#7C3AED]/10 hover:bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/20 flex items-center justify-center transition-colors cursor-pointer"
@@ -836,7 +898,7 @@ export default function AdminUsersPage() {
         )}
       </AnimatePresence>
 
-      {/* --- 🔥 MODAL: SEND WARNING (NEW SEPARATE MODAL) 🔥 --- */}
+      {/* --- MODAL: SEND WARNING --- */}
       <AnimatePresence>
         {isWarningModalOpen && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#050409]/90 backdrop-blur-sm">
@@ -903,6 +965,69 @@ export default function AdminUsersPage() {
                 </button>
 
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- 🔥 NEW MODAL: LOGIN AS USER (EMULATE) 🔥 --- */}
+      <AnimatePresence>
+        {isLoginModalOpen && selectedUserForLogin && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#050409]/90 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-[#12141C] border border-white/10 w-full max-w-sm rounded-[32px] shadow-2xl relative flex flex-col overflow-hidden"
+            >
+              <div className="bg-[#1A1C24] border-b border-white/5 px-8 py-6 flex items-center justify-between">
+                <h3 className="text-xl font-black flex items-center gap-3 tracking-tight text-white">
+                  <LogIn className="w-6 h-6 text-blue-400" /> Emulate User
+                </h3>
+                <button onClick={() => setIsLoginModalOpen(false)} className="text-[#8F95A3] hover:text-white transition-colors cursor-pointer w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-8 flex flex-col gap-6">
+
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex flex-col items-center text-center shadow-inner gap-2">
+                  {resolveImage(selectedUserForLogin?.image) ? (
+                    <img src={resolveImage(selectedUserForLogin?.image)!} alt="User" className="w-16 h-16 rounded-full object-cover border-2 border-blue-500/30" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-blue-500/20 border-2 border-blue-500/40 flex items-center justify-center text-blue-400 font-bold text-2xl">
+                      {(selectedUserForLogin?.userName || selectedUserForLogin?.name || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="text-white font-black text-lg tracking-wide">{selectedUserForLogin?.userName || selectedUserForLogin?.name || 'Unknown User'}</h4>
+                    <p className="text-[#8F95A3] text-xs">{selectedUserForLogin?.email || 'No email provided'}</p>
+                  </div>
+                  <span className="text-blue-400/80 font-mono text-[10px] bg-blue-500/10 px-2 py-1 rounded-md mt-1 border border-blue-500/20">ID: {selectedUserForLogin?.id || selectedUserForLogin?._id}</span>
+                </div>
+
+                <p className="text-sm text-gray-400 text-center leading-relaxed">
+                  You are about to log in as this user. Their dashboard will open in a new tab, allowing you to view and interact with their account directly.
+                </p>
+
+                <div className="flex gap-3 mt-2">
+                  <button
+                    onClick={() => setIsLoginModalOpen(false)}
+                    disabled={isLoggingInUser !== null}
+                    className="flex-1 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-sm transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleLoginAsUser}
+                    disabled={isLoggingInUser !== null}
+                    className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-black text-sm transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] cursor-pointer disabled:opacity-50"
+                  >
+                    {isLoggingInUser !== null ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Proceed'}
+                  </button>
+                </div>
+
+              </div>
             </motion.div>
           </div>
         )}

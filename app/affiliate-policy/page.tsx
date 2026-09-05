@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { ShieldCheck, FileText, Mail, MapPin, Building, ChevronRight, Clock } from 'lucide-react';
 import Link from 'next/link';
 
-// --- CUSTOM COMPONENTS FOR CLEAN FORMATTING ---
 const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
   <section className="mb-10">
     <h2 className="text-[19px] sm:text-xl font-black text-white mb-4 flex items-center gap-2">
@@ -48,19 +47,16 @@ export default function AffiliatePolicyPage() {
   return (
     <div className="min-h-screen bg-[#0B0D14] text-[#F5F3FF] selection:bg-[#8B5CF6]/30 relative overflow-x-hidden font-sans pb-20">
       
-      {/* Background Glow */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[#8B5CF6]/10 blur-[150px] rounded-full pointer-events-none z-0" />
 
       <main className="max-w-[1000px] mx-auto px-4 sm:px-6 py-10 relative z-10">
         
-        {/* BREADCRUMB */}
         <div className="flex items-center gap-2 text-xs font-bold text-[#8F95A3] uppercase tracking-wider mb-8">
           <Link href="/" className="hover:text-white transition-colors">Home</Link>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="text-[#8B5CF6]">Affiliate & Offer Policy</span>
         </div>
 
-        {/* HERO BANNER */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -81,7 +77,6 @@ export default function AffiliatePolicyPage() {
           </div>
         </motion.div>
 
-        {/* CONTENT CONTAINER */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

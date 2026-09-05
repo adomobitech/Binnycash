@@ -120,7 +120,6 @@ export default function DashboardPage() {
           transition={{ duration: 0.6 }}
           className="flex flex-col gap-8 mt-2" 
         >
-          {/* STAGE 1: OFFERS */}
           {(isLoadingOffers || offers.length > 0) && (
             <div id="featured-offers">
               <OfferSlider 
@@ -132,7 +131,6 @@ export default function DashboardPage() {
             </div>
           )}
           
-          {/* STAGE 2: OFFERWALLS (Hides automatically if no data after loading) */}
           {(isLoadingOfferwalls || offerwalls.length > 0) && (
             <OfferwallSlider 
               offerwalls={offerwalls} 
@@ -140,7 +138,6 @@ export default function DashboardPage() {
             />
           )}
 
-          {/* STAGE 3: SURVEYWALLS (Hides automatically if no data after loading) */}
           {(isLoadingSurveywalls || surveywalls.length > 0) && (
             <SurveywallSlider 
               surveywalls={surveywalls} 
