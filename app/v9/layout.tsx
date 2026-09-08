@@ -34,7 +34,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Support', href: '/v9/support' , icon: Layers },
     { name: 'User Alerts', href: '/v9/alerts', icon: Users },
     { name: 'Settings', href: '/v9/settings', icon: Settings },
-    { name: 'Sessions', href: '/v9/sessions', icon: ListOrdered },
   ];
 
   const handleLogout = () => {

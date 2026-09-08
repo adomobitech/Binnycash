@@ -8,7 +8,7 @@ import {
   Mail, MapPin, Phone, ShieldCheck, Share2, MonitorSmartphone, Wallet, AlertCircle, 
   Clock, Info, ShieldAlert, Layers, Star, SlidersHorizontal, DollarSign, CheckCircle2, 
   XCircle, AlertOctagon, TrendingUp, RefreshCw, LogIn, MoreVertical, Activity, 
-  ShieldBan, Unlock, Trash2, PauseCircle, PlayCircle, Radar, Gift
+  ShieldBan, Unlock, Trash2, PauseCircle, PlayCircle, Radar, Gift, Monitor, Smartphone, Laptop, Power, Globe
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 
@@ -88,13 +88,21 @@ export default function AdminUsersPage() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
-  const [profileTab, setProfileTab] = useState<'overview' | 'activities' | 'earnings' | 'wallet' | 'risk'>('overview');
+  const [profileTab, setProfileTab] = useState<'overview' | 'activities' | 'sessions' | 'earnings' | 'wallet' | 'risk'>('overview');
   const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
 
   const [activities, setActivities] = useState<any[]>([]);
   const [isActivitiesLoading, setIsActivitiesLoading] = useState(false);
   const [riskData, setRiskData] = useState<any>(null);
   const [isRiskLoading, setIsRiskLoading] = useState(false);
+
+  // --- SESSIONS STATES (New) ---
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [isSessionsLoading, setIsSessionsLoading] = useState(false);
+  const [sessionPage, setSessionPage] = useState(1);
+  const [sessionTotalPages, setSessionTotalPages] = useState(1);
+  const [terminatingSessionId, setTerminatingSessionId] = useState<string | null>(null);
+  const [isTerminatingAll, setIsTerminatingAll] = useState(false);
 
   // --- SYSTEM ACTION MODALS (RESTRICT / RESTORE / DELETE) ---
   const [systemAction, setSystemAction] = useState<{type: 'RESTRICT' | 'RESTORE' | 'DELETE' | null, isOpen: boolean, targetUser: any}>({type: null, isOpen: false, targetUser: null});
@@ -179,7 +187,7 @@ export default function AdminUsersPage() {
   useEffect(() => { fetchAllData(); }, [router, userFilter]);
   useEffect(() => { setCurrentPage(1); }, [searchQuery, userFilter]);
 
-  // Fetch Activities
+  // --- SUB-DATA FETCHERS ---
   const fetchActivities = async (userId: string) => {
     setIsActivitiesLoading(true);
     const token = localStorage.getItem('admin_token');
@@ -195,7 +203,6 @@ export default function AdminUsersPage() {
     finally { setIsActivitiesLoading(false); }
   };
 
-  // Fetch Risk Data
   const fetchRiskData = async (userId: string) => {
     setIsRiskLoading(true);
     const token = localStorage.getItem('admin_token');
@@ -211,6 +218,32 @@ export default function AdminUsersPage() {
     finally { setIsRiskLoading(false); }
   };
 
+  const fetchSessions = async (userId: string, page: number) => {
+    setIsSessionsLoading(true);
+    const token = localStorage.getItem('admin_token') || '';
+    try {
+      const res = await fetch(`https://api.binnycash.com/api/admin/sessions?userId=${userId}&page=${page}&limit=20`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+      });
+      const json = await res.json();
+      if (res.ok && json.data) {
+        setSessions(Array.isArray(json.data) ? json.data : (json.data.docs || json.data.sessions || []));
+        setSessionTotalPages(json.data.totalPages || json.pagination?.totalPages || 1);
+      } else {
+        setSessions([]);
+      }
+    } catch (err) { setSessions([]); } 
+    finally { setIsSessionsLoading(false); }
+  };
+
+  // Watch for session pagination
+  useEffect(() => {
+    if (profileData && profileTab === 'sessions') {
+      fetchSessions(profileData.id || profileData._id, sessionPage);
+    }
+  }, [sessionPage, profileTab]);
+
   const handleViewProfile = async (user: any) => {
     const numericId = user.id || user._id;
     setIsProfileModalOpen(true);
@@ -219,7 +252,8 @@ export default function AdminUsersPage() {
     setProfileTab('overview'); 
     setActivities([]);
     setRiskData(null);
-    setSysActionMessage(null);
+    setSessions([]);
+    setSessionPage(1);
     
     const token = localStorage.getItem('admin_token');
     try {
@@ -242,7 +276,56 @@ export default function AdminUsersPage() {
     }
   };
 
-  // --- 🔥 SYSTEM ACTIONS (RESTRICT / RESTORE / DELETE) 🔥 ---
+  // --- 🔥 SESSION TERMINATION LOGIC 🔥 ---
+  const handleTerminateSession = async (sessionId?: string) => {
+    if (!profileData) return;
+    const isAll = !sessionId;
+
+    if (isAll) {
+      if (!confirm(`Are you sure you want to terminate ALL active sessions for ${profileData.userName || profileData.name}?`)) return;
+      setIsTerminatingAll(true);
+    } else {
+      if (!confirm("Are you sure you want to terminate this specific session?")) return;
+      setTerminatingSessionId(sessionId as string);
+    }
+
+    const token = localStorage.getItem('admin_token') || '';
+    const userId = profileData.id || profileData._id;
+
+    try {
+      const fd = new URLSearchParams();
+      if (isAll) {
+        fd.append('userId', userId);
+        fd.append('isAllSession', 'true');
+      } else {
+        fd.append('id', sessionId as string);
+        fd.append('isAllSession', 'false');
+      }
+
+      const res = await fetch(`https://api.binnycash.com/api/admin/sessions/terminate`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: fd
+      });
+
+      if (res.ok) {
+        if (isAll) {
+          setSessions(sessions.map(s => ({ ...s, isActive: false, status: 'Terminated' })));
+        } else {
+          setSessions(sessions.map(s => (s._id === sessionId || s.id === sessionId) ? { ...s, isActive: false, status: 'Terminated' } : s));
+        }
+      } else {
+        alert('Failed to terminate session.');
+      }
+    } catch (err) {
+      alert('Network Error while terminating session.');
+    } finally {
+      setIsTerminatingAll(false);
+      setTerminatingSessionId(null);
+    }
+  };
+
+  // --- 🔥 SYSTEM ACTIONS (RESTORE / DELETE) 🔥 ---
   const openSystemAction = (type: 'RESTRICT' | 'RESTORE' | 'DELETE', targetUser: any) => {
     setSystemAction({ type, isOpen: true, targetUser });
     setActionReason('');
@@ -283,10 +366,8 @@ export default function AdminUsersPage() {
 
       const json = await res?.json();
       if (res?.ok || json?.code === 200) {
-        // 🔥 FIXED: Added safe optional chaining for systemAction.type
         setSysActionMessage({ text: json.message || `User ${systemAction.type?.toLowerCase() || ''}ed successfully!`, type: 'success' });
         
-        // Update local state instantly
         if (profileData && (profileData.id === uId || profileData._id === uId)) {
           if (systemAction.type === 'RESTRICT') setProfileData({ ...profileData, status: 'BLOCK', is_blocked: true, isHoldPayout: 1 });
           if (systemAction.type === 'RESTORE') setProfileData({ ...profileData, status: 'ACTIVE', is_blocked: false, isHoldPayout: 0 });
@@ -298,7 +379,6 @@ export default function AdminUsersPage() {
 
         setTimeout(() => { setSystemAction({ type: null, isOpen: false, targetUser: null }); setSysActionMessage(null); }, 1500);
       } else {
-        // 🔥 FIXED: Added safe optional chaining
         setSysActionMessage({ text: json?.message || `Failed to ${systemAction.type?.toLowerCase() || ''} user.`, type: 'error' });
       }
     } catch (error) {
@@ -537,6 +617,13 @@ export default function AdminUsersPage() {
     return !imgSrc.startsWith('http') ? `https://api.binnycash.com${imgSrc}` : imgSrc;
   };
 
+  const getDeviceIcon = (deviceInfo: string) => {
+    const info = (deviceInfo || '').toLowerCase();
+    if (info.includes('mobile') || info.includes('android') || info.includes('iphone')) return <Smartphone className="w-4 h-4" />;
+    if (info.includes('mac') || info.includes('windows') || info.includes('pc')) return <Laptop className="w-4 h-4" />;
+    return <Globe className="w-4 h-4" />;
+  };
+
   return (
     <div className="flex flex-col gap-6 text-white w-full max-w-[1600px] mx-auto pb-10 font-sans">
       
@@ -697,7 +784,7 @@ export default function AdminUsersPage() {
                          </div>
                       </td>
                       
-                      {/* 🔥 NEW 3-DOTS ACTION MENU 🔥 */}
+                      {/* 🔥 3-DOTS ACTION MENU 🔥 */}
                       <td className="py-3 px-6 text-right">
                          <div className="flex justify-end">
                            <ActionMenu 
@@ -770,13 +857,31 @@ export default function AdminUsersPage() {
                 {/* 🔥 ACTION BUTTONS INSIDE PROFILE HEADER 🔥 */}
                 {!isProfileLoading && profileData && !profileData.error && (
                   <>
-                    {profileData?.status === 'BLOCK' || profileData?.is_blocked ? (
+                    <button 
+                      onClick={handleGlobalPayoutHold} 
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${profileData?.isHoldPayout === 1 ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20'}`}
+                    >
+                      {profileData?.isHoldPayout === 1 ? (
+                        <><PlayCircle className="w-3.5 h-3.5" /> Release Payouts</>
+                      ) : (
+                        <><PauseCircle className="w-3.5 h-3.5" /> Hold Payouts</>
+                      )}
+                    </button>
+                    
+                    {profileTab === 'sessions' && (
+                      <button 
+                        onClick={() => handleTerminateSession()} 
+                        disabled={isTerminatingAll || sessions.filter(s => s.isActive !== false).length === 0}
+                        className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {isTerminatingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Power className="w-3.5 h-3.5" />} 
+                        Terminate All Sessions
+                      </button>
+                    )}
+
+                    {(profileData?.status === 'BLOCK' || profileData?.is_blocked) && (
                       <button onClick={() => openSystemAction('RESTORE', profileData)} className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer">
                         <Unlock className="w-3.5 h-3.5" /> Restore Access
-                      </button>
-                    ) : (
-                      <button onClick={() => openSystemAction('RESTRICT', profileData)} className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer">
-                        <ShieldBan className="w-3.5 h-3.5" /> Restrict User
                       </button>
                     )}
                     
@@ -846,6 +951,7 @@ export default function AdminUsersPage() {
                      <button onClick={() => setProfileTab('overview')} className={`pb-3 text-sm font-bold transition-all whitespace-nowrap ${profileTab === 'overview' ? 'text-[#7C3AED] border-b-2 border-[#7C3AED]' : 'text-gray-500 hover:text-gray-300'}`}>Overview & Security</button>
                      <button onClick={() => setProfileTab('activities')} className={`pb-3 text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${profileTab === 'activities' ? 'text-[#7C3AED] border-b-2 border-[#7C3AED]' : 'text-gray-500 hover:text-gray-300'}`}><Activity className="w-4 h-4"/> Completed Activities</button>
                      <button onClick={() => setProfileTab('risk')} className={`pb-3 text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${profileTab === 'risk' ? 'text-rose-400 border-b-2 border-rose-400' : 'text-gray-500 hover:text-gray-300'}`}><Radar className="w-4 h-4"/> Risk Analysis</button>
+                     <button onClick={() => setProfileTab('sessions')} className={`pb-3 text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${profileTab === 'sessions' ? 'text-[#7C3AED] border-b-2 border-[#7C3AED]' : 'text-gray-500 hover:text-gray-300'}`}><Monitor className="w-4 h-4"/> Sessions</button>
                      <button onClick={() => setProfileTab('earnings')} className={`pb-3 text-sm font-bold transition-all whitespace-nowrap ${profileTab === 'earnings' ? 'text-[#7C3AED] border-b-2 border-[#7C3AED]' : 'text-gray-500 hover:text-gray-300'}`}>Earnings Breakdown</button>
                      <button onClick={() => setProfileTab('wallet')} className={`pb-3 text-sm font-bold transition-all whitespace-nowrap ${profileTab === 'wallet' ? 'text-[#7C3AED] border-b-2 border-[#7C3AED]' : 'text-gray-500 hover:text-gray-300'}`}>Wallet & Withdrawals</button>
                   </div>
@@ -1022,6 +1128,101 @@ export default function AdminUsersPage() {
                     </motion.div>
                   )}
 
+                  {/* --- TAB: SESSIONS (NEW) --- */}
+                  {profileTab === 'sessions' && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
+                      <div className="bg-[#0B0D14] border border-white/5 rounded-2xl overflow-hidden shadow-inner">
+                        <div className="overflow-x-auto custom-scrollbar">
+                          <table className="w-full text-left border-collapse whitespace-nowrap">
+                            <thead className="bg-[#161821] border-b border-white/10">
+                              <tr className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">
+                                <th className="py-3 px-4">Device & IP</th>
+                                <th className="py-3 px-4">Location</th>
+                                <th className="py-3 px-4">Login Time</th>
+                                <th className="py-3 px-4 text-center">Status</th>
+                                <th className="py-3 px-4 text-right">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 text-sm">
+                              {isSessionsLoading ? (
+                                <tr>
+                                  <td colSpan={5} className="py-10 text-center">
+                                    <Loader2 className="w-6 h-6 animate-spin text-[#7C3AED] mx-auto mb-2" />
+                                    <span className="text-xs text-gray-500">Fetching sessions...</span>
+                                  </td>
+                                </tr>
+                              ) : sessions.length > 0 ? (
+                                sessions.map((session: any, idx: number) => {
+                                  const sId = session._id || session.id;
+                                  const isActive = session.isActive !== false && session.status !== 'Terminated';
+                                  const loginDate = session.createdAt ? new Date(session.createdAt) : null;
+                                  const isRowTerminating = terminatingSessionId === sId;
+
+                                  return (
+                                    <tr key={sId || idx} className="hover:bg-white/[0.02] transition-colors">
+                                      <td className="py-3 px-4">
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 border border-white/10 shrink-0">
+                                            {getDeviceIcon(session.deviceInfo || session.userAgent)}
+                                          </div>
+                                          <div className="flex flex-col">
+                                            <span className="font-bold text-white max-w-[150px] truncate" title={session.deviceInfo || session.userAgent || 'Unknown Device'}>
+                                              {session.deviceInfo || session.userAgent || 'Unknown Device'}
+                                            </span>
+                                            <span className="text-[10px] text-gray-500 font-mono">{session.ipAddress || session.ip || 'Unknown IP'}</span>
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-4 text-gray-300 text-xs">{session.location || session.country || 'N/A'}</td>
+                                      <td className="py-3 px-4 text-xs">
+                                        <span className="text-white block">{loginDate ? loginDate.toLocaleDateString() : 'N/A'}</span>
+                                        <span className="text-gray-500">{loginDate ? loginDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                                      </td>
+                                      <td className="py-3 px-4 text-center">
+                                        {isActive ? (
+                                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-bold uppercase text-emerald-400 bg-emerald-400/10 border border-emerald-400/20">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div> Active
+                                          </span>
+                                        ) : (
+                                          <span className="inline-block px-2 py-0.5 rounded text-[9px] font-bold uppercase text-gray-400 bg-white/5 border border-white/10">Terminated</span>
+                                        )}
+                                      </td>
+                                      <td className="py-3 px-4 text-right">
+                                        <button 
+                                          onClick={() => handleTerminateSession(sId)}
+                                          disabled={!isActive || isRowTerminating}
+                                          className={`w-8 h-8 rounded-lg flex items-center justify-center ml-auto transition-colors ${isActive ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 cursor-pointer' : 'bg-white/5 text-gray-600 border border-transparent cursor-not-allowed'}`}
+                                          title={isActive ? "Terminate session" : "Terminated"}
+                                        >
+                                          {isRowTerminating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Power className="w-3.5 h-3.5" />}
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              ) : (
+                                <tr>
+                                  <td colSpan={5} className="py-12 text-center text-gray-500 text-sm">
+                                    No sessions found.
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                        {sessions.length > 0 && sessionTotalPages > 1 && (
+                          <div className="flex items-center justify-between p-3 border-t border-white/5 bg-[#161821]">
+                            <span className="text-xs text-gray-400">Page <span className="text-white">{sessionPage}</span> of {sessionTotalPages}</span>
+                            <div className="flex gap-2">
+                              <button onClick={() => setSessionPage(p => Math.max(1, p - 1))} disabled={sessionPage === 1} className="p-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30"><ChevronLeft className="w-4 h-4 text-gray-300" /></button>
+                              <button onClick={() => setSessionPage(p => Math.min(sessionTotalPages, p + 1))} disabled={sessionPage === sessionTotalPages} className="p-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30"><ChevronRight className="w-4 h-4 text-gray-300" /></button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+
                   {/* --- TAB: EARNINGS BREAKDOWN --- */}
                   {profileTab === 'earnings' && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
@@ -1126,7 +1327,7 @@ export default function AdminUsersPage() {
 
       {/* --- ALL CONTROL MODALS (Nested outside for safety) --- */}
 
-      {/* MODAL: SYSTEM ACTION (RESTRICT / RESTORE / DELETE) */}
+      {/* MODAL: SYSTEM ACTION (RESTORE / DELETE) */}
       <AnimatePresence>
         {systemAction.isOpen && systemAction.type && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#050409]/90 backdrop-blur-sm">
@@ -1136,10 +1337,9 @@ export default function AdminUsersPage() {
             >
               <div className="bg-[#1A1C24] border-b border-white/5 px-8 py-6 flex items-center justify-between">
                 <h3 className={`text-xl font-black flex items-center gap-3 tracking-tight ${systemAction.type === 'DELETE' ? 'text-red-500' : 'text-white'}`}>
-                  {systemAction.type === 'RESTRICT' && <ShieldBan className="w-6 h-6 text-amber-500" />}
                   {systemAction.type === 'RESTORE' && <Unlock className="w-6 h-6 text-emerald-500" />}
                   {systemAction.type === 'DELETE' && <Trash2 className="w-6 h-6 text-red-500" />}
-                  {systemAction.type === 'RESTRICT' ? 'Restrict User' : systemAction.type === 'RESTORE' ? 'Restore User' : 'Delete User'}
+                  {systemAction.type === 'RESTORE' ? 'Restore User' : 'Delete User'}
                 </h3>
                 <button onClick={() => setSystemAction({type: null, isOpen: false, targetUser: null})} className="text-[#8F95A3] hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10"><X className="w-5 h-5" /></button>
               </div>
@@ -1152,20 +1352,11 @@ export default function AdminUsersPage() {
                 )}
 
                 <p className="text-sm text-gray-400 leading-relaxed text-center">
-                  {systemAction.type === 'RESTRICT' && `You are about to block ${systemAction.targetUser?.userName || systemAction.targetUser?.name}. They won't be able to withdraw or login.`}
                   {systemAction.type === 'RESTORE' && `Restore full access for ${systemAction.targetUser?.userName || systemAction.targetUser?.name}? They will be able to login and withdraw.`}
                   {systemAction.type === 'DELETE' && `WARNING: You are about to permanently delete ${systemAction.targetUser?.userName || systemAction.targetUser?.name}. This action cannot be undone.`}
                 </p>
 
-                {systemAction.type === 'RESTRICT' && (
-                  <div className="flex flex-col gap-2.5">
-                    <label className="text-xs font-bold text-[#8F95A3] uppercase tracking-widest">Reason for Block</label>
-                    <textarea required rows={3} placeholder="Provide a reason..." value={actionReason} onChange={(e) => setActionReason(e.target.value)} className="w-full bg-[#0B0D14] rounded-2xl px-5 py-4 text-white text-sm focus:outline-none transition-all shadow-inner border border-transparent focus:border-amber-500/50 resize-none custom-scrollbar" />
-                  </div>
-                )}
-
                 <button type="submit" disabled={isSubmittingSysAction} className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all cursor-pointer disabled:opacity-50 ${
-                  systemAction.type === 'RESTRICT' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black' : 
                   systemAction.type === 'RESTORE' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-black' :
                   'bg-gradient-to-r from-red-500 to-red-600 text-white'
                 }`}>
