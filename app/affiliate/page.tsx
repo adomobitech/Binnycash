@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Copy, Users, Clock, Wallet, CheckCircle2, ChevronRight, 
   Info, Loader2, Award, Shield, Share2, DollarSign, TrendingUp, 
-  ChevronDown, Trophy, Medal, Crown, Star, Play
+  ChevronDown, Trophy, Medal, Crown, Star, Play,
 } from 'lucide-react';
 import { useCurrency, formatPrice } from '@/hooks/useCurrency';
 import Link from 'next/link';
@@ -331,19 +331,7 @@ export default function AffiliatePage() {
              <div className="absolute right-0 bottom-0"><Sparkline color="#FBBF24" /></div>
           </div>
 
-          <div className="bg-[#12141D] border border-white/5 rounded-2xl p-5 flex items-center justify-between shadow-md hover:border-white/10 transition-colors relative overflow-hidden">
-             <div className="flex items-center gap-4 relative z-10">
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                   <TrendingUp className="w-6 h-6 text-emerald-400" />
-                </div>
-                <div className="flex flex-col">
-                   <span className="text-2xl font-black text-white"><AnimatedValue value={formatPrice(dashboardData.last30DaysEarning || 0, currency)} /></span>
-                   <span className="text-xs text-gray-500 font-medium">30 Days Earning</span>
-                </div>
-             </div>
-             <div className="absolute right-0 bottom-0"><Sparkline color="#10B981" /></div>
-          </div>
-
+         
           <div className="bg-[#12141D] border border-white/5 rounded-2xl p-5 flex items-center justify-between shadow-md hover:border-white/10 transition-colors relative overflow-hidden">
              <div className="flex items-center gap-4 relative z-10">
                 <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
@@ -356,6 +344,19 @@ export default function AffiliatePage() {
              </div>
              <div className="absolute right-0 bottom-0"><Sparkline color="#F59E0B" /></div>
           </div>
+           <div className="bg-[#12141D] border border-white/5 rounded-2xl p-5 flex items-center justify-between shadow-md hover:border-white/10 transition-colors relative overflow-hidden">
+             <div className="flex items-center gap-4 relative z-10">
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                   <TrendingUp className="w-6 h-6 text-emerald-400" />
+                </div>
+                <div className="flex flex-col">
+                   <span className="text-2xl font-black text-white"><AnimatedValue value={formatPrice(dashboardData.last30DaysEarning || 0, currency)} /></span>
+                   <span className="text-xs text-gray-500 font-medium">Last 30 Days Earning</span>
+                </div>
+             </div>
+             <div className="absolute right-0 bottom-0"><Sparkline color="#10B981" /></div>
+          </div>
+
         </div>
 
         {/* ========================================== */}

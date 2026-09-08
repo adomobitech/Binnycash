@@ -398,14 +398,13 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
 
-  // --- TAB ORDER: offers, surveys, reversals, rewards ---
-  const [activeTableTab, setActiveTableTab] = useState<'offers' | 'surveys' | 'reversals' | 'rewards'>('offers');
+  // --- TAB ORDER: earnings, reversals, rewards ---
+  const [activeTableTab, setActiveTableTab] = useState<'earnings' | 'reversals' | 'rewards'>('earnings');
 
   // Pagination & Table Data State
   const [tablePage, setTablePage] = useState(1);
   const [tableTotalPages, setTableTotalPages] = useState(1);
-  const [offersData, setOffersData] = useState<any[]>([]);
-  const [surveysData, setSurveysData] = useState<any[]>([]);
+  const [earningsData, setEarningsData] = useState<any[]>([]);
   const [reversalsData, setReversalsData] = useState<any[]>([]); 
   const [rewardsData, setRewardsData] = useState<any[]>([]);
   const [isTableLoading, setIsTableLoading] = useState(false);
@@ -486,6 +485,7 @@ export default function ProfilePage() {
     setTableTotalPages(1);
   }, [activeTableTab]);
 
+  // 🔥 UNIFIED CONVERSION DATA API FETCHING 🔥
   useEffect(() => {
     const fetchTableData = async () => {
       const token = localStorage.getItem('token') || '';
@@ -494,10 +494,8 @@ export default function ProfilePage() {
 
       setIsTableLoading(true);
       try {
-        if (activeTableTab === 'offers' || activeTableTab === 'surveys' || activeTableTab === 'reversals') {
-          let typeParam = 'offer';
-          if (activeTableTab === 'surveys') typeParam = 'survey';
-          if (activeTableTab === 'reversals') typeParam = 'reversal';
+        if (activeTableTab === 'earnings' || activeTableTab === 'reversals') {
+          const typeParam = activeTableTab === 'earnings' ? 'complete' : 'reversal';
 
           const json = await safeFetchJson(`https://api.binnycash.com/api/user/conversionData?type=${typeParam}&page=${tablePage}&limit=10`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -505,22 +503,16 @@ export default function ProfilePage() {
 
           if (json && json.code === 200) {
             const responsePayload = json?.data?.data || json?.data || {};
-            const listData = 
-              responsePayload.completedOffers || 
-              responsePayload.completedSurveys || 
-              responsePayload.reversals || 
-              responsePayload.list || 
-              [];
+            const listData = responsePayload.conversions || responsePayload.list || responsePayload.docs || responsePayload.data || responsePayload.completedOffers || (Array.isArray(responsePayload) ? responsePayload : []);
 
-            const totalP = responsePayload?.pagination?.totalPages || 1;
+            const totalP = responsePayload?.pagination?.totalPages || responsePayload?.totalPages || 1;
 
-            if (activeTableTab === 'offers') setOffersData(Array.isArray(listData) ? listData : []);
-            if (activeTableTab === 'surveys') setSurveysData(Array.isArray(listData) ? listData : []);
+            if (activeTableTab === 'earnings') setEarningsData(Array.isArray(listData) ? listData : []);
             if (activeTableTab === 'reversals') setReversalsData(Array.isArray(listData) ? listData : []);
+            
             setTableTotalPages(totalP);
           } else {
-            if (activeTableTab === 'offers') setOffersData([]);
-            if (activeTableTab === 'surveys') setSurveysData([]);
+            if (activeTableTab === 'earnings') setEarningsData([]);
             if (activeTableTab === 'reversals') setReversalsData([]);
             setTableTotalPages(1);
           }
@@ -689,7 +681,6 @@ export default function ProfilePage() {
       const isError = !res.ok || errCode === 400 || errCode === 403 || errCode === 404 || json?.type === 'error';
 
       if (!isError) {
-        // Successfully Deleted -> Logout User
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
         localStorage.removeItem('userDetails');
@@ -716,7 +707,6 @@ export default function ProfilePage() {
   const resolveImage = (imgSrc: string | null | undefined) => {
     if (!imgSrc || imgSrc.trim() === '') return null;
     if (imgSrc.startsWith('http')) return imgSrc;
-    // Ensuring it always prefixes https://api.binnycash.com to partial paths like /uploads/...
     const cleanPath = imgSrc.startsWith('/') ? imgSrc : `/${imgSrc}`;
     return `https://api.binnycash.com${cleanPath}`;
   };
@@ -988,8 +978,9 @@ export default function ProfilePage() {
         {/* BOTTOM SINGLE TABS ROW & TABLE */}
         <div className="flex flex-col">
           
+          {/* 🔥 UNIFIED EARNINGS TAB 🔥 */}
           <div className="flex items-center gap-2 mb-5 overflow-x-auto no-scrollbar">
-            {(['offers', 'surveys', 'reversals', 'rewards'] as const).map((tab) => (
+            {(['earnings', 'reversals', 'rewards'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTableTab(tab)}
@@ -1012,18 +1003,10 @@ export default function ProfilePage() {
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                   <tr className="border-b border-white/[0.06] bg-white/[0.02]">
-                    {activeTableTab === 'offers' ? (
+                    {activeTableTab === 'earnings' ? (
                       <>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Offer Name</th>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Network Name</th>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Payout</th>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Event</th>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Status</th>
-                      </>
-                    ) : activeTableTab === 'surveys' ? (
-                      <>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Survey Name</th>
-                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Network Name</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Name</th>
+                        <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Network</th>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Reward</th>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Status</th>
                         <th className="px-6 py-4 text-[10px] f-mono font-bold text-[#8D89A8] uppercase tracking-wider">Date</th>
@@ -1059,8 +1042,7 @@ export default function ProfilePage() {
                   ) : (
                     (() => {
                       let currentData: any[] = [];
-                      if (activeTableTab === 'offers') currentData = offersData;
-                      else if (activeTableTab === 'surveys') currentData = surveysData;
+                      if (activeTableTab === 'earnings') currentData = earningsData;
                       else if (activeTableTab === 'reversals') currentData = reversalsData;
                       else if (activeTableTab === 'rewards') currentData = rewardsData;
 
@@ -1080,13 +1062,14 @@ export default function ProfilePage() {
                       }
 
                       return currentData.map((item: any, idx: number) => {
-                        // OFFERS RENDER BLOCK
-                        if (activeTableTab === 'offers') {
-                          const finalImg = resolveImage(item.offerImage || item.logo || item.image_url || item.preview);
+                        
+                        // 🔥 EARNINGS RENDER BLOCK (Offers + Surveys Combined) 🔥
+                        if (activeTableTab === 'earnings') {
+                          const finalImg = resolveImage(item.offerImage || item.logo || item.surveyImage || item.image_url || item.preview);
                           const partnerName = item.network || item.partnerName || item.offerPartnerName || 'Partner';
-                          const payoutVal = Number(item.userCredits || item.amount || 0);
-                          const eventName = item.eventName ? item.eventName : '-';
-                          const statusText = 'Completed';
+                          const payoutVal = Number(item.userCredits || item.amount || item.reward || 0);
+                          const itemName = item.offerName || item.surveyName || item.offer_name || item.name || 'Activity';
+                          const statusText = item.status || 'Completed';
 
                           return (
                             <motion.tr
@@ -1102,49 +1085,10 @@ export default function ProfilePage() {
                                     <img src={finalImg} alt="logo" className="w-8 h-8 rounded-lg object-cover bg-white/5" />
                                   ) : (
                                     <div className="w-8 h-8 rounded-lg bg-[#A66CFF]/20 flex items-center justify-center">
-                                      <span className="text-xs font-bold text-[#A66CFF]">{(item.offerName || item.offer_name || 'O').charAt(0)}</span>
+                                      <span className="text-xs font-bold text-[#A66CFF]">{itemName.charAt(0)}</span>
                                     </div>
                                   )}
-                                  <span className="text-sm font-bold text-white truncate max-w-[200px]">{item.offerName || item.offer_name || 'Offer'}</span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 text-sm text-white/80 capitalize">{partnerName}</td>
-                              <td className="px-6 py-4 text-sm f-mono font-bold text-[#3DE8A0]">+{formatPrice(payoutVal, currency)}</td>
-                              <td className="px-6 py-4 text-sm f-mono text-[#8D89A8]">{eventName}</td>
-                              <td className="px-6 py-4">
-                                <span className="px-2 py-1 rounded border text-[10px] font-bold uppercase flex items-center gap-1 w-fit bg-[#3DE8A0]/10 border-[#3DE8A0]/20 text-[#3DE8A0]">
-                                  <CheckCircle2 className="w-3 h-3" /> {statusText}
-                                </span>
-                              </td>
-                            </motion.tr>
-                          );
-                        }
-
-                        // SURVEYS RENDER BLOCK
-                        if (activeTableTab === 'surveys') {
-                          const finalImg = resolveImage(item.logo || item.surveyImage || item.image_url || item.preview);
-                          const partnerName = item.network || item.partnerName || 'Network';
-                          const payoutVal = Number(item.userCredits || item.amount || 0);
-                          const statusText = 'Completed';
-
-                          return (
-                            <motion.tr
-                              key={item._id || idx}
-                              initial={{ opacity: 0, x: -8 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: Math.min(idx * 0.03, 0.4) }}
-                              className="border-b border-white/[0.05] hover:bg-white/[0.03] transition-colors"
-                            >
-                              <td className="px-6 py-4">
-                                <div className="flex items-center gap-3">
-                                  {finalImg ? (
-                                    <img src={finalImg} alt="logo" className="w-8 h-8 rounded-lg object-cover bg-white/5" />
-                                  ) : (
-                                    <div className="w-8 h-8 rounded-lg bg-[#A66CFF]/20 flex items-center justify-center">
-                                      <span className="text-xs font-bold text-[#A66CFF]">{(item.surveyName || item.offer_name || item.name || 'S').charAt(0)}</span>
-                                    </div>
-                                  )}
-                                  <span className="text-sm font-bold text-white truncate max-w-[200px]">{item.surveyName || item.offer_name || item.name || 'Survey'}</span>
+                                  <span className="text-sm font-bold text-white truncate max-w-[200px]">{itemName}</span>
                                 </div>
                               </td>
                               <td className="px-6 py-4 text-sm text-white/80 capitalize">{partnerName}</td>
@@ -1154,7 +1098,7 @@ export default function ProfilePage() {
                                   <CheckCircle2 className="w-3 h-3" /> {statusText}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-sm f-mono text-[#8D89A8]">{formatDate(item.date || item.createdAt)}</td>
+                              <td className="px-6 py-4 text-sm f-mono text-[#8D89A8]">{formatDate(item.date || item.createdAt || item.updatedAt)}</td>
                             </motion.tr>
                           );
                         }
