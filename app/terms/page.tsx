@@ -393,7 +393,7 @@ export default function TermsPage() {
     },
     {
       title: "27. Intellectual Property",
-      content: "The BinnyCash name, logo, website design, software, graphics, text, interfaces, databases, features, and other original materials are owned by or licensed to Weeo Media LLC or its applicable licensors. Except as expressly permitted by us, you may not:",
+      content: "The BinnyCash name, logo, website design, software, graphics, text, interfaces, databases, features, and other original materials are owned by or licensed to Binnycash.com or its applicable licensors. Except as expressly permitted by us, you may not:",
       list: [
         "Copy our platform.",
         "Reproduce our branding.",
@@ -501,7 +501,7 @@ export default function TermsPage() {
     },
     {
       title: "35. Limitation of Liability",
-      content: "To the fullest extent permitted by applicable law, Weeo Media LLC and its affiliates, service providers, officers, employees, and contractors will not be responsible for indirect, incidental, special, consequential, or punitive losses arising from your use of the Services. This may include losses relating to:",
+      content: "To the fullest extent permitted by applicable law, Binnycash and its affiliates, service providers, officers, employees, and contractors will not be responsible for indirect, incidental, special, consequential, or punitive losses arising from your use of the Services. This may include losses relating to:",
       list: [
         "Loss of data.",
         "Loss of expected rewards.",
@@ -526,7 +526,7 @@ export default function TermsPage() {
     },
     {
       title: "37. Governing Law",
-      content: "These Terms are governed by the applicable laws governing the relationship between you and Weeo Media LLC, subject to mandatory consumer-protection and other rights that apply in your country or region. Nothing in this section is intended to remove or restrict rights that you are entitled to under mandatory applicable law. Where a dispute cannot be resolved informally, the parties may use the courts or other dispute-resolution mechanisms available under applicable law."
+      content: "These Terms are governed by the applicable laws governing the relationship between you and Binnycash, subject to mandatory consumer-protection and other rights that apply in your country or region. Nothing in this section is intended to remove or restrict rights that you are entitled to under mandatory applicable law. Where a dispute cannot be resolved informally, the parties may use the courts or other dispute-resolution mechanisms available under applicable law."
     },
     {
       title: "38. Dispute Resolution",
@@ -554,7 +554,7 @@ export default function TermsPage() {
     },
     {
       title: "42. Contact Us",
-      content: "BinnyCash\nOperated by Weeo Media LLC\n5900 Balcones Drive STE 100\nAustin, TX 78731\nUnited States\n\nGeneral Support: support@binnycash.com\nPrivacy: privacy@binnycash.com\nWebsite: www.binnycash.com\n\n© 2026 Weeo Media LLC. All rights reserved."
+      content: "BinnyCash\nOperated by: \nGeneral Support: support@binnycash.com\nPrivacy: privacy@binnycash.com\nWebsite: www.binnycash.com\n\n© 2026 Binnycash. All rights reserved."
     }
   ];
 
@@ -603,10 +603,10 @@ export default function TermsPage() {
         >
           <p className="text-[#8F95A3] text-[15px] font-medium leading-relaxed mb-10 pb-8 border-b border-white/10">
             Welcome to BinnyCash. These Terms of Service ("Terms", "Terms of Service") govern your access to and use of the BinnyCash website, mobile application, rewards platform, offers, surveys, promotions, referral programs, redemption services, and related features (collectively, the "Services").
-            <br /><br />
+            {/* <br /><br />
             BinnyCash is operated by Weeo Media LLC (5900 Balcones Drive STE 100, Austin, TX 78731, United States).
             <br /><br />
-            By accessing or using BinnyCash, you agree to these Terms of Service and our Privacy Policy. If you do not agree with these Terms, you must not use the Services.
+            By accessing or using BinnyCash, you agree to these Terms of Service and our Privacy Policy. If you do not agree with these Terms, you must not use the Services. */}
           </p>
 
           {sections.map((section, idx) => (
@@ -628,7 +628,7 @@ export default function TermsPage() {
           ))}
 
           <div className="mt-12 pt-8 border-t border-white/10 flex items-center justify-center gap-2 text-xs font-bold text-[#3B82F6] bg-[#3B82F6]/10 py-3 rounded-xl border border-[#3B82F6]/20">
-             <ShieldCheck className="w-4 h-4" /> BinnyCash - Rewards Platform operated by Weeo Media LLC
+             <ShieldCheck className="w-4 h-4" /> BinnyCash - Rewards Platform operated by Binnycash.
           </div>
         </motion.div>
 

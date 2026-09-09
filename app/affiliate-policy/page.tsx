@@ -84,7 +84,7 @@ export default function AffiliatePolicyPage() {
           className="bg-[#161821] border border-white/5 rounded-[24px] p-6 sm:p-10 shadow-xl"
         >
           <p className="text-[#8F95A3] text-[15px] font-medium leading-relaxed mb-10 pb-8 border-b border-white/10">
-            This Affiliate & Offer Policy ("Policy") explains the rules that apply when you participate in affiliate offers, surveys, promotions, cashback activities, games, applications, trials, and other earning opportunities available through BinnyCash, operated by Weeo Media LLC ("BinnyCash", "we", "us", or "our").
+            This Affiliate & Offer Policy ("Policy") explains the rules that apply when you participate in affiliate offers, surveys, promotions, cashback activities, games, applications, trials, and other earning opportunities available through BinnyCash, operated by Binnycash.com ("BinnyCash", "we", "us", or "our").
             <br /><br />
             By participating in an offer through BinnyCash, you agree to this Policy, our Terms and Conditions, and our Privacy Policy.
           </p>
@@ -441,10 +441,10 @@ export default function AffiliatePolicyPage() {
               </div>
               <div className="flex items-start gap-3">
                 <Building className="w-5 h-5 text-[#8B5CF6] mt-0.5" />
-                <div>
+                {/* <div>
                   <h4 className="text-white font-bold text-sm">Company</h4>
                   <p className="text-[#8F95A3]">Weeo Media LLC</p>
-                </div>
+                </div> */}
               </div>
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-[#8B5CF6] mt-0.5" />
@@ -454,9 +454,9 @@ export default function AffiliatePolicyPage() {
                 </div>
               </div>
             </div>
-            <div className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-[#8B5CF6] bg-[#8B5CF6]/10 py-3 rounded-xl border border-[#8B5CF6]/20">
+            {/* <div className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-[#8B5CF6] bg-[#8B5CF6]/10 py-3 rounded-xl border border-[#8B5CF6]/20">
               <ShieldCheck className="w-4 h-4" /> BinnyCash - Rewards & Offers Platform operated by Weeo Media LLC
-            </div>
+            </div> */}
           </Section>
 
         </motion.div>

@@ -85,7 +85,7 @@ export default function PrivacyPolicyPage() {
           className="bg-[#161821] border border-white/5 rounded-[24px] p-6 sm:p-10 shadow-xl"
         >
           <p className="text-[#8F95A3] text-[15px] font-medium leading-relaxed mb-10 pb-8 border-b border-white/10">
-            Welcome to BinnyCash, a rewards and earning platform operated by Weeo Media LLC ("BinnyCash", "we", "us", or "our").
+            Welcome to BinnyCash, a rewards and earning platform operated by Binnycash.com ("BinnyCash", "we", "us", or "our").
             <br /><br />
             This Privacy Policy explains how we collect, use, disclose, protect, retain, and delete information when you use the BinnyCash website, mobile application, rewards services, offers, surveys, promotions, and related services (collectively, the "Services").
             <br /><br />
@@ -96,10 +96,10 @@ export default function PrivacyPolicyPage() {
             <div className="bg-[#1A1C24] p-5 rounded-xl border border-white/5 space-y-4">
               <div className="flex items-start gap-3">
                 <Building className="w-5 h-5 text-[#3DE8A0] mt-0.5" />
-                <div>
+                {/* <div>
                   <h4 className="text-white font-bold text-sm">Company</h4>
                   <p className="text-[#8F95A3]">Weeo Media LLC</p>
-                </div>
+                </div> */}
               </div>
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-[#3DE8A0] mt-0.5" />
@@ -338,7 +338,7 @@ export default function PrivacyPolicyPage() {
           </Section>
 
           <Section title="8. International Data Transfers">
-            <p>BinnyCash is operated by Weeo Media LLC in the United States and may use service providers located in different countries. As a result, your information may be processed or stored outside the country in which you live.</p>
+            {/* <p>BinnyCash is operated by Weeo Media LLC in the United States and may use service providers located in different countries. As a result, your information may be processed or stored outside the country in which you live.</p> */}
             <p>Where required by applicable law, we use appropriate safeguards for international data transfers.</p>
           </Section>
 
@@ -440,10 +440,10 @@ export default function PrivacyPolicyPage() {
             <div className="mt-4 bg-[#111319] p-5 rounded-2xl border border-white/5 space-y-4">
               <div className="flex items-start gap-3">
                 <Building className="w-5 h-5 text-[#3DE8A0] mt-0.5" />
-                <div>
+                {/* <div>
                   <h4 className="text-white font-bold text-sm">Company</h4>
                   <p className="text-[#8F95A3]">Weeo Media LLC</p>
-                </div>
+                </div> */}
               </div>
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-[#3DE8A0] mt-0.5" />
@@ -463,9 +463,9 @@ export default function PrivacyPolicyPage() {
             </div>
           </Section>
 
-          <div className="mt-12 pt-8 border-t border-white/10 flex items-center justify-center gap-2 text-xs font-bold text-[#3DE8A0] bg-[#3DE8A0]/10 py-3 rounded-xl border border-[#3DE8A0]/20">
+          {/* <div className="mt-12 pt-8 border-t border-white/10 flex items-center justify-center gap-2 text-xs font-bold text-[#3DE8A0] bg-[#3DE8A0]/10 py-3 rounded-xl border border-[#3DE8A0]/20">
              <ShieldCheck className="w-4 h-4" /> BinnyCash - A rewards platform operated by Weeo Media LLC.
-          </div>
+          </div> */}
         </motion.div>
 
       </main>

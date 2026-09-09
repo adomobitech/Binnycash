@@ -72,7 +72,7 @@ export default function CookiePolicyPage() {
           className="bg-[#161821] border border-white/5 rounded-[24px] p-6 sm:p-10 shadow-xl"
         >
           <p className="text-[#8F95A3] text-[15px] font-medium leading-relaxed mb-10 pb-8 border-b border-white/10">
-            This Cookie Policy explains how BinnyCash, operated by Weeo Media LLC ("BinnyCash", "we", "us", or "our"), uses cookies and similar technologies when you visit or use our website, web applications, and related online services.
+            This Cookie Policy explains how BinnyCash, operated by Binnycash.com ("BinnyCash", "we", "us", or "our"), uses cookies and similar technologies when you visit or use our website, web applications, and related online services.
             <br /><br />
             This policy should be read together with our Privacy Policy and Terms & Conditions.
           </p>
@@ -300,7 +300,7 @@ export default function CookiePolicyPage() {
           </Section>
 
           <Section title="15. International Services">
-            <p>BinnyCash is operated by Weeo Media LLC in the United States and uses service providers that may operate in different countries. As a result, information associated with Cookies and similar technologies may be processed in countries other than the country where you live.</p>
+            <p>BinnyCash is operated by Binnycash.com in the United States and uses service providers that may operate in different countries. As a result, information associated with Cookies and similar technologies may be processed in countries other than the country where you live.</p>
             <p>For additional information about international data processing, please review our Privacy Policy.</p>
           </Section>
 
@@ -333,10 +333,10 @@ export default function CookiePolicyPage() {
             <div className="mt-4 bg-[#111319] p-5 rounded-2xl border border-white/5 space-y-4">
               <div className="flex items-start gap-3">
                 <Building className="w-5 h-5 text-[#A66CFF] mt-0.5" />
-                <div>
+                {/* <div>
                   <h4 className="text-white font-bold text-sm">Company</h4>
                   <p className="text-[#8F95A3]">Weeo Media LLC</p>
-                </div>
+                </div> */}
               </div>
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-[#A66CFF] mt-0.5" />
@@ -376,9 +376,9 @@ export default function CookiePolicyPage() {
             </p>
           </div>
 
-          <div className="mt-10 pt-8 border-t border-white/10 flex items-center justify-center gap-2 text-xs font-bold text-[#A66CFF] bg-[#A66CFF]/10 py-3 rounded-xl border border-[#A66CFF]/20">
+          {/* <div className="mt-10 pt-8 border-t border-white/10 flex items-center justify-center gap-2 text-xs font-bold text-[#A66CFF] bg-[#A66CFF]/10 py-3 rounded-xl border border-[#A66CFF]/20">
              <ShieldCheck className="w-4 h-4" /> BinnyCash - Operated by Weeo Media LLC
-          </div>
+          </div> */}
         </motion.div>
 
       </main>
