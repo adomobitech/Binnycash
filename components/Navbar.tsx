@@ -8,23 +8,13 @@ import { useTranslation } from './LanguageContext';
 import { 
   Bell, Rocket, Trophy, Wallet, ChevronDown, User, 
   LogOut, MessageSquare, HelpCircle, Gift, 
-  BarChart3, Users, X, CheckCheck, Loader2, Globe, ChevronRight,
-  Lock, ShieldCheck, Menu, ClipboardCheck, Flame, PlaySquare,
-  History, Smartphone, Download 
+  Users, X, Loader2, Globe, ChevronRight,
+  ShieldCheck, Menu, ClipboardCheck, Flame, PlaySquare,
+  History, Settings, Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import "flag-icons/css/flag-icons.min.css";
 import ChatDrawer from '@/components/chat/ChatDrawer';
-
-// --- GOOGLE PLAY STORE SVG ICON ---
-const GooglePlayIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <path d="M49.49 48.71C48.51 51.52 48 55.45 48 60.19V451.81C48 456.55 48.51 460.48 49.49 463.29L262.15 256.02L49.49 48.71Z" fill="#00E676"/>
-    <path d="M331.42 323.51L262.15 256.02L49.49 463.29C54.49 468.15 62.46 469.75 72.33 464.08L331.42 323.51Z" fill="#FF3D00"/>
-    <path d="M331.42 188.49L72.33 47.92C62.46 42.25 54.49 43.85 49.49 48.71L262.15 256.02L331.42 188.49Z" fill="#00B0FF"/>
-    <path d="M451.15 253.25L331.42 188.49L262.15 256.02L331.42 323.51L451.15 258.79C465.64 250.94 465.64 261.1 451.15 253.25Z" fill="#FFC400"/>
-  </svg>
-);
 
 const getDynamicColor = (name: string) => {
   const colors = [
@@ -83,15 +73,7 @@ const LANGUAGES = [
   { code: 'ru', name: 'Russian', tag: 'ru' },
   { code: 'zh-CN', name: 'Chinese', tag: 'cn' },
   { code: 'ja', name: 'Japanese', tag: 'jp' },
-  { code: 'ko', name: 'Korean', tag: 'kr' },
-  { code: 'it', name: 'Italian', tag: 'it' },
-  { code: 'tr', name: 'Turkish', tag: 'tr' },
-  { code: 'vi', name: 'Vietnamese', tag: 'vn' },
-  { code: 'th', name: 'Thai', tag: 'th' },
-  { code: 'id', name: 'Indonesian', tag: 'id' },
-  { code: 'ar', name: 'Arabic', tag: 'sa' },
-  { code: 'bn', name: 'Bengali', tag: 'bd' },
-  { code: 'ur', name: 'Urdu', tag: 'pk' }
+  { code: 'ko', name: 'Korean', tag: 'kr' }
 ];
 
 export default function Navbar() {
@@ -112,16 +94,13 @@ export default function Navbar() {
   const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
   
   const [balance, setBalance] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('cached_balance') || '0.00';
-    }
+    if (typeof window !== 'undefined') return localStorage.getItem('cached_balance') || '0.00';
     return '0.00';
   });
   
   const [userName, setUserName] = useState('Profile');
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
-  
   const [trueUserId, setTrueUserId] = useState<string>('');
 
   const [isInboxOpen, setIsInboxOpen] = useState(false);
@@ -131,44 +110,38 @@ export default function Navbar() {
   const [hasFetchedAlerts, setHasFetchedAlerts] = useState(false);
 
   const [isChatOpen, setIsChatOpen] = useState(false);
+  
+  // 🔥 FIXED: Added the unreadChatCount state back to fix the compilation error 🔥
   const [unreadChatCount, setUnreadChatCount] = useState(0);
-
+  
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navRef = useRef<HTMLElement>(null);
-  const lastFetchRef = useRef<number>(0);
-  const lastProfileFetchRef = useRef<number>(0);
   const isProfileFetching = useRef<boolean>(false);
+  const lastProfileFetchRef = useRef<number>(0);
 
   const MAIN_LINKS = [
-    { name: t.Navbar?.links?.earn || 'Earn', href: '/dashboard' },
-    { name: t.Navbar?.links?.myOffers || 'My Offers', href: '/myoffers' },
-    { name: t.Navbar?.links?.affiliate || 'Affiliate', href: '/affiliate' },
-    { name: t.Navbar?.links?.leaderboard || 'Leaderboard', href: '/leaderboard' },
-    { name: t.Navbar?.links?.rewards || 'Rewards', href: '/rewards' },
+    { name: t.Navbar?.links?.earn || 'Earn', href: '/dashboard', icon: Rocket },
+    { name: t.Navbar?.links?.myOffers || 'My Offers', href: '/myoffers', icon: PlaySquare },
+    { name: t.Navbar?.links?.affiliate || 'Affiliate', href: '/affiliate', icon: Users },
+    { name: t.Navbar?.links?.leaderboard || 'Leaderboard', href: '/leaderboard', icon: Trophy },
+    { name: t.Navbar?.links?.rewards || 'Rewards', href: '/rewards', icon: Gift },
   ];
 
   useEffect(() => {
     const syncAuthState = () => {
       const token = localStorage.getItem('token');
-      if (token && token !== 'undefined' && !token.includes('[object Object]')) {
-        setIsLoggedIn(true);
-      } else {
-        setIsLoggedIn(false);
-      }
+      setIsLoggedIn(token && token !== 'undefined' && !token.includes('[object Object]') ? true : false);
     };
-
     syncAuthState();
     window.addEventListener('storage', syncAuthState);
     window.addEventListener('profileUpdated', syncAuthState);
-
     return () => {
       window.removeEventListener('storage', syncAuthState);
       window.removeEventListener('profileUpdated', syncAuthState);
     };
   }, []);
 
-  // 🚀 DIRECT REDIRECT FROM HOMEPAGE (No Splash Screen Conflicts) 🚀
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && token !== 'undefined' && pathname === '/') {
@@ -193,89 +166,52 @@ export default function Navbar() {
 
   const handleForceLogout = () => {
     if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return; 
-
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('userDetails');
     localStorage.removeItem('cached_balance');
     setIsLoggedIn(false);
-    if (pathname !== '/') {
-      router.replace('/');
-    }
+    if (pathname !== '/') router.replace('/');
   };
 
   useEffect(() => {
     let isMounted = true;
     let isFetching = false;
-
     const fetchWalletBalance = async () => {
       if (typeof window === 'undefined' || window.location.pathname.startsWith('/v9')) return;
-
       const token = localStorage.getItem('token');
       if (!token || token === 'undefined' || token.includes('[object Object]')) {
         if (isMounted) setIsLoggedIn(false);
         return;
       }
-
       if (isMounted) setIsLoggedIn(true);
-
       if (isFetching) return;
       isFetching = true;
 
       try {
         const res = await fetch(`https://api.binnycash.com/api/user/balance/total-amount?t=${Date.now()}`, {
           method: 'GET',
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          },
+          headers: { 'Authorization': `Bearer ${token}` },
           cache: 'no-store' 
         });
-
-        if (!res.ok) {
-           if (isMounted) {
-             setBalance('0.00');
-             localStorage.setItem('cached_balance', '0.00');
-           }
-           isFetching = false;
-           return; 
-        }
-
+        if (!res.ok) throw new Error();
         const text = await res.text();
-        if (!text || text.trim().startsWith('<')) {
-           if (isMounted) {
-             setBalance('0.00');
-             localStorage.setItem('cached_balance', '0.00');
-           }
-           isFetching = false;
-           return;
-        }
-        
+        if (!text || text.trim().startsWith('<')) throw new Error();
         const data = JSON.parse(text);
-
         if (isMounted && data && data.data !== undefined) {
           const liveBalance = Number(data.data).toFixed(2);
           setBalance(liveBalance);
           localStorage.setItem('cached_balance', liveBalance);
         }
       } catch (err) {
-         console.error("Wallet fetch error:", err);
-         if (isMounted) {
-           setBalance('0.00');
-           localStorage.setItem('cached_balance', '0.00');
-         }
-      } finally {
-         isFetching = false;
-      }
+         if (isMounted) { setBalance('0.00'); localStorage.setItem('cached_balance', '0.00'); }
+      } finally { isFetching = false; }
     };
 
     if (isLoggedIn) {
       fetchWalletBalance();
       window.addEventListener('walletUpdated', fetchWalletBalance);
       window.addEventListener('focus', fetchWalletBalance);
-
       return () => {
         isMounted = false;
         window.removeEventListener('walletUpdated', fetchWalletBalance);
@@ -284,37 +220,26 @@ export default function Navbar() {
     }
   }, [isLoggedIn]);
 
-  // 🔥 FIX: Improved Image Resolver 🔥
   const resolveImage = (imgSrc: string | null | undefined) => {
     if (!imgSrc || imgSrc === 'null' || imgSrc === 'undefined' || imgSrc.trim() === '') return null;
     if (imgSrc.startsWith('http')) return imgSrc;
-    const cleanPath = imgSrc.startsWith('/') ? imgSrc : `/${imgSrc}`;
-    return `https://api.binnycash.com${cleanPath}`;
+    return `https://api.binnycash.com${imgSrc.startsWith('/') ? imgSrc : `/${imgSrc}`}`;
   };
 
   const fetchUserData = async (forceFetch = false) => {
     if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return;
-
     const token = localStorage.getItem('token');
     if (!token || token.includes('[object Object]')) return;
 
     const processUser = (user: any) => {
        if (!user) return false;
        if (user.id || user._id) setTrueUserId(String(user.id || user._id));
-       
        let display = user.userName || user.username || user.firstName;
-       if (!display && user.email) {
-          display = user.email.split('@')[0];
-       }
+       if (!display && user.email) display = user.email.split('@')[0];
        if (display) setUserName(display);
-       
        const rawPic = user.image || user.profilePic || user.picture || user.avatar;
-       if (rawPic) {
-          setUserAvatar(resolveImage(rawPic));
-          setImageError(false);
-       } else {
-          setUserAvatar(null);
-       }
+       if (rawPic) { setUserAvatar(resolveImage(rawPic)); setImageError(false); } 
+       else { setUserAvatar(null); }
        return true;
     };
 
@@ -324,160 +249,81 @@ export default function Navbar() {
           if (raw) {
              const parsed = JSON.parse(raw);
              const user = parsed?.data?.user || parsed?.data?.userDetails || parsed?.data || parsed?.userDetails || parsed;
-             if (user && (user.userName || user.email || user.firstName)) {
-                 processUser(user);
-                return;
-             }
+             if (user && (user.userName || user.email || user.firstName)) { processUser(user); return; }
           }
        } catch(e) {}
     }
 
     const now = Date.now();
     if (isProfileFetching.current || (now - lastProfileFetchRef.current < 2000)) return;
-    
     isProfileFetching.current = true;
     lastProfileFetchRef.current = now;
 
     try {
-      const res = await fetch('https://api.binnycash.com/api/user/userDetails', {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
+      const res = await fetch('https://api.binnycash.com/api/user/userDetails', { headers: { 'Authorization': `Bearer ${token}` } });
       if (!res.ok) return;
       const text = await res.text();
       if (!text || text.trim().startsWith('<')) return;
-      
       const data = JSON.parse(text);
       if (data) {
          const user = data?.data?.user || data?.data || data?.userDetails || data;
-         if (user) {
-            processUser(user);
-            localStorage.setItem('userDetails', JSON.stringify(data));
-         }
+         if (user) { processUser(user); localStorage.setItem('userDetails', JSON.stringify(data)); }
       }
-    } catch (err) {
-       console.error("Profile fetch error:", err);
-    } finally {
-       isProfileFetching.current = false;
-    }
+    } catch (err) {} finally { isProfileFetching.current = false; }
   };
 
   useEffect(() => {
     if (isLoggedIn) {
       fetchUserData(false);
-      
-      const handleProfileUpdate = () => {
-        fetchUserData(true);
-      };
+      const handleProfileUpdate = () => fetchUserData(true);
       window.addEventListener('profileUpdated', handleProfileUpdate);
-      return () => {
-        window.removeEventListener('profileUpdated', handleProfileUpdate);
-      };
+      return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
     }
   }, [isLoggedIn]);
 
-  const checkInitialAlerts = async () => {
-    if (!isLoggedIn || hasFetchedAlerts || (pathname && (pathname.startsWith('/v9') || pathname.startsWith('/admin')))) return;
-    
-    const token = localStorage.getItem('token');
-    if (!token || token.includes('[object Object]')) return;
-
-    try {
-      const res = await fetch('https://api.binnycash.com/api/user/userAlertList?limit=1', {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.code === 200 && data.data) {
-        setUnreadCount(data.data.unreadCount || 0);
-        setHasFetchedAlerts(true);
-      }
-    } catch (e) {
-      console.error("Initial alert check error:", e);
-    }
-  };
-
-  useEffect(() => {
-    checkInitialAlerts();
-  }, [isLoggedIn, pathname]);
-
   const fetchInboxMessages = async () => {
     if (pathname?.startsWith('/v9') || pathname?.startsWith('/admin')) return;
-
     setIsInboxLoading(true);
     try {
       const token = localStorage.getItem('token');
       if (!token || token.includes('[object Object]')) return;
-
-      const res = await fetch('https://api.binnycash.com/api/user/userAlertList', {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!res.ok) {
-         setIsInboxLoading(false);
-         return;
-      }
-
+      const res = await fetch('https://api.binnycash.com/api/user/userAlertList', { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) { setIsInboxLoading(false); return; }
       const text = await res.text();
       let data: any = {};
-      if (text && !text.trim().startsWith('<')) {
-         try { data = JSON.parse(text); } catch (e) {}
-      }
-      
+      if (text && !text.trim().startsWith('<')) try { data = JSON.parse(text); } catch (e) {}
       let alertsList = data?.data?.userAlerts || [];
       if (!Array.isArray(alertsList)) alertsList = [];
-
       setInboxMessages(alertsList);
-      
-      if (data?.data?.unreadCount !== undefined) {
-        setUnreadCount(data.data.unreadCount);
-      }
-    } catch (err) {
-      console.error("Alerts fetch error:", err);
-    } finally { 
-      setIsInboxLoading(false); 
-    }
+      if (data?.data?.unreadCount !== undefined) setUnreadCount(data.data.unreadCount);
+    } catch (err) {} finally { setIsInboxLoading(false); }
   };
 
   const handleToggleInbox = () => {
-    if (!isInboxOpen) {
-      fetchInboxMessages();
-      setIsInboxOpen(true);
-    } else {
-      setIsInboxOpen(false);
-    }
+    if (!isInboxOpen) { fetchInboxMessages(); setIsInboxOpen(true); } 
+    else setIsInboxOpen(false);
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
       const userId = trueUserId || getUserId();
-      
       const res = await fetch(`https://api.binnycash.com/api/user/markAllRead?userId=${userId}`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ userId })
       });
       if (res.ok) {
         setUnreadCount(0);
         setInboxMessages(prev => prev.map(item => ({ ...item, isRead: true })));
       }
-    } catch (err) {
-      console.error("Mark all read error:", err);
-    }
+    } catch (err) {}
   };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(event.target as Node)) {
-        setIsProfileOpen(false);
-        setIsLangModalOpen(false);
-        setIsInboxOpen(false); 
+        setIsProfileOpen(false); setIsLangModalOpen(false); setIsInboxOpen(false); 
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -485,30 +331,17 @@ export default function Navbar() {
   }, []);
 
   const handleLogoutConfirm = async () => {
-    setShowLogoutConfirm(false);
-    setIsTransitioning(true);
+    setShowLogoutConfirm(false); setIsTransitioning(true);
     try {
       const token = localStorage.getItem('token');
       await fetch('https://api.binnycash.com/api/user/logout', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Bearer ${token}`
-        }
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Bearer ${token}` }
       });
-    } catch (error) {
-      console.error("Logout API failed:", error);
-    } finally {
-      handleForceLogout();
-      setTimeout(() => {
-        setIsTransitioning(false);
-      }, 1000);
-    }
+    } catch (error) {} 
+    finally { handleForceLogout(); setTimeout(() => setIsTransitioning(false), 1000); }
   };
 
-  if (pathname && (pathname.startsWith('/v9') || pathname.startsWith('/admin'))) {
-    return null;
-  }
+  if (pathname && (pathname.startsWith('/v9') || pathname.startsWith('/admin'))) return null;
 
   return (
     <>
@@ -519,11 +352,8 @@ export default function Navbar() {
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.4, ease: "easeOut" }} className="relative flex flex-col items-center z-10">
                <div className="relative flex items-center justify-center mb-10 mt-[-50px]">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} className="absolute w-32 h-32 rounded-full border-2 border-transparent border-t-[#8B5CF6] border-r-[#8B5CF6] opacity-80" />
-                  <motion.div animate={{ rotate: -360 }} transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }} className="absolute w-36 h-36 rounded-full border border-dashed border-white/10" />
-                  <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }} className="absolute w-24 h-24 rounded-full bg-[#00E57A]/30 blur-md" />
                   <div className="w-20 h-20 bg-[#120F1A] border border-[#8B5CF6]/30 rounded-[20px] flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.2)] z-10 relative overflow-hidden backdrop-blur-xl">
                      <img src="/logo.png" alt="BinnyCash Logo" className="w-10 h-10 object-contain z-10" />
-                     <motion.div animate={{ x: ['-150%', '250%'] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }} className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12" />
                   </div>
                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3, type: "spring", stiffness: 200 }} className="absolute -bottom-2 -right-2 bg-[#00E57A] w-8 h-8 rounded-full flex items-center justify-center border-4 border-[#070913] z-20 shadow-[0_0_15px_rgba(0,229,122,0.4)]">
                     <Lock className="w-3.5 h-3.5 text-black" strokeWidth={3} />
@@ -583,10 +413,153 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      <nav ref={navRef} className="w-full bg-[#0E1015]/80 backdrop-blur-xl sticky top-0 z-50 border-b border-white/5 h-[70px] md:h-[80px] flex items-center shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
-        <div className="w-full px-4 lg:px-10 flex justify-between items-center relative">
+      {/* ========================================================================= */}
+      {/* DESKTOP SIDEBAR (Visible on lg and above) */}
+      {/* ========================================================================= */}
+      {isLoggedIn && (
+        <aside ref={navRef} className="hidden lg:flex fixed top-0 left-0 w-[260px] h-screen bg-[#0E1015]/95 backdrop-blur-3xl border-r border-white/5 flex-col z-[50] shadow-[10px_0_30px_rgba(0,0,0,0.3)]">
           
-          <div className="flex items-center shrink-0">
+          {/* Logo Area */}
+          <div className="h-[90px] px-8 flex items-center shrink-0 border-b border-white/[0.02]">
+            <Link href="/" className="flex items-center gap-3 cursor-pointer group">
+              <img src="/logo.png" alt="BinnyCash" className="h-10 w-auto object-contain transition-transform group-hover:scale-105 drop-shadow-[0_0_15px_rgba(139,92,246,0.3)]" />
+              <div className="flex flex-col justify-center">
+                <span className="font-black text-2xl tracking-wide text-white leading-none">Binny<span className="text-[#8B5CF6]">Cash</span></span>
+                <span className="text-[8px] text-[#00E57A] font-bold tracking-[0.2em] uppercase mt-1 drop-shadow-[0_0_5px_rgba(0,229,122,0.4)]">Play. Earn. Dominate.</span>
+              </div>
+            </Link>
+          </div>
+
+          {/* Navigation Links */}
+          <div className="flex-1 px-4 py-6 flex flex-col gap-2 overflow-y-auto custom-scrollbar">
+            {MAIN_LINKS.map((link) => {
+              const isActive = pathname === link.href;
+              const Icon = link.icon;
+              return (
+                <Link key={link.name} href={link.href} className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group relative overflow-hidden ${isActive ? 'bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 shadow-[0_4px_20px_rgba(139,92,246,0.1)]' : 'hover:bg-white/5 border border-transparent'}`}>
+                  {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#8B5CF6] rounded-r-full shadow-[0_0_10px_#8B5CF6]" />}
+                  <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-[#A855F7]' : 'text-[#8F95A3] group-hover:text-white'}`} />
+                  <span className={`text-[14px] font-bold tracking-wide transition-colors ${isActive ? 'text-white' : 'text-[#8F95A3] group-hover:text-white'}`}>
+                    {link.name}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Bottom Section: Balance & Profile */}
+          <div className="p-5 mt-auto flex flex-col gap-4 border-t border-white/5 relative bg-gradient-to-t from-black/40 to-transparent">
+            
+            {/* Balance Widget */}
+            <div className="bg-gradient-to-br from-[#1A1C24] to-[#12141A] border border-white/5 rounded-2xl p-4 flex flex-col relative overflow-hidden group hover:border-white/10 transition-colors">
+               <div className="absolute -right-6 -top-6 w-20 h-20 bg-[#00E57A]/10 rounded-full blur-[20px] pointer-events-none" />
+               <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Total Balance</span>
+               <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 flex items-center gap-1 mb-3">
+                 <span className="text-[#00E57A]">$</span>{balance}
+               </span>
+               <Link href="/cashout" className="w-full bg-[#00E57A]/10 hover:bg-[#00E57A]/20 text-[#00E57A] border border-[#00E57A]/30 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(0,229,122,0.1)] hover:shadow-[0_0_20px_rgba(0,229,122,0.2)]">
+                 <Wallet className="w-4 h-4" /> Withdraw Funds
+               </Link>
+            </div>
+
+            {/* Notifications Row */}
+            <div className="relative">
+               <button onClick={handleToggleInbox} className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors border ${isInboxOpen ? 'bg-white/10 border-white/10' : 'hover:bg-white/5 border-transparent text-[#8F95A3] hover:text-white'}`}>
+                 <div className="flex items-center gap-3">
+                   <div className="relative">
+                     <Bell className={`w-5 h-5 ${isInboxOpen ? 'text-white' : 'text-[#8F95A3]'}`} />
+                     {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#00E57A] rounded-full shadow-[0_0_10px_rgba(0,229,122,1)] animate-pulse" />}
+                   </div>
+                   <span className={`text-sm font-bold ${isInboxOpen ? 'text-white' : ''}`}>Notifications</span>
+                 </div>
+                 {unreadCount > 0 && <span className="bg-[#00E57A]/20 text-[#00E57A] text-[10px] font-black px-2 py-0.5 rounded-md border border-[#00E57A]/30">{unreadCount} New</span>}
+               </button>
+
+               <AnimatePresence>
+                 {isInboxOpen && (
+                   <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }} className="absolute left-[105%] bottom-0 w-[340px] bg-[#0E1015]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[20px_20px_60px_rgba(0,0,0,0.8)] z-50 overflow-hidden flex flex-col">
+                     <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+                       <h3 className="text-white font-bold text-[15px]">Notifications</h3>
+                       <div className="flex items-center gap-3">
+                          {inboxMessages.length > 0 && <button onClick={handleMarkAllAsRead} className="text-[#8F95A3] hover:text-white text-[11px] font-bold transition-colors">Mark all read</button>}
+                          <button onClick={() => setIsInboxOpen(false)} className="text-[#8F95A3] hover:text-white"><X className="w-4 h-4" /></button>
+                       </div>
+                     </div>
+                     <div className="p-3 max-h-[380px] overflow-y-auto custom-scrollbar">
+                       {isInboxLoading ? (
+                         <div className="py-10 flex justify-center"><Loader2 className="w-5 h-5 text-white/50 animate-spin" /></div>
+                       ) : inboxMessages.length === 0 ? (
+                         <div className="py-10 text-center text-[#8F95A3] text-xs font-medium">No new notifications</div>
+                       ) : (
+                         <div className="space-y-2">
+                           {inboxMessages.map((item, idx) => (
+                             <div key={item._id || idx} className={`border rounded-xl p-3 flex flex-col gap-1.5 ${item.isRead ? 'bg-white/5 border-transparent' : 'bg-[#8B5CF6]/10 border-[#8B5CF6]/20'}`}>
+                               <div className="flex justify-between items-start">
+                                 <h4 className={`text-[13px] font-bold ${item.isRead ? 'text-gray-300' : 'text-[#A855F7]'}`}>{item.title || 'Alert'}</h4>
+                                 <span className="text-gray-500 text-[10px] whitespace-nowrap ml-2">{new Date(item.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                               </div>
+                               <p className="text-gray-400 text-[11px] leading-relaxed">{item.message}</p>
+                             </div>
+                           ))}
+                         </div>
+                       )}
+                     </div>
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+            </div>
+
+            {/* Profile Dropdown Row */}
+            <div className="relative group">
+               <button onClick={() => setIsProfileOpen(!isProfileOpen)} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors border ${isProfileOpen ? 'bg-white/10 border-white/10' : 'hover:bg-white/5 border-transparent'}`}>
+                  {userAvatar && !imageError ? (
+                    <img src={userAvatar} alt="Profile" referrerPolicy="no-referrer" crossOrigin="anonymous" className="w-10 h-10 rounded-xl object-cover shadow-sm border border-white/10" onError={() => setImageError(true)} />
+                  ) : (
+                    <div className={`w-10 h-10 rounded-xl ${getDynamicColor(userName)} flex items-center justify-center text-white text-[15px] font-black shadow-sm uppercase border border-white/10`}>
+                      {userName ? userName.charAt(0) : '?'}
+                    </div>
+                  )}
+                  <div className="flex flex-col text-left flex-1 overflow-hidden">
+                    <span className="text-sm font-bold text-white truncate">{userName}</span>
+                    <span className="text-[10px] text-[#8F95A3] font-mono truncate">ID: {trueUserId || getUserId()}</span>
+                  </div>
+                  <Settings className={`w-4 h-4 transition-transform ${isProfileOpen ? 'rotate-90 text-white' : 'text-[#8F95A3]'}`} />
+               </button>
+
+               <AnimatePresence>
+                 {isProfileOpen && (
+                   <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }} className="absolute left-[105%] bottom-0 w-[260px] bg-[#0E1015]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[20px_20px_60px_rgba(0,0,0,0.8)] z-50 p-2 flex flex-col gap-1">
+                     <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl transition-colors group">
+                       <User className="w-4 h-4 text-[#8F95A3] group-hover:text-white" />
+                       <span className="text-sm font-medium text-gray-300 group-hover:text-white">Profile Details</span>
+                     </Link>
+                     <Link href="/transactions" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl transition-colors group">
+                       <History className="w-4 h-4 text-[#8F95A3] group-hover:text-white" />
+                       <span className="text-sm font-medium text-gray-300 group-hover:text-white">Transactions</span>
+                     </Link>
+                     <Link href="/support" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl transition-colors group">
+                       <HelpCircle className="w-4 h-4 text-[#8F95A3] group-hover:text-white" />
+                       <span className="text-sm font-medium text-gray-300 group-hover:text-white">Help & Support</span>
+                     </Link>
+                     <div className="h-px bg-white/5 my-1 mx-2" />
+                     <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="flex items-center gap-3 p-3 hover:bg-[#FF5D73]/10 rounded-xl transition-colors group w-full text-left">
+                       <LogOut className="w-4 h-4 text-[#FF5D73]" />
+                       <span className="text-sm font-bold text-[#FF5D73]">Sign Out</span>
+                     </button>
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PUBLIC TOP NAVIGATION (Visible only when logged out or on mobile) */}
+      {/* ========================================================================= */}
+      {(!isLoggedIn || pathname === '/') && (
+        <nav className="w-full bg-[#0E1015]/80 backdrop-blur-xl sticky top-0 z-50 border-b border-white/5 h-[70px] md:h-[80px] flex items-center shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+          <div className="w-full px-4 lg:px-10 h-full flex justify-between items-center">
             <Link href="/" className="flex items-center gap-2 md:gap-3 cursor-pointer group">
               <img src="/logo.png" alt="BinnyCash" className="h-8 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" />
               <div className="flex flex-col justify-center">
@@ -594,75 +567,24 @@ export default function Navbar() {
                 <span className="text-[7px] md:text-[9px] text-[#00E57A] font-bold tracking-[0.2em] uppercase mt-1 drop-shadow-[0_0_5px_rgba(0,229,122,0.4)] hidden md:block">Play. Earn. Dominate.</span>
               </div>
             </Link>
-          </div>
 
-          {isLoggedIn && (
-            <div className="hidden lg:flex items-center gap-6 xl:gap-8 mx-auto">
-              {MAIN_LINKS.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link key={link.name} href={link.href} className="relative group px-2 py-1">
-                    <span className={`text-sm font-bold transition-colors duration-300 ${isActive ? 'text-white' : 'text-[#8F95A3] group-hover:text-white'}`}>
-                      {link.name}
-                    </span>
-                    {isActive && (
-                      <motion.div layoutId="nav-underline" className="absolute left-0 bottom-[-4px] w-full h-[3px] bg-gradient-to-r from-[#8B5CF6] to-[#00E57A] rounded-full shadow-[0_0_10px_rgba(139,92,246,0.6)]" />
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 md:gap-4 shrink-0 ml-auto md:ml-0">
-            
-            {/* 🚀 GET THE APP BUTTON (DESKTOP) 🚀 */}
-            <a 
-              href="https://play.google.com/store/apps/details?id=com.binnycash"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:flex items-center gap-1.5 bg-white/5 border border-white/10 hover:border-[#8B5CF6]/50 hover:bg-[#8B5CF6]/10 px-3 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-sm cursor-pointer group"
-            >
-              <GooglePlayIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span>Get App</span>
-            </a>
-
-            {!isLoggedIn && pathname === '/' && (
+            <div className="flex items-center gap-2 md:gap-4 shrink-0">
               <div className="relative">
-                <button 
-                  onClick={() => setIsLangModalOpen(!isLangModalOpen)} 
-                  className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 px-2 md:px-3 py-1.5 md:py-2.5 rounded-xl transition-all cursor-pointer shadow-sm group"
-                >
+                <button onClick={() => setIsLangModalOpen(!isLangModalOpen)} className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] border border-white/5 px-2 md:px-3 py-1.5 md:py-2.5 rounded-xl transition-all cursor-pointer shadow-sm group">
                   <Globe className="w-4 h-4 text-[#8B5CF6] group-hover:animate-spin-slow" />
                   <span className="hidden sm:inline text-white text-[11px] md:text-xs font-bold uppercase tracking-wider">{selectedLang.code.split('-')[0]}</span>
                   <ChevronDown className={`w-3 h-3 text-[#8F95A3] transition-transform hidden sm:block ${isLangModalOpen ? 'rotate-180' : ''}`} />
                 </button>
-
                 <AnimatePresence>
                   {isLangModalOpen && (
-                    <motion.div 
-                      key="lang-dropdown"
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                      animate={{ opacity: 1, y: 0, scale: 1 }} 
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }} 
-                      transition={{ duration: 0.2 }} 
-                      className="absolute right-0 mt-3 w-[260px] md:w-[340px] bg-[#12151C]/95 backdrop-blur-xl border border-[#8B5CF6]/20 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.5)] py-2 z-50 overflow-hidden"
-                    >
+                    <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 mt-3 w-[260px] md:w-[340px] bg-[#12151C]/95 backdrop-blur-xl border border-[#8B5CF6]/20 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.5)] py-2 z-50 overflow-hidden">
                       <div className="px-4 py-2 border-b border-white/5 mb-2 flex items-center gap-2">
                         <Globe className="w-4 h-4 text-[#8B5CF6]" />
                         <span className="text-white text-xs font-bold uppercase tracking-wider">{t.Navbar?.selectRegion || 'SELECT REGION'}</span>
                       </div>
                       <div className="grid grid-cols-2 gap-1 px-2 max-h-[300px] overflow-y-auto custom-scrollbar pb-2">
                         {LANGUAGES.map((lang) => (
-                          <button 
-                            key={lang.code} 
-                            onClick={() => handleLanguageChange(lang)} 
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                              selectedLang.code === lang.code 
-                                ? 'bg-[#8B5CF6]/15 text-[#A855F7] border border-[#8B5CF6]/30' 
-                                : 'text-[#8F95A3] hover:text-white hover:bg-white/5 border border-transparent'
-                            }`}
-                          >
+                          <button key={lang.code} onClick={() => handleLanguageChange(lang)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${selectedLang.code === lang.code ? 'bg-[#8B5CF6]/15 text-[#A855F7] border border-[#8B5CF6]/30' : 'text-[#8F95A3] hover:text-white hover:bg-white/5 border border-transparent'}`}>
                             <span className={`fi fi-${lang.tag} w-4 h-3 rounded-[2px] shadow-sm`}></span>
                             <span className="truncate">{lang.name}</span>
                           </button>
@@ -672,214 +594,63 @@ export default function Navbar() {
                   )}
                 </AnimatePresence>
               </div>
-            )}
 
-            {isLoggedIn ? (
-              <div className="flex items-center gap-2 md:gap-3">
-                
-                <div className="hidden lg:flex items-center gap-2">
-                  <div className="flex items-center justify-center gap-1.5 bg-[#2B164D] px-3.5 py-2 rounded-xl border border-[#A855F7]/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
-                    <span className="text-[#A855F7] font-black text-[17px] leading-none">$</span>
-                    <span className="text-white font-black text-[17px] leading-none tracking-tight">{balance}</span>
-                  </div>
-                  
-                  <Link href="/cashout" className="bg-[#00E57A]/10 hover:bg-[#00E57A]/20 border border-[#00E57A]/30 text-[#00E57A] px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,229,122,0.15)] hover:shadow-[0_0_20px_rgba(0,229,122,0.25)]">
-                    <Wallet className="w-4 h-4" />
-                    <span>Cashout</span>
-                  </Link>
-                </div>
-
-                <div className="relative hidden sm:block">
-                  <button 
-                    onClick={handleToggleInbox}
-                    className={`relative w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer border ${isInboxOpen ? 'bg-[#252836] border-white/10' : 'bg-[#1A1C24] hover:bg-[#252836] border-white/5'}`}
-                  >
-                    <Bell className="w-4 h-4 md:w-[18px] md:h-[18px] text-[#8F95A3] fill-current" />
-                    {unreadCount > 0 && (
-                      <span className="absolute top-1.5 md:top-2 right-1.5 md:right-2 w-2 h-2 bg-[#00E57A] rounded-full shadow-[0_0_10px_rgba(0,229,122,1)] animate-pulse"></span>
-                    )}
-                  </button>
-
-                  <AnimatePresence>
-                    {isInboxOpen && (
-                      <motion.div 
-                        key="inbox-dropdown"
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                        animate={{ opacity: 1, y: 0, scale: 1 }} 
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }} 
-                        transition={{ duration: 0.2 }} 
-                        className="absolute right-0 mt-3 w-[320px] sm:w-[380px] bg-[#0E1015] border border-white/10 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden flex flex-col"
-                      >
-                        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-                          <h3 className="text-white font-bold text-[17px]">Notifications</h3>
-                          <div className="flex items-center gap-4">
-                             {inboxMessages.length > 0 && (
-                               <button onClick={handleMarkAllAsRead} className="text-[#8F95A3] hover:text-white text-[12px] font-medium transition-colors cursor-pointer">Mark all read</button>
-                             )}
-                             <button onClick={() => setIsInboxOpen(false)} className="text-[#8F95A3] hover:text-white transition-colors cursor-pointer"><X className="w-5 h-5" /></button>
-                          </div>
-                        </div>
-
-                        <div className="p-4 max-h-[380px] overflow-y-auto custom-scrollbar">
-                          {isInboxLoading ? (
-                            <div className="flex flex-col items-center justify-center py-10 gap-3"><Loader2 className="w-6 h-6 text-white/50 animate-spin" /></div>
-                          ) : inboxMessages.length === 0 ? (
-                            <div className="bg-[#12141A] border border-white/5 rounded-2xl py-12 flex items-center justify-center">
-                              <span className="text-[#8F95A3] text-sm font-medium">No new notifications</span>
-                            </div>
-                          ) : (
-                            <div className="space-y-3">
-                              {inboxMessages.map((item, idx) => {
-                                const title = item.title || 'Notification';
-                                const message = item.message || '';
-                                const timeAgo = new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                                return (
-                                  <div key={item._id || idx} className={`border rounded-xl p-4 flex flex-col gap-2 ${item.isRead ? 'bg-[#151517] border-white/5' : 'bg-[#1A1C24] border-[#8B5CF6]/30 shadow-[0_0_10px_rgba(139,92,246,0.1)]'}`}>
-                                    <div className="flex justify-between items-start">
-                                      <h4 className={`text-[15px] font-bold ${item.isRead ? 'text-white' : 'text-[#A855F7]'}`}>{title}</h4>
-                                      <span className="text-[#8F95A3] text-[11px] whitespace-nowrap ml-2 mt-0.5">{timeAgo}</span>
-                                    </div>
-                                    <p className="text-[#8F95A3] text-[13px] leading-relaxed pr-2">{message}</p>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                <div 
-                  className="relative group"
-                  onMouseEnter={() => setIsProfileOpen(true)}
-                  onMouseLeave={() => setIsProfileOpen(false)}
-                >
-                  <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 bg-[#1A1C24] hover:bg-[#252836] p-1 pr-2 rounded-xl transition-all cursor-pointer border border-white/5">
-                    {userAvatar && !imageError ? (
-                      <img 
-                        src={userAvatar} 
-                        alt="Profile" 
-                        referrerPolicy="no-referrer"
-                        crossOrigin="anonymous"
-                        className="w-6 h-6 md:w-8 md:h-8 rounded-lg object-cover shadow-sm" 
-                        onError={() => setImageError(true)} 
-                      />
-                    ) : (
-                      <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg ${getDynamicColor(userName)} flex items-center justify-center text-white text-[12px] md:text-[15px] font-black shadow-sm uppercase`}>
-                        {userName ? userName.charAt(0) : '?'}
-                      </div>
-                    )}
-                    <ChevronDown className="w-3 h-3 md:w-4 md:h-4 text-[#A855F7] font-bold" strokeWidth={3} />
-                  </button>
-
-                  <AnimatePresence>
-                    {isProfileOpen && (
-                      <motion.div 
-                        key="profile-dropdown"
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                        animate={{ opacity: 1, y: 0, scale: 1 }} 
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }} 
-                        transition={{ duration: 0.2 }} 
-                        className="absolute right-0 top-[100%] pt-4 w-[280px] z-50"
-                      >
-                        <div className="bg-[#0E1015]/95 backdrop-blur-xl border border-white/10 rounded-[24px] shadow-[0_15px_50px_rgba(139,92,246,0.15)] p-3 flex flex-col gap-2 relative">
-                          <div className="absolute -top-2 right-6 w-4 h-4 bg-[#0E1015] border-t border-l border-white/10 rotate-45" />
-
-                          <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
-                                <User className="w-4 h-4 text-[#8F95A3] group-hover:text-[#A855F7] transition-colors" />
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-white text-[13px] font-bold">Profile</span>
-                                <span className="text-[#8F95A3] text-[10px]">Manage your account</span>
-                              </div>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
-                          </Link>
-
-                          <Link href="/transactions" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
-                                <History className="w-4 h-4 text-[#8F95A3] group-hover:text-[#A855F7] transition-colors" />
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-white text-[13px] font-bold">Transactions</span>
-                                <span className="text-[#8F95A3] text-[10px]">View your history</span>
-                              </div>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
-                          </Link>
-
-                          <Link href="/support" onClick={() => setIsProfileOpen(false)} className="relative group flex items-center justify-between bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-[#8B5CF6]/30 rounded-2xl p-3.5 transition-all">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-white/5 group-hover:border-[#8B5CF6]/50 transition-colors shadow-inner">
-                                <HelpCircle className="w-4 h-4 text-[#8F95A3] group-hover:text-[#A855F7] transition-colors" />
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-white text-[13px] font-bold">Help</span>
-                                <span className="text-[#8F95A3] text-[10px]">Get help & support</span>
-                              </div>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-[#8F95A3] group-hover:text-white transition-colors" />
-                          </Link>
-
-                          <div className="flex items-center justify-center py-1.5">
-                            <div className="h-px bg-gradient-to-r from-transparent via-[#8B5CF6]/40 to-transparent flex-1" />
-                            <div className="w-1.5 h-1.5 rotate-45 bg-[#8B5CF6] mx-3 shadow-[0_0_8px_#8B5CF6]" />
-                            <div className="h-px bg-gradient-to-r from-[#8B5CF6]/40 via-[#8B5CF6]/40 to-transparent flex-1" />
-                          </div>
-
-                          <button onClick={() => { setIsProfileOpen(false); setShowLogoutConfirm(true); }} className="relative w-full group flex items-center justify-between bg-[#FF5D73]/5 hover:bg-[#FF5D73]/10 border border-[#FF5D73]/20 hover:border-[#FF5D73]/40 rounded-2xl p-3.5 transition-all text-left cursor-pointer">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center border border-[#FF5D73]/20 group-hover:border-[#FF5D73]/50 transition-colors shadow-inner">
-                                <LogOut className="w-4 h-4 text-[#FF5D73]" />
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-[#FF5D73] text-[13px] font-bold">Logout</span>
-                                <span className="text-[#8F95A3] text-[10px]">Sign out from your account</span>
-                              </div>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-[#FF5D73] opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            ) : (
               <div className="flex items-center gap-2 md:gap-3">
                 <button onClick={openLogin} className="text-xs md:text-sm font-bold text-white hover:text-[#8B5CF6] transition-colors cursor-pointer">{t.Navbar?.login || 'Login'}</button>
                 <button onClick={openRegister} className="text-xs md:text-sm font-bold text-white bg-[#8B5CF6] hover:bg-[#7c3aed] px-3 md:px-4 py-1.5 md:py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(139,92,246,0.3)] cursor-pointer">{t.Navbar?.signup || 'Sign Up'}</button>
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
+      {/* ========================================================================= */}
+      {/* MOBILE TOP NAV (Visible only on Mobile when logged in) */}
+      {/* ========================================================================= */}
+      {isLoggedIn && pathname !== '/' && (
+        <nav className="lg:hidden w-full bg-[#0E1015]/90 backdrop-blur-xl sticky top-0 z-50 border-b border-white/5 h-[70px] flex items-center shadow-[0_4px_30px_rgba(0,0,0,0.5)] px-4 justify-between">
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="BinnyCash" className="h-8 w-auto object-contain" />
+            <span className="font-black text-lg text-white leading-none">Binny<span className="text-[#8B5CF6]">Cash</span></span>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center gap-1 bg-[#2B164D] px-2.5 py-1.5 rounded-lg border border-[#A855F7]/20">
+              <span className="text-[#A855F7] font-black text-xs">$</span>
+              <span className="text-white font-black text-xs">{balance}</span>
+            </div>
+            
+            <button onClick={() => setIsMobileMenuOpen(true)} className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+              {userAvatar && !imageError ? (
+                <img src={userAvatar} alt="Profile" className="w-full h-full rounded-xl object-cover" onError={() => setImageError(true)} />
+              ) : (
+                <Menu className="w-5 h-5 text-white" />
+              )}
+            </button>
+          </div>
+        </nav>
+      )}
+
+      {/* CHAT FLOATING BUTTON */}
       {isLoggedIn && pathname && !pathname.startsWith('/admin') && (
-        <div className="fixed bottom-[100px] right-4 md:bottom-8 md:right-8 z-[90]">
+        <div className="fixed bottom-[85px] lg:bottom-8 right-4 lg:right-8 z-[90]">
           <button 
             onClick={() => { setIsChatOpen(true); setUnreadChatCount(0); }}
-            className="relative w-[56px] h-[56px] md:w-[60px] md:h-[60px] rounded-full bg-[#A855F7] flex items-center justify-center shadow-[0_10px_30px_rgba(168,85,247,0.3)] hover:shadow-[0_10px_40px_rgba(168,85,247,0.5)] hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+            className="relative w-[50px] h-[50px] lg:w-[60px] lg:h-[60px] rounded-full bg-[#A855F7] flex items-center justify-center shadow-[0_10px_30px_rgba(168,85,247,0.3)] hover:scale-105 transition-all cursor-pointer"
           >
-            <MessageSquare className="w-7 h-7 text-white" strokeWidth={2.2} />
-            <span className="absolute top-[2px] right-[2px] w-4 h-4 bg-[#00E57A] border-[3px] border-[#0E1015] rounded-full"></span>
+            <MessageSquare className="w-6 h-6 lg:w-7 lg:h-7 text-white" strokeWidth={2.2} />
+            {unreadChatCount > 0 && (
+              <span className="absolute top-[2px] right-[2px] w-4 h-4 bg-[#00E57A] border-[3px] border-[#0E1015] rounded-full"></span>
+            )}
           </button>
         </div>
       )}
 
-      {isLoggedIn && (
-        <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
-      )}
+      {isLoggedIn && <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />}
 
       {/* 🔥 5-ITEM MOBILE BOTTOM NAVIGATION 🔥 */}
       {isLoggedIn && (
-        <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0E111E]/95 backdrop-blur-xl border-t border-white/10 z-50 flex items-center justify-around px-1 py-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-[65px]">
+        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-[#0E111E]/95 backdrop-blur-xl border-t border-white/10 z-50 flex items-center justify-around px-1 py-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-[65px]">
           <Link href="/myoffers" className="flex flex-col items-center gap-1 p-2 w-[20%]">
             <PlaySquare className={`w-5 h-5 ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
             <span className={`text-[9px] font-bold ${pathname === '/myoffers' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Offers</span>
@@ -901,7 +672,7 @@ export default function Navbar() {
 
           <Link href="/leaderboard" className="flex flex-col items-center gap-1 p-2 w-[20%]">
             <Trophy className={`w-5 h-5 ${pathname === '/leaderboard' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`} />
-            <span className={`text-[9px] font-bold ${pathname === '/leaderboard' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Leaderboard</span>
+            <span className={`text-[9px] font-bold ${pathname === '/leaderboard' ? 'text-[#A66CFF]' : 'text-[#8D89A8]'}`}>Leaders</span>
           </Link>
 
           <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center gap-1 p-2 w-[20%] cursor-pointer">
@@ -911,6 +682,7 @@ export default function Navbar() {
         </div>
       )}
 
+      {/* MOBILE SIDE MENU */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -918,25 +690,20 @@ export default function Navbar() {
             <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="lg:hidden fixed top-0 left-0 h-full w-[280px] bg-[#111319] border-r border-white/10 z-[70] flex flex-col shadow-2xl">
               <div className="h-24 border-b border-white/5 flex items-center justify-between px-6 shrink-0 bg-gradient-to-b from-white/[0.02] to-transparent">
                 <div className="flex items-center gap-3">
-                   <img src="/logo.png" alt="BinnyCash" className="h-10 w-auto object-contain drop-shadow-md" />
+                   <img src="/logo.png" alt="BinnyCash" className="h-10 w-auto object-contain" />
                    <div className="flex flex-col justify-center">
                      <span className="font-black text-xl tracking-wide text-white leading-none">Binny<span className="text-[#8B5CF6]">Cash</span></span>
-                     <span className="text-[8px] text-[#00E57A] font-bold tracking-[0.2em] uppercase mt-1">Play. Earn. Dominate.</span>
                    </div>
                 </div>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-[#8F95A3] hover:text-white transition-all cursor-pointer">
+                <button onClick={() => setIsMobileMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-[#8F95A3] transition-all cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               <div className="flex flex-col py-6 px-4 gap-2 overflow-y-auto">
-                <Link href="/surveys" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
-                  <ClipboardCheck className="w-5 h-5" />
-                  <span className="text-sm font-bold">Surveys</span>
-                </Link>
-                <Link href="/offers" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
-                  <Flame className="w-5 h-5" />
-                  <span className="text-sm font-bold">Offers</span>
+                <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
+                  <User className="w-5 h-5" />
+                  <span className="text-sm font-bold">My Profile</span>
                 </Link>
                 <Link href="/rewards" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
                   <Gift className="w-5 h-5" />
@@ -946,27 +713,21 @@ export default function Navbar() {
                   <Users className="w-5 h-5" />
                   <span className="text-sm font-bold">Affiliates</span>
                 </Link>
-
-                {/* 🚀 GET THE APP BUTTON (MOBILE) 🚀 */}
-                <a 
-                  href="https://play.google.com/store/apps/details?id=com.binnycash"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-gradient-to-r from-[#8B5CF6]/20 to-transparent border border-[#8B5CF6]/30 hover:border-[#8B5CF6]/50 text-white transition-all mt-2 cursor-pointer group"
-                >
-                  <GooglePlayIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                  <span className="text-sm font-bold">Get the App</span>
-                </a>
-              </div>
-
-              <div className="mt-auto p-6 border-t border-white/5 bg-gradient-to-t from-black/20 to-transparent">
-                <div className="bg-gradient-to-br from-[#1A1725] to-[#110E18] border border-white/5 rounded-2xl p-5 flex flex-col items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden">
-                  <span className="text-[10px] font-bold text-[#8D89A8] mb-1 uppercase tracking-widest relative z-10">Available Balance</span>
-                  <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00E57A] to-[#3DE8A0] drop-shadow-md relative z-10">
-                    ${balance}
-                  </span>
-                </div>
+                <Link href="/transactions" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
+                  <History className="w-5 h-5" />
+                  <span className="text-sm font-bold">Transactions</span>
+                </Link>
+                <Link href="/support" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/5 text-[#8D89A8] hover:text-white transition-all">
+                  <HelpCircle className="w-5 h-5" />
+                  <span className="text-sm font-bold">Support</span>
+                </Link>
+                
+                <div className="h-px bg-white/10 my-2" />
+                
+                <button onClick={() => { setIsMobileMenuOpen(false); setShowLogoutConfirm(true); }} className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-[#FF5D73] hover:bg-[#FF5D73]/10 transition-all text-left">
+                  <LogOut className="w-5 h-5" />
+                  <span className="text-sm font-bold">Sign Out</span>
+                </button>
               </div>
             </motion.div>
           </>

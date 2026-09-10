@@ -28,13 +28,12 @@ export default function DashboardHero() {
   });
 
   useEffect(() => {
-    // 🔥 FIX: Fetching Username from LocalStorage Safely without Extra API Call 🔥
+    // Fetching Username from LocalStorage Safely
     try {
       if (typeof window !== 'undefined') {
         const rawUserDetails = localStorage.getItem('userDetails');
         if (rawUserDetails && rawUserDetails !== 'undefined') {
           const user = JSON.parse(rawUserDetails);
-          // Handles various structures inside userDetails
           const name = user?.userName || user?.firstName || user?.username || 'User';
           setUserName(name);
         } else {
@@ -49,7 +48,10 @@ export default function DashboardHero() {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
 
       const headers = { 
         'Authorization': `Bearer ${token}`,
@@ -57,11 +59,13 @@ export default function DashboardHero() {
       };
 
       try {
-        // 🔥 ONLY Fetching Dashboard Summary, Removed Deprecated viewData Call 🔥
-        const summaryRes = await fetch('https://api.binnycash.com/api/user/dashboardSummary', { headers });
+        const summaryRes = await fetch('https://api.binnycash.com/api/user/dashboardSummary', { 
+          headers 
+        });
+        
         const summaryJson = await summaryRes.json();
 
-        if (summaryJson.code === 200 && summaryJson.data) {
+        if (summaryRes.ok && summaryJson.code === 200 && summaryJson.data) {
           setSummaryData({
             availableBalance: Number(summaryJson.data.availableBalance) || 0,
             todayEarning: Number(summaryJson.data.todayEarning) || 0,
@@ -74,7 +78,7 @@ export default function DashboardHero() {
           });
         }
       } catch (err) {
-        console.error("Error fetching dashboard statistics", err);
+        console.error("Dashboard API failed", err);
       } finally {
         setIsLoading(false);
       }
@@ -91,14 +95,20 @@ export default function DashboardHero() {
         initial={{ opacity: 0, y: 20 }} 
         animate={{ opacity: 1, y: 0 }} 
         transition={{ duration: 0.5 }}
-        className="w-full xl:w-[38%] relative bg-[#171520] border border-white/5 rounded-[16px] overflow-hidden p-5 sm:p-6 flex flex-col justify-center min-h-[140px] shadow-lg"
+        className="w-full xl:w-[42%] relative bg-[#171520] border border-white/5 rounded-[16px] overflow-hidden p-5 sm:p-6 flex flex-col justify-center min-h-[140px] shadow-lg"
       >
         <div className="absolute top-0 right-0 w-[150px] h-[150px] bg-[#8B5CF6]/15 blur-[60px] rounded-full pointer-events-none" />
 
-        <div className="relative z-10 w-full sm:w-[70%]">
+        {/* CONTAINER WIDTH ADJUSTED SO TEXT DOESN'T HIT WALLET */}
+        <div className="relative z-10 w-full sm:w-[65%] pr-2">
           <p className="text-[#8F95A3] text-sm font-bold mb-1 tracking-wide">Welcome back,</p>
-          <h2 className="text-white text-2xl sm:text-[28px] font-black mb-2.5 flex items-center gap-2 leading-none">
-            {userName} <span className="animate-wave origin-bottom-right">👋</span>
+          
+          {/* TRUNCATE ADDED & FONT SIZE REDUCED SLIGHTLY TO PREVENT OVERLAP */}
+          <h2 className="text-white text-xl sm:text-[22px] font-black mb-2.5 flex items-center gap-2 leading-none">
+            <span className="truncate max-w-[180px] sm:max-w-[220px]" title={userName}>
+              {userName}
+            </span> 
+            <span className="animate-wave origin-bottom-right shrink-0">👋</span>
           </h2>
           
           <h1 className="text-3xl sm:text-[32px] font-black text-white mb-1.5 leading-tight tracking-tight">
@@ -110,13 +120,13 @@ export default function DashboardHero() {
           </p>
         </div>
 
-        <div className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 w-[140px] hidden sm:flex justify-center items-center pointer-events-none z-0">
+        <div className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-[130px] sm:w-[140px] hidden sm:flex justify-center items-center pointer-events-none z-0">
           <HeroWallet />
         </div>
       </motion.div>
 
-      {/* RIGHT GRID - Dynamic Data from New API */}
-      <div className="w-full xl:w-[62%] grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
+      {/* RIGHT GRID */}
+      <div className="w-full xl:w-[58%] grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
         
         {/* Card 1: Available Balance */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="bg-[#171520] border border-white/5 rounded-[12px] p-3 flex flex-col justify-between hover:bg-[#1A1C24] hover:border-white/10 hover:shadow-md transition-all">
@@ -127,7 +137,7 @@ export default function DashboardHero() {
             <span className="text-[#8F95A3] text-xs sm:text-sm font-bold truncate">Available Balance</span>
           </div>
           <div className="text-xl sm:text-2xl font-black text-white mb-2">
-            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-white/50" /> : formatPrice(summaryData.availableBalance, currency)}
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#EC4899]" /> : formatPrice(summaryData.availableBalance, currency)}
           </div>
           <Link href="/cashout" className="text-[10px] font-bold text-[#EC4899] border border-[#EC4899]/20 bg-[#EC4899]/5 px-2 py-1 rounded w-fit flex items-center gap-1 hover:bg-[#EC4899]/10 transition-colors cursor-pointer">
             Cashout <ArrowRight className="w-2.5 h-2.5" />
@@ -144,7 +154,7 @@ export default function DashboardHero() {
           </div>
           <div className="flex items-end gap-2 mb-2">
             <div className="text-xl sm:text-2xl font-black text-white">
-              {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-white/50" /> : formatPrice(summaryData.todayEarning, currency)}
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#00E57A]" /> : formatPrice(summaryData.todayEarning, currency)}
             </div>
             {!isLoading && summaryData.todayEarningsChangePercent !== 0 && (
               <span className={`flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded ${summaryData.todayEarningsChangePercent > 0 ? 'bg-[#00E57A]/10 text-[#00E57A]' : 'bg-red-500/10 text-red-400'} mb-1`}>
@@ -167,7 +177,7 @@ export default function DashboardHero() {
             <span className="text-[#8F95A3] text-xs sm:text-sm font-bold truncate">Pending Earnings</span>
           </div>
           <div className="text-xl sm:text-2xl font-black text-white mb-2">
-            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-white/50" /> : formatPrice(summaryData.pendingEarning, currency)}
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#F59E0B]" /> : formatPrice(summaryData.pendingEarning, currency)}
           </div>
           <Link href="/cashout" className="text-[10px] font-bold text-[#F59E0B] border border-[#F59E0B]/20 bg-[#F59E0B]/5 px-2 py-1 rounded w-fit flex items-center gap-1 hover:bg-[#F59E0B]/10 transition-colors cursor-pointer">
             View Details <ArrowRight className="w-2.5 h-2.5" />
@@ -183,7 +193,7 @@ export default function DashboardHero() {
             <span className="text-[#8F95A3] text-xs sm:text-sm font-bold truncate">Completed Offers</span>
           </div>
           <div className="text-xl sm:text-2xl font-black text-white mb-2">
-            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-white/50" /> : summaryData.completedOffers}
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#3B82F6]" /> : summaryData.completedOffers}
           </div>
           <Link href="/myoffers" className="text-[10px] font-bold text-[#3B82F6] border border-[#3B82F6]/20 bg-[#3B82F6]/5 px-2 py-1 rounded w-fit flex items-center gap-1 hover:bg-[#3B82F6]/10 transition-colors cursor-pointer">
             View Details <ArrowRight className="w-2.5 h-2.5" />
@@ -199,7 +209,7 @@ export default function DashboardHero() {
             <span className="text-[#8F95A3] text-xs sm:text-sm font-bold truncate">Referral Earnings</span>
           </div>
           <div className="text-xl sm:text-2xl font-black text-white mb-2">
-            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-white/50" /> : formatPrice(summaryData.referralEarning, currency)}
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#A855F7]" /> : formatPrice(summaryData.referralEarning, currency)}
           </div>
           <Link href="/affiliate" className="text-[10px] font-bold text-[#A855F7] border border-[#A855F7]/20 bg-[#A855F7]/5 px-2 py-1 rounded w-fit flex items-center gap-1 hover:bg-[#A855F7]/10 transition-colors cursor-pointer">
             View Details <ArrowRight className="w-2.5 h-2.5" />
@@ -215,7 +225,7 @@ export default function DashboardHero() {
             <span className="text-[#8F95A3] text-xs sm:text-sm font-bold truncate">Total Referrals</span>
           </div>
           <div className="text-xl sm:text-2xl font-black text-white mb-2">
-            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-white/50" /> : summaryData.totalReferrals}
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#06B6D4]" /> : summaryData.totalReferrals}
           </div>
           <Link href="/affiliate" className="text-[10px] font-bold text-[#06B6D4] border border-[#06B6D4]/20 bg-[#06B6D4]/5 px-2 py-1 rounded w-fit flex items-center gap-1 hover:bg-[#06B6D4]/10 transition-colors cursor-pointer">
             View Details <ArrowRight className="w-2.5 h-2.5" />

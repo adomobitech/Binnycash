@@ -12,7 +12,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 🔥 FIX: Run URL extraction immediately so dashboard components get the token on first render
+// Run URL extraction immediately so dashboard components get the token on first render
 function captureGoogleAuthFromUrl() {
   if (typeof window === 'undefined') return false;
 
@@ -72,7 +72,7 @@ function captureGoogleAuthFromUrl() {
   return true;
 }
 
-// 🔥 GLOBAL EXECUTION: Runs before React Hydration is complete 🔥
+// GLOBAL EXECUTION: Runs before React Hydration is complete
 if (typeof window !== 'undefined') {
   captureGoogleAuthFromUrl();
 }
@@ -80,22 +80,28 @@ if (typeof window !== 'undefined') {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [initialView, setInitialView] = useState<'login' | 'register'>('login');
+  
+  // We keep this to true initially, but force it false instantly in useEffect
   const [isAppLoading, setIsAppLoading] = useState(true);
+  
+  // 🔥 ADDED ONLY FOR LAYOUT SHIFT 🔥
+  const [isAuthUser, setIsAuthUser] = useState(false);
   
   const router = useRouter();
   const pathname = usePathname();
 
-  // We determine protected routes outside useEffect so we can use it to render the Fake Screen
   const protectedRoutes = ['/dashboard', '/myoffers', '/affiliate', '/leaderboard', '/cashout', '/rewards', '/profile'];
   const isProtectedRoute = protectedRoutes.some(route => 
     pathname === route || pathname?.startsWith(route + '/')
   );
 
   useEffect(() => {
+    // FAIL-SAFE 1: Force UI to unblock after 100ms no matter what happens
+    const fallbackTimer = setTimeout(() => setIsAppLoading(false), 100);
+
     const handleAuthCheck = async () => {
       const token = localStorage.getItem('token');
       
-      // 🔥 SAFE REDIRECT HELPER: Fixes "Router action dispatched before initialization" error 🔥
       const safeRedirect = (path: string) => {
         setTimeout(() => {
           router.replace(path);
@@ -112,18 +118,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (!token || token === 'undefined' || token.includes('[object Object]')) {
+        setIsAuthUser(false); // Added for Layout Shift
         if (isProtectedRoute) {
            safeRedirect('/'); // Redirect unauthenticated users back to home
         }
         setIsAppLoading(false);
+        clearTimeout(fallbackTimer);
         return;
       }
 
+      setIsAuthUser(true); // Added for Layout Shift
+
+      // THE MAGIC FIX: Instantly release the loading spinner!
+      // Do NOT wait for the API response. Let the UI load immediately with local data.
+      setIsAppLoading(false);
+      clearTimeout(fallbackTimer);
+
+      // --- SILENT BACKGROUND FETCH ---
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 sec timeout
+
         const res = await fetch('https://api.binnycash.com/api/user/userDetails', {
           method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
 
         if (res.ok) {
           let data: any = null;
@@ -132,9 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (text && !text.trim().startsWith('<')) {
                data = JSON.parse(text);
             }
-          } catch (e) {
-            console.warn("AuthContext Parse Error Safely Handled");
-          }
+          } catch (e) {}
           
           const user = data?.data?.user || data?.data || data?.userDetails || data;
           
@@ -163,22 +183,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             window.dispatchEvent(new CustomEvent('profileUpdated'));
           }
         } else {
-          // If strictly unauthorized, remove tokens
+          // If strictly unauthorized, silently logout
           if (res.status === 401 || res.status === 404) {
             localStorage.removeItem('token');
             localStorage.removeItem('userId');
             localStorage.removeItem('userDetails');
+            setIsAuthUser(false); // Added for Layout Shift
             if (isProtectedRoute) safeRedirect('/'); 
           }
         }
       } catch (err) {
-        console.error("Session verification failed", err);
-      } finally {
-        setIsAppLoading(false);
+        // Backend is down or timed out. Do nothing. UI is already running perfectly.
+        console.warn("Background auth check failed (Backend down). UI continues safely.");
       }
     };
 
     handleAuthCheck();
+
+    // 🔥 Added to keep Layout Shift synced across tabs
+    const syncAuth = () => {
+      const token = localStorage.getItem('token');
+      setIsAuthUser(!!(token && token !== 'undefined' && !token.includes('[object Object]')));
+    };
+    window.addEventListener('storage', syncAuth);
+    window.addEventListener('profileUpdated', syncAuth);
+
+    return () => {
+      clearTimeout(fallbackTimer);
+      window.removeEventListener('storage', syncAuth);
+      window.removeEventListener('profileUpdated', syncAuth);
+    };
   }, [pathname, router, isProtectedRoute]);
 
   const openLogin = () => {
@@ -195,6 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsOpen(false);
   };
 
+  // Only show the full-screen spinner if strictly required
   if (isAppLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[#0B0E14]">
@@ -203,10 +238,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  // 🔥 PAGE SHIFTER LOGIC 🔥
+  const isAdminPath = pathname?.startsWith('/v9') || pathname?.startsWith('/admin');
+  const isHome = pathname === '/';
+  const requiresSidebarMargin = isAuthUser && !isHome && !isAdminPath;
+
   return (
-    <AuthContext.Provider value={{ openLogin, openRegister, closeModal }}>      
-      {/* 🔥 ADDED CHILDREN BACK SO THE APP ACTUALLY RENDERS 🔥 */}
-      {children}
+    <AuthContext.Provider value={{ openLogin, openRegister, closeModal }}>
+      {/* DIRECT RENDER OF THE ACTUAL APP COMPONENTS INSIDE SHIFTER */}
+      <div className={`transition-all duration-300 min-h-screen ${requiresSidebarMargin ? 'lg:ml-[260px] lg:w-[calc(100%-260px)] pb-[80px] lg:pb-0' : 'w-full'}`}>
+        {children}
+      </div>
       
       <AuthModal 
         isOpen={isOpen} 
