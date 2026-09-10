@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import AuthModal from './AuthModal'; 
-import { Settings, AlertTriangle } from 'lucide-react'; // 🔥 Added Technical Issue Icons
 
 interface AuthContextType {
   openLogin: () => void;
@@ -206,6 +205,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ openLogin, openRegister, closeModal }}>      
+      {/* 🔥 ADDED CHILDREN BACK SO THE APP ACTUALLY RENDERS 🔥 */}
+      {children}
+      
       <AuthModal 
         isOpen={isOpen} 
         onClose={closeModal} 
