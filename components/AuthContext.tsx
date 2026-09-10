@@ -205,40 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ openLogin, openRegister, closeModal }}>
-      {/* 🔥 FAKE TECHNICAL ISSUE SCREEN INJECTION FOR PROTECTED ROUTES 🔥 */}
-      {isProtectedRoute ? (
-        <div className="flex h-screen w-full flex-col items-center justify-center bg-[#05070A] text-white p-6 text-center font-sans relative overflow-hidden">
-          {/* Ambient Background Effect */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#FF5D73]/10 blur-[100px] rounded-full pointer-events-none" />
-          
-          <div className="relative z-10 flex flex-col items-center">
-            {/* Animated Settings/Warning Icon */}
-            <div className="w-24 h-24 bg-[#12141D] border border-[#FF5D73]/30 rounded-[24px] flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(255,93,115,0.2)] relative">
-              <Settings className="w-12 h-12 text-[#FF5D73] animate-spin" style={{ animationDuration: '4s' }} />
-              <div className="absolute -bottom-2 -right-2 bg-[#12141D] p-1.5 rounded-xl border border-[#FF5D73]/30">
-                 <AlertTriangle className="w-5 h-5 text-amber-400" />
-              </div>
-            </div>
-            
-            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-4">
-              System Maintenance
-            </h1>
-            
-            <p className="text-[#8F95A3] text-sm sm:text-base max-w-md leading-relaxed mb-8">
-              We are currently experiencing a technical issue on our side. Our engineering team is actively working to resolve it. Please wait for some time and check back later.
-            </p>
-            
-            {/* Minimal Loading Bar */}
-            <div className="w-48 h-1 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-[#FF5D73] rounded-full animate-pulse" style={{ width: '60%' }}></div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        children
-      )}
-      
+    <AuthContext.Provider value={{ openLogin, openRegister, closeModal }}>      
       <AuthModal 
         isOpen={isOpen} 
         onClose={closeModal} 
